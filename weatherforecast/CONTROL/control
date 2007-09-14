@@ -1,0 +1,10 @@
+Package: enigma2-plugin-extensions-weatherforecast
+Version: 0.0-20070914-r0
+Description: Displays weather forecast from different sources
+Architecture: mipsel
+Section: extra
+Priority: optional
+Maintainer: Moritz Venn <moritz.venn@freaque.net>
+Homepage: http://www.ritzmo.de
+Depends: enigma2(>1.0cvs20070731)
+Source: http://www.ritzmo.de

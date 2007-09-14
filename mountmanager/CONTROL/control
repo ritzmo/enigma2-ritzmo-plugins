@@ -1,0 +1,10 @@
+Package: enigma2-plugin-extensions-mountmanager
+Version: 0.2-20070913-r0
+Description: Mount Manager-Plugin for Enigma2
+Architecture: mipsel
+Section: extra
+Priority: optional
+Maintainer: Moritz Venn <moritz.venn@freaque.net>
+Homepage: http://www.ritzmo.de
+Depends: enigma2(>1.0cvs20070731)
+Source: http://www.ritzmo.de
