@@ -5,11 +5,15 @@ from enigma import eTimer
 
 class WerbeZapper:
 	def __init__(self, session, servicelist):
-		# Save Session&Servicelist, Create Timer, Init Services
+		# Save Session&Servicelist
 		self.session = session
 		self.servicelist = servicelist
+
+		# Create Timer
 		self.zap_timer = eTimer()
 		self.zap_timer.timeout.get().append(self.zap)
+
+		# Initialize services
 		self.zap_service = None
 		self.move_service = None
 
@@ -25,6 +29,7 @@ class WerbeZapper:
 		if result:
 			# Stop Timer
 			self.zap_timer.stop()
+
 			# Reset Vars
 			self.zap_service = None
 			self.move_service = None
@@ -38,6 +43,7 @@ class WerbeZapper:
 			self.zap_service = self.session.nav.getCurrentlyPlayingServiceReference()
 			self.move_service = self.servicelist.getCurrentSelection()
 
+			# Start Timer
 			self.zap_timer.startLongTimer(result[1]*60)
 
 	def zap(self):
@@ -46,6 +52,7 @@ class WerbeZapper:
 			if self.move_service is not None:
 				self.servicelist.setCurrentSelection(self.move_service)
 				self.servicelist.zap()
+
 			# Play zap_service if it is different from move_service
 			if self.zap_service != self.move_service:
 				# Play Service
@@ -59,6 +66,7 @@ zapperInstance = None
 
 def main(session, servicelist, **kwargs):
 	# Create Instance if none present, show Dialog afterwards
+	# TODO: do we really need to keep this instance?
 	global zapperInstance
 	if zapperInstance is None:
 		zapperInstance = WerbeZapper(session, servicelist)
