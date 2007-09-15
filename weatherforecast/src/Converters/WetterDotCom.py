@@ -24,6 +24,9 @@ class WetterDotCom(Converter):
 		"""Returns Weather-Information of a Day, here it is a 3-Tupel of (morning, noon, evening).
 		   Other Parsers should return 4-Tupel of (desc., temp., precip., wind) if not as detailed
 		   information is available."""
+
+		# Unfortunately I'm unable to match this, although I don't know why
+		# TODO: get a stable source for development ;)
 		matches = split('<span class="Headline" style="line-height: 15px;">(.*?)</span>', data, 6)
 		return (
 			self.parseElement(matches[1].split('<br>')),

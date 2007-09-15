@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+# WARNING
+# THIS IS WORK IN PROGRESS AND CURRENTLY NOT MEANT TO BE USED
+# IT ACTUALLY DOES NOT GIVE ANY RESULTS ANYWAY :-)
+
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 #from Screens.ChoiceBox import ChoiceBox
@@ -8,6 +12,10 @@ from Plugins.Plugin import PluginDescriptor
 from twisted.web.client import getPage
 from Tools.BoundFunction import boundFunction
 from Converters.WetterDotCom import WetterDotCom
+from os import path
+from xml.dom.minidom import parse
+
+XML_PATH = "/etc/enigma2/weather.xml"
 
 class WeatherScreen(Screen):
 	skin = """<screen position="100,100" size="460,420" title="Weather Forecast" >
@@ -33,7 +41,13 @@ class WeatherForecast:
 		# Save session locally to open Screens
 		self.session = session
 
-		# TODO: anything else to be done here?
+		self.list = []
+		if path.exists(XML_PATH):
+			dom = parse(XML_PATH)
+			for config in dom.getElementsByTagName("weather"):
+				for station in dom.getElementByTagName("station"):
+					# TODO: parse xml :)
+					pass
 
 	def error(self, errmsg = ""):
 		self.session.open(MessageBox, "Error obtaining weather data", timeout = 5)
@@ -57,6 +71,8 @@ class WeatherForecast:
 		# TODO: show dialog which enables you to select from a preconfigured source
 		parser = "Wetter.com"
 		uri = "http://www.wetter.com/v2/?SID=&LANG=DE&LOC=7011&LOCFROM=0202&type=WORLD&id=19600"
+
+		# Fetch Weather if we know how to parse it
 		if self.availableParser.has_key(parser):
 			getPage(uri).addCallback(callback=boundFunction(self.gotPage, self.availableParser[parser])).addErrback(self.error)
 		else:
