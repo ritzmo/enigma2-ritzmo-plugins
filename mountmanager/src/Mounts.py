@@ -1,5 +1,4 @@
 from os import system, fork, _exit, waitpid, WNOHANG, kill, path
-from re import compile
 from enigma import eTimer
 from xml.dom.minidom import parse as minidom_parse
 
@@ -257,7 +256,6 @@ class Mounts():
 		self.umount()
 
 		# Initialize
-		r = compile('^/media/')
 		self.pids = []
 
 		# TODO: Do we really want this to try/except ?
@@ -268,7 +266,7 @@ class Mounts():
 					continue
 
 				# Make directory if subdir of /media
-				if r.match(mount[4]):
+				if mount[4].startswith("/media/"):
 					system(''.join(["mkdir -p ", mount[4]]))
 
 				# Fork to not hang
@@ -293,48 +291,30 @@ class Mounts():
 					system(' '.join(["mount -t", mount[0], options, host, mount[4]]))
 					_exit(0)
 				else:
-					self.pids.append((pid, 0))
+					self.pids.append(pid)
 		except Exception, e:
 			print "[MountManager] Error mounting:", e
 		finally:
-			# If we have processes running start a timer to take care
+			# If we have processes running start a timer to take care of these
 			if len(self.pids):
 				self.timer = eTimer()
 				self.timer.timeout.get().append(self.pidTimerFire)
-				self.timer.start(1000, 1)
+				self.timer.startLongTimer(10)
 
 	def pidTimerFire(self):
-		# Die on empty list
-		if len(self.pids) == 0:
-			self.timer.timeout.get().remove(self.pidTimerFire)
-			self.timer = None
-			return None
-
 		# Walk through pids
-		index = 0
-		for item in self.pids:
-			#  Keep-Alive for max 10 cycles
-			if item[1] < 10:
-				try:
-					# Check if process is still running
-					waitpid(item[0], WNOHANG)
+		for process in self.pids:
+			try:
+				# Check if process is still running
+				waitpid(process, WNOHANG)
 
-					# Increment counter
-					item[1] += 1
-				except:
-					# If not remove from list
-					self.pids.pop(index)
-			else:
-				# We waited for at least 10s, kill process
-				kill(item[0], 9)
+				# When we reach this line the process is still running
+				kill(process, 9)
+			except:
+				pass
 
-				# And remove from list too
-				self.pids.pop(index)
-
-			# Increment index
-			index += 1
-
-		# Restart Timer when done with checking pids
-		self.timer.start(1000, 1)
+		# Stop Timer
+		self.timer.timeout.get().remove(self.pidTimerFire)
+		self.timer = None
 
 mounts = Mounts()
