@@ -1,2 +1,2 @@
 AUTOMAKE_OPTIONS = gnu
-SUBDIRS = mountmanager weatherforecast werbezapper
+SUBDIRS = mountmanager mediadownloader weatherforecast werbezapper
