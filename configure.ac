@@ -10,6 +10,9 @@ mountmanager/Makefile
 mountmanager/etc/Makefile
 mountmanager/src/Makefile
 
+mediadownloader/Makefile
+mediadownloader/src/Makefile
+
 weatherforecast/Makefile
 weatherforecast/src/Makefile
 
