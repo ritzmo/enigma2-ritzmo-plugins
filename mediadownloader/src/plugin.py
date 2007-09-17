@@ -5,9 +5,14 @@ from Components.ActionMap import ActionMap
 from Components.Label import Label
 from Components.FileList import FileList
 
+from mimetypes import guess_type
+
 from Plugins.Plugin import PluginDescriptor
 
 class LocationBox(Screen):
+	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder"""
+
+	# TODO: add usage
 	skin = """<screen name="LocationBox" position="100,150" size="540,260" >
 			<widget name="text" position="0,2" size="540,22" font="Regular;22" />
 			<widget name="filelist" position="0,25" size="540,235" />
@@ -15,7 +20,9 @@ class LocationBox(Screen):
 
 	def __init__(self, session, text, filename, currDir = "/"):
 		Screen.__init__(self, session)
+
 		self["text"] = Label(text)
+		self.text = text
 
 		self.filename = filename
 
@@ -27,8 +34,8 @@ class LocationBox(Screen):
 			"ok": self.ok,
 			"cancel": self.cancel,
 			"green": self.select,
-			"left": self.pageUp,
-			"right": self.pageDown,
+			"left": self.left,
+			"right": self.right,
 			"up": self.up,
 			"down": self.down,
 		})
@@ -39,10 +46,10 @@ class LocationBox(Screen):
 	def down(self):
 		self["filelist"].down()
 
-	def pageUp(self):
+	def left(self):
 		self["filelist"].pageUp()
 
-	def pageDown(self):
+	def right(self):
 		self["filelist"].pageDown()
 
 	def ok(self):
@@ -53,40 +60,55 @@ class LocationBox(Screen):
 		self.close(None)
 
 	def select(self):
-		print "in select"
 		self.close('/'.join([self.filelist.getCurrentDirectory(), self.filename]))
 
+	def __repr__(self):
+		return str(type(self)) + "(" + self.text + ")"
+
 class MediaDownloader(Screen):
+	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
+	for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
+
 	skin = """<screen name="MediaDownloader" position="100,150" size="540,60" >
 			<widget name="wait" position="20,10" size="500,25" font="Regular;23" />
 		</screen>"""
 
-	def __init__(self, session, mimetype, url, doOpen = False):
+	def __init__(self, session, url, doOpen = False, downloadTo = None):
 		Screen.__init__(self, session)
+
 		self.url = url
-		self.mimetype = mimetype
+		(self.mimetype, _) = guess_type(url)
 		self.doOpen = doOpen
+		self.filename = downloadTo
 
 		self["wait"] = Label(_("Downloading..."))
 
+		# Call getFilename as soon as we are able to open a new screen
 		self.onExecBegin.append(self.getFilename)
 
 	def getFilename(self):
 		self.onExecBegin.remove(self.getFilename)
 
-		from os import path
+		# If we have a filename (downloadTo provided) start fetching
+		if self.filename is not None:
+			self.fetchFile()
+		# Else open LocationBox to determine where to save
+		else:
+			from os import path
 
-		self.session.openWithCallback(
-			self.gotFilename,
-			LocationBox,
-			"Where to save?",
-			path.basename(self.url)
-		)
+			self.session.openWithCallback(
+				self.gotFilename,
+				LocationBox,
+				"Where to save?",
+				path.basename(self.url)
+			)
 
 	def gotFilename(self, res):
+		# If we got a filename try to fetch file
 		if res is not None:
 			self.filename = res
 			self.fetchFile()
+		# Else close
 		else:
 			self.close()
 
@@ -96,9 +118,11 @@ class MediaDownloader(Screen):
 		downloadPage(self.url, self.filename).addCallback(self.gotFile).addErrback(self.error)
 
 	def gotFile(self, data = ""):
+		# Just close if we are not supposed to open this file
 		if not self.doOpen:
 			self.close()
 			return None
+		# Else try to view
 		try:
 			from Plugins.Extensions.MediaScanner.plugin import openFile
 			if not openFile(self.session, self.mimetype, self.filename):
@@ -134,15 +158,17 @@ class MediaDownloader(Screen):
 		)
 		self.close()
 
+def download_file(session, url, to = None, doOpen = False, **kwargs):
+	"""Provides a simple downloader Application"""
+	session.open(MediaDownloader, url, doOpen, to)
+
 def filescan_open(list, session, **kwargs):
-	from mimetypes import guess_type
-	type = guess_type(list[0])
-	session.open(MediaDownloader, type[0], list[0], doOpen = True)
+	"""Download a file and open it afterwards"""
+	session.open(MediaDownloader, list[0], doOpen = True)
 
 def filescan_save(list, session, **kwargs):
-	from mimetypes import guess_type
-	type = guess_type(list[0])
-	session.open(MediaDownloader, type[0], list[0], doOpen = False)
+	"""Download a file"""
+	session.open(MediaDownloader, list[0], doOpen = False)
 
 def filescan(**kwargs):
 	# we expect not to be called if the MediaScanner plugin is not available,
