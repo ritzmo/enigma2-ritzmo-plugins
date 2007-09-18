@@ -189,7 +189,7 @@ def filescan_open(open, items, session, **kwargs):
 		# TODO: make first entry in tuple human-readable
 		choices = [(item, item) for item in items]
 		session.openWithCallback(
-			boundFunction(self.filescan_chosen, open, session),
+			boundFunction(filescan_chosen, open, session),
 			ChoiceBox,
 			text = "Which file do you want to download?",
 			list = choices
