@@ -1,5 +1,7 @@
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
+from Screens.ChoiceBox import ChoiceBox
+from Tools.BoundFunction import boundFunction
 
 from Components.ActionMap import ActionMap
 from Components.Label import Label
@@ -162,13 +164,24 @@ def download_file(session, url, to = None, doOpen = False, **kwargs):
 	"""Provides a simple downloader Application"""
 	session.open(MediaDownloader, url, doOpen, to)
 
-def filescan_open(list, session, **kwargs):
-	"""Download a file and open it afterwards"""
-	session.open(MediaDownloader, list[0], doOpen = True)
+def filescan_chosen(doOpen, session, item):
+	if item:
+		print item
+		session.open(MediaDownloader, item[1], doOpen = doOpen)
 
-def filescan_save(list, session, **kwargs):
-	"""Download a file"""
-	session.open(MediaDownloader, list[0], doOpen = False)
+def filescan_open(doOpen, items, session, **kwargs):
+	"""Download a file from a given List"""
+	Len = len(items)
+	if Len > 1:
+		choices = [(url, item) for item in items]
+		session.openWithCallback(
+			boundFunction(self.filescan_chosen, doOpen, session),
+			ChoiceBox,
+			text = "Which file do you want to download?",
+			list = choices
+		)
+	elif Len:
+		session.open(MediaDownloader, items[0], doOpen = doOpen)
 
 def filescan(**kwargs):
 	# we expect not to be called if the MediaScanner plugin is not available,
@@ -188,7 +201,7 @@ def filescan(**kwargs):
 				],
 			name = "Download",
 			description = "Download...",
-			openfnc = filescan_save,
+			openfnc = boundFunction(filescan_open, True),
 		),
 		RemoteScanner(mimetypes = None,
 			paths_to_scan =
@@ -197,7 +210,7 @@ def filescan(**kwargs):
 				],
 			name = "Download",
 			description = "Download and open...",
-			openfnc = filescan_open,
+			openfnc = boundFunction(filescan_open, False),
 		)
 	]
 
