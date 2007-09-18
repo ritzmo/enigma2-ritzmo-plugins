@@ -1,3 +1,8 @@
+#
+# This is still WIP (although it works just fine)
+# To be used as easy-to-use Downloading Application by other Plugins
+#
+
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
