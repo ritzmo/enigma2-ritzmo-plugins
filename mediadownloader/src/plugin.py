@@ -186,7 +186,8 @@ def filescan_open(open, items, session, **kwargs):
 	"""Download a file from a given List"""
 	Len = len(items)
 	if Len > 1:
-		choices = [(url, item) for item in items]
+		# TODO: make first entry in tuple human-readable
+		choices = [(item, item) for item in items]
 		session.openWithCallback(
 			boundFunction(self.filescan_chosen, open, session),
 			ChoiceBox,
