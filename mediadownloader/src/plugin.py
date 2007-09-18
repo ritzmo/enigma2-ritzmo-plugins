@@ -20,7 +20,7 @@ class LocationBox(Screen):
 			<widget name="filelist" position="0,25" size="540,235" />
 			<ePixmap position="400,260" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
 			<widget name="key_green" position="400,260" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
-			<widget name="target" position="0,260" size="140,40" halign="center" valign="center" font="Regular;22" />
+			<widget name="target" position="0,260" size="390,40" valign="center" font="Regular;22" />
 		</screen>"""
 
 	def __init__(self, session, text, filename, currDir = "/"):
@@ -70,7 +70,7 @@ class LocationBox(Screen):
 		self.close(None)
 
 	def select(self):
-		self.close('/'.join([self.filelist.getCurrentDirectory(), self.filename]))
+		self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def __repr__(self):
 		return str(type(self)) + "(" + self.text + ")"
@@ -79,8 +79,8 @@ class MediaDownloader(Screen):
 	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
 	for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
 
-	skin = """<screen name="MediaDownloader" position="100,150" size="540,60" >
-			<widget name="wait" position="20,10" size="500,25" font="Regular;23" />
+	skin = """<screen name="MediaDownloader" position="100,150" size="540,40" >
+			<widget name="wait" position="20,10" size="500,30" valign="center" font="Regular;23" />
 		</screen>"""
 
 	def __init__(self, session, url, doOpen = False, downloadTo = None):
@@ -91,7 +91,7 @@ class MediaDownloader(Screen):
 		self.doOpen = doOpen
 		self.filename = downloadTo
 
-		self["wait"] = Label(_("Downloading..."))
+		self["wait"] = Label("Downloading...")
 
 		# Call getFilename as soon as we are able to open a new screen
 		self.onExecBegin.append(self.getFilename)
@@ -172,24 +172,24 @@ def download_file(session, url, to = None, doOpen = False, **kwargs):
 	"""Provides a simple downloader Application"""
 	session.open(MediaDownloader, url, doOpen, to)
 
-def filescan_chosen(doOpen, session, item):
+def filescan_chosen(open, session, item):
 	if item:
-		print item
-		session.open(MediaDownloader, item[1], doOpen = doOpen)
+		print "ITEM IS", item
+		session.open(MediaDownloader, item[1], doOpen = open)
 
-def filescan_open(doOpen, items, session, **kwargs):
+def filescan_open(open, items, session, **kwargs):
 	"""Download a file from a given List"""
 	Len = len(items)
 	if Len > 1:
 		choices = [(url, item) for item in items]
 		session.openWithCallback(
-			boundFunction(self.filescan_chosen, doOpen, session),
+			boundFunction(self.filescan_chosen, open, session),
 			ChoiceBox,
 			text = "Which file do you want to download?",
 			list = choices
 		)
 	elif Len:
-		session.open(MediaDownloader, items[0], doOpen = doOpen)
+		session.open(MediaDownloader, items[0], doOpen = open)
 
 def filescan(**kwargs):
 	# we expect not to be called if the MediaScanner plugin is not available,
@@ -209,7 +209,7 @@ def filescan(**kwargs):
 				],
 			name = "Download",
 			description = "Download...",
-			openfnc = boundFunction(filescan_open, True),
+			openfnc = boundFunction(filescan_open, False),
 		),
 		RemoteScanner(mimetypes = None,
 			paths_to_scan =
@@ -218,7 +218,7 @@ def filescan(**kwargs):
 				],
 			name = "Download",
 			description = "Download and open...",
-			openfnc = boundFunction(filescan_open, False),
+			openfnc = boundFunction(filescan_open, True),
 		)
 	]
 
