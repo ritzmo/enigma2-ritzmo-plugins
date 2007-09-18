@@ -140,7 +140,7 @@ class MediaDownloader(Screen):
 		# Else try to view
 		try:
 			from Plugins.Extensions.MediaScanner.plugin import openFile
-			if not openFile(self.session, self.mimetype, self.filename):
+			if not openFile(self.session, None, self.filename):
 				self.session.open(
 					MessageBox,
 					"No suitable Viewer found!",
@@ -179,20 +179,18 @@ def download_file(session, url, to = None, doOpen = False, **kwargs):
 
 def filescan_chosen(open, session, item):
 	if item:
-		print "ITEM IS", item
 		session.open(MediaDownloader, item[1], doOpen = open)
 
 def filescan_open(open, items, session, **kwargs):
 	"""Download a file from a given List"""
 	Len = len(items)
 	if Len > 1:
-		# TODO: make first entry in tuple human-readable
-		choices = [(item, item) for item in items]
+		choices = [(item[item.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'), item) for item in items]
 		session.openWithCallback(
 			boundFunction(filescan_chosen, open, session),
 			ChoiceBox,
-			text = "Which file do you want to download?",
-			list = choices
+			"Which file do you want to download?",
+			choices
 		)
 	elif Len:
 		session.open(MediaDownloader, items[0], doOpen = open)
