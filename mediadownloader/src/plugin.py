@@ -5,6 +5,7 @@ from Tools.BoundFunction import boundFunction
 
 from Components.ActionMap import ActionMap
 from Components.Label import Label
+from Components.Button import Button
 from Components.FileList import FileList
 
 from mimetypes import guess_type
@@ -14,10 +15,12 @@ from Plugins.Plugin import PluginDescriptor
 class LocationBox(Screen):
 	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder"""
 
-	# TODO: add usage
-	skin = """<screen name="LocationBox" position="100,150" size="540,260" >
+	skin = """<screen name="LocationBox" position="100,150" size="540,300" >
 			<widget name="text" position="0,2" size="540,22" font="Regular;22" />
 			<widget name="filelist" position="0,25" size="540,235" />
+			<ePixmap position="400,260" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
+			<widget name="key_green" position="400,260" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
+			<widget name="target" position="0,260" size="140,40" halign="center" valign="center" font="Regular;22" />
 		</screen>"""
 
 	def __init__(self, session, text, filename, currDir = "/"):
@@ -30,6 +33,10 @@ class LocationBox(Screen):
 
 		self.filelist = FileList(currDir, showDirectories = True, showFiles = False)
 		self["filelist"] = self.filelist
+
+		self["key_green"] = Button(_("Confirm"))
+
+		self["target"] = Label(currDir)
 
 		self["actions"] = ActionMap(["OkCancelActions", "DirectionsActions", "ColorActions"],
 		{
@@ -57,6 +64,7 @@ class LocationBox(Screen):
 	def ok(self):
 		if self.filelist.canDescent():
 			self.filelist.descent()
+			self["target"].setText(self.filelist.getCurrentDirectory())
 
 	def cancel(self):
 		self.close(None)
