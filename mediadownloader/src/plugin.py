@@ -2,6 +2,8 @@
 # This is still WIP (although it works just fine)
 # To be used as easy-to-use Downloading Application by other Plugins
 #
+# WARNING:
+# Needs my plugin_viewer-Patch in the most recent version
 
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
@@ -196,9 +198,7 @@ def filescan_open(open, items, session, **kwargs):
 		session.open(MediaDownloader, items[0], doOpen = open)
 
 def filescan(**kwargs):
-	# we expect not to be called if the MediaScanner plugin is not available,
-	# thus we don't catch an ImportError exception here
-	from Plugins.Extensions.MediaScanner.plugin import Scanner, ScanPath
+	from Components.Scanner import Scanner, ScanPath
 
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
