@@ -140,27 +140,11 @@ class MediaDownloader(Screen):
 			self.close()
 			return None
 		# Else try to view
-		try:
-			from Plugins.Extensions.MediaScanner.plugin import openFile
-			if not openFile(self.session, None, self.filename):
-				self.session.open(
-					MessageBox,
-					"No suitable Viewer found!",
-					type = MessageBox.TYPE_ERROR,
-					timeout = 5
-				)
-		except ImportError, ie:
+		from Components.Scanner import openFile
+		if not openFile(self.session, None, self.filename):
 			self.session.open(
 				MessageBox,
-				"Please install MediaScanner Plugin to view Enclosures!",
-				type = MessageBox.TYPE_ERROR,
-				timeout = 5
-			)
-		except Exception, e:
-			print e
-			self.session.open(
-				MessageBox,
-				"An unexcpected Error occured.",
+				"No suitable Viewer found!",
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
