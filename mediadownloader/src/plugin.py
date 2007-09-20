@@ -50,8 +50,7 @@ class LocationBox(Screen):
 		self["key_green"] = Button(_("Confirm"))
 		self["key_yellow"] = Button(_("Rename"))
 
-		# TODO: check if currDir is sane (and != None)?
-		self["target"] = Label(''.join([currDir, self.filename]))
+		self["target"] = Label()
 
 		self["actions"] = ActionMap(["OkCancelActions", "DirectionsActions", "ColorActions"],
 		{
@@ -66,6 +65,7 @@ class LocationBox(Screen):
 		})
 
 		self.onShown.append(boundFunction(self.setTitle, windowTitle))
+		self.onShown.append(self.updateTarget)
 
 	def up(self):
 		self["filelist"].up()
@@ -82,13 +82,14 @@ class LocationBox(Screen):
 	def ok(self):
 		if self.filelist.canDescent():
 			self.filelist.descent()
-			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+			self.updateTarget()
 
 	def cancel(self):
 		self.close(None)
 
 	def select(self):
-		self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+		if self.filelist.getCurrentDirectory is not None:
+			self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def changeName(self):
 		# TODO: Add Information that changing extension is bad?
@@ -102,7 +103,14 @@ class LocationBox(Screen):
 	def nameChanged(self, res):
 		if res is not None:
 			self.filename = res
+			self.updateTarget()
+
+	def updateTarget(self):
+		if self.filelist.getCurrentDirectory is not None:
 			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+		else:
+			self["target"].setText("Invalid Location")
+
 
 	def __repr__(self):
 		return str(type(self)) + "(" + self.text + ")"
