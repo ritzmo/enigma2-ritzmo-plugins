@@ -3,11 +3,13 @@
 # To be used as easy-to-use Downloading Application by other Plugins
 #
 # WARNING:
-# Needs my plugin_viewer-Patch in the most recent version
+# Needs my plugin_viewer-Patch in its most recent version
 
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
+from Screens.InputBox import InputBox
+
 from Tools.BoundFunction import boundFunction
 
 from Components.ActionMap import ActionMap
@@ -15,22 +17,26 @@ from Components.Label import Label
 from Components.Button import Button
 from Components.FileList import FileList
 
-from mimetypes import guess_type
+from Components.Scanner import Scanner, ScanPath, openFile
 
 from Plugins.Plugin import PluginDescriptor
+
+from twisted.web.client import downloadPage
 
 class LocationBox(Screen):
 	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder"""
 
-	skin = """<screen name="LocationBox" position="100,150" size="540,300" >
+	skin = """<screen name="LocationBox" position="100,130" size="540,340" >
 			<widget name="text" position="0,2" size="540,22" font="Regular;22" />
 			<widget name="filelist" position="0,25" size="540,235" />
-			<ePixmap position="400,260" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
-			<widget name="key_green" position="400,260" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
-			<widget name="target" position="0,260" size="390,40" valign="center" font="Regular;22" />
+			<widget name="target" position="0,260" size="540,40" valign="center" font="Regular;22" />
+			<ePixmap position="260,300" zPosition="1" size="140,40" pixmap="key_yellow-fs8.png" transparent="1" alphatest="on" />
+			<widget name="key_yellow" position="260,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
+			<ePixmap position="400,300" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
+			<widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
 
-	def __init__(self, session, text, filename, currDir = "/"):
+	def __init__(self, session, text, filename, currDir = "/", windowTitle = "Select Location"):
 		Screen.__init__(self, session)
 
 		self["text"] = Label(text)
@@ -42,19 +48,24 @@ class LocationBox(Screen):
 		self["filelist"] = self.filelist
 
 		self["key_green"] = Button(_("Confirm"))
+		self["key_yellow"] = Button(_("Rename"))
 
-		self["target"] = Label(currDir)
+		# TODO: check if currDir is sane (and != None)?
+		self["target"] = Label(''.join([currDir, self.filename]))
 
 		self["actions"] = ActionMap(["OkCancelActions", "DirectionsActions", "ColorActions"],
 		{
 			"ok": self.ok,
 			"cancel": self.cancel,
 			"green": self.select,
+			"yellow": self.changeName,
 			"left": self.left,
 			"right": self.right,
 			"up": self.up,
 			"down": self.down,
 		})
+
+		self.onShown.append(boundFunction(self.setTitle, windowTitle))
 
 	def up(self):
 		self["filelist"].up()
@@ -71,13 +82,27 @@ class LocationBox(Screen):
 	def ok(self):
 		if self.filelist.canDescent():
 			self.filelist.descent()
-			self["target"].setText(self.filelist.getCurrentDirectory())
+			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def cancel(self):
 		self.close(None)
 
 	def select(self):
 		self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+
+	def changeName(self):
+		# TODO: Add Information that changing extension is bad?
+		# TODO: decide if using an inputbox is ok - we could also keep this in here
+		self.session.openWithCallback(
+			self.nameChanged,
+			InputBox,
+			text = self.filename
+		)
+
+	def nameChanged(self, res):
+		if res is not None:
+			self.filename = res
+			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def __repr__(self):
 		return str(type(self)) + "(" + self.text + ")"
@@ -94,7 +119,6 @@ class MediaDownloader(Screen):
 		Screen.__init__(self, session)
 
 		self.url = url
-		(self.mimetype, _) = guess_type(url)
 		self.doOpen = doOpen
 		self.filename = downloadTo
 
@@ -131,7 +155,6 @@ class MediaDownloader(Screen):
 
 	def fetchFile(self):
 		# Fetch file
-		from twisted.web.client import downloadPage
 		downloadPage(self.url, self.filename).addCallback(self.gotFile).addErrback(self.error)
 
 	def gotFile(self, data = ""):
@@ -140,7 +163,6 @@ class MediaDownloader(Screen):
 			self.close()
 			return None
 		# Else try to view
-		from Components.Scanner import openFile
 		if not openFile(self.session, None, self.filename):
 			self.session.open(
 				MessageBox,
@@ -171,7 +193,16 @@ def filescan_open(open, items, session, **kwargs):
 	"""Download a file from a given List"""
 	Len = len(items)
 	if Len > 1:
-		choices = [(item[item.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'), item) for item in items]
+		# Create human-readable filenames
+		choices = [
+			(
+				item[item.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'),
+				item
+			)
+				for item in items
+		]
+
+		# And let the user choose one
 		session.openWithCallback(
 			boundFunction(filescan_chosen, open, session),
 			ChoiceBox,
@@ -182,7 +213,6 @@ def filescan_open(open, items, session, **kwargs):
 		session.open(MediaDownloader, items[0], doOpen = open)
 
 def filescan(**kwargs):
-	from Components.Scanner import Scanner, ScanPath
 
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
