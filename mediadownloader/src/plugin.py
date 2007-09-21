@@ -3,7 +3,8 @@
 # To be used as easy-to-use Downloading Application by other Plugins
 #
 # WARNING:
-# Needs my plugin_viewer-Patch in its most recent version
+# Requires my plugin_viewer-Patch in its most recent version
+#
 
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
@@ -14,6 +15,7 @@ from Tools.BoundFunction import boundFunction
 
 from Components.ActionMap import ActionMap
 from Components.Label import Label
+from Components.Pixmap import Pixmap
 from Components.Button import Button
 from Components.FileList import FileList
 
@@ -30,9 +32,9 @@ class LocationBox(Screen):
 			<widget name="text" position="0,2" size="540,22" font="Regular;22" />
 			<widget name="filelist" position="0,25" size="540,235" />
 			<widget name="target" position="0,260" size="540,40" valign="center" font="Regular;22" />
-			<ePixmap position="260,300" zPosition="1" size="140,40" pixmap="key_yellow-fs8.png" transparent="1" alphatest="on" />
+			<widget name="yellow" position="260,300" zPosition="1" size="140,40" pixmap="key_yellow-fs8.png" transparent="1" alphatest="on" />
 			<widget name="key_yellow" position="260,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
-			<ePixmap position="400,300" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
+			<widget name="green" position="400,300" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
 			<widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
 
@@ -50,6 +52,9 @@ class LocationBox(Screen):
 		self["key_green"] = Button(_("Confirm"))
 		self["key_yellow"] = Button(_("Rename"))
 
+		self["green"] = Pixmap()
+		self["yellow"] = Pixmap()
+
 		self["target"] = Label()
 
 		self["actions"] = ActionMap(["OkCancelActions", "DirectionsActions", "ColorActions"],
@@ -64,8 +69,16 @@ class LocationBox(Screen):
 			"down": self.down,
 		})
 
-		self.onShown.append(boundFunction(self.setTitle, windowTitle))
-		self.onShown.append(self.updateTarget)
+		self.onShown.extend([
+			boundFunction(self.setTitle, windowTitle),
+			self.updateTarget,
+			self.showHideRename
+		])
+
+	def showHideRename(self):
+		if self.filename == "":
+			self["yellow"].hide()
+			self["key_yellow"].hide()
 
 	def up(self):
 		self["filelist"].up()
@@ -92,15 +105,8 @@ class LocationBox(Screen):
 			self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def changeName(self):
-		if self.filename == "":
-			self.session.open(
-				MessageBox,
-				"Changing the Filename is currently disabled.",
-                                type = MessageBox.TYPE_INFO,
-                                timeout = 5
-			)
-		else:	
-			# TODO: Add Information that changing extension is bad?
+		if self.filename != "":
+			# TODO: Add Information that changing extension is bad? disallow?
 			# TODO: decide if using an inputbox is ok - we could also keep this in here
 			self.session.openWithCallback(
 				self.nameChanged,
@@ -109,7 +115,8 @@ class LocationBox(Screen):
 			)
 
 	def nameChanged(self, res):
-		if res is not None:
+		# TODO: inform user when empty name was rejected?
+		if res is not None and len(res):
 			self.filename = res
 			self.updateTarget()
 
@@ -118,7 +125,6 @@ class LocationBox(Screen):
 			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 		else:
 			self["target"].setText("Invalid Location")
-
 
 	def __repr__(self):
 		return str(type(self)) + "(" + self.text + ")"
@@ -134,10 +140,12 @@ class MediaDownloader(Screen):
 	def __init__(self, session, url, doOpen = False, downloadTo = None):
 		Screen.__init__(self, session)
 
+		# Save options local
 		self.url = url
 		self.doOpen = doOpen
 		self.filename = downloadTo
 
+		# Inform user about whats currently done
 		self["wait"] = Label("Downloading...")
 
 		# Call getFilename as soon as we are able to open a new screen
@@ -151,6 +159,7 @@ class MediaDownloader(Screen):
 			self.fetchFile()
 		# Else open LocationBox to determine where to save
 		else:
+			# TODO: determine basename without os.path?
 			from os import path
 
 			self.session.openWithCallback(
@@ -174,12 +183,8 @@ class MediaDownloader(Screen):
 		downloadPage(self.url, self.filename).addCallback(self.gotFile).addErrback(self.error)
 
 	def gotFile(self, data = ""):
-		# Just close if we are not supposed to open this file
-		if not self.doOpen:
-			self.close()
-			return None
-		# Else try to view
-		if not openFile(self.session, None, self.filename):
+		# Try to open if we should
+		if self.doOpen and not openFile(self.session, None, self.filename):
 			self.session.open(
 				MessageBox,
 				"No suitable Viewer found!",
@@ -229,14 +234,14 @@ def filescan_open(open, items, session, **kwargs):
 		session.open(MediaDownloader, items[0], doOpen = open)
 
 def filescan(**kwargs):
-
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
 		def checkFile(self, filename):
 			return filename.startswith("http://") or filename.startswith("https://")
 
 	return [
-		RemoteScanner(mimetypes = None,
+		RemoteScanner(
+			mimetypes = None,
 			paths_to_scan = 
 				[
 					ScanPath(path = "", with_subdirs = False),
@@ -245,7 +250,8 @@ def filescan(**kwargs):
 			description = "Download...",
 			openfnc = boundFunction(filescan_open, False),
 		),
-		RemoteScanner(mimetypes = None,
+		RemoteScanner(
+			mimetypes = None,
 			paths_to_scan =
 				[
 					ScanPath(path = "", with_subdirs = False),
