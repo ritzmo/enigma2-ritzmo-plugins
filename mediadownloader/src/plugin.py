@@ -88,7 +88,7 @@ class LocationBox(Screen):
 		self.close(None)
 
 	def select(self):
-		if self.filelist.getCurrentDirectory is not None:
+		if self.filelist.getCurrentDirectory() is not None:
 			self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def changeName(self):
@@ -114,7 +114,7 @@ class LocationBox(Screen):
 			self.updateTarget()
 
 	def updateTarget(self):
-		if self.filelist.getCurrentDirectory is not None:
+		if self.filelist.getCurrentDirectory() is not None:
 			self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 		else:
 			self["target"].setText("Invalid Location")
