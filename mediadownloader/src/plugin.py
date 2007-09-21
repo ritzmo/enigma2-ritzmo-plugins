@@ -36,7 +36,7 @@ class LocationBox(Screen):
 			<widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
 
-	def __init__(self, session, text, filename, currDir = "/", windowTitle = "Select Location"):
+	def __init__(self, session, text = "", filename = "", currDir = "/", windowTitle = "Select Location"):
 		Screen.__init__(self, session)
 
 		self["text"] = Label(text)
@@ -92,13 +92,21 @@ class LocationBox(Screen):
 			self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
 
 	def changeName(self):
-		# TODO: Add Information that changing extension is bad?
-		# TODO: decide if using an inputbox is ok - we could also keep this in here
-		self.session.openWithCallback(
-			self.nameChanged,
-			InputBox,
-			text = self.filename
-		)
+		if self.filename == "":
+			self.session.open(
+				MessageBox,
+				"Changing the Filename is currently disabled.",
+                                type = MessageBox.TYPE_INFO,
+                                timeout = 5
+			)
+		else:	
+			# TODO: Add Information that changing extension is bad?
+			# TODO: decide if using an inputbox is ok - we could also keep this in here
+			self.session.openWithCallback(
+				self.nameChanged,
+				InputBox,
+				text = self.filename
+			)
 
 	def nameChanged(self, res):
 		if res is not None:
