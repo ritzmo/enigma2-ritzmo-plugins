@@ -6,27 +6,36 @@
 # Requires my plugin_viewer-Patch in its most recent version
 #
 
+# Needed for minFree
+from os import statvfs
+
+# GUI (Screens)
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
-from Screens.ChoiceBox import ChoiceBox
 from Screens.InputBox import InputBox
+from Screens.ChoiceBox import ChoiceBox
 
-from Tools.BoundFunction import boundFunction
-
+# GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.Button import Button
 from Components.FileList import FileList
 
+# Generic
+from Tools.BoundFunction import boundFunction
+
+# Scanner-Interface
 from Components.Scanner import Scanner, ScanPath, openFile
 
+# Plugin
 from Plugins.Plugin import PluginDescriptor
 
+# Download
 from twisted.web.client import downloadPage
 
 class LocationBox(Screen):
-	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder"""
+	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder/pathname combination"""
 
 	skin = """<screen name="LocationBox" position="100,130" size="540,340" >
 			<widget name="text" position="0,2" size="540,22" font="Regular;22" />
@@ -38,13 +47,14 @@ class LocationBox(Screen):
 			<widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
 
-	def __init__(self, session, text = "", filename = "", currDir = "/", windowTitle = "Select Location"):
+	def __init__(self, session, text = "", filename = "", currDir = "/", windowTitle = "Select Location", minFree = None):
 		Screen.__init__(self, session)
 
 		self["text"] = Label(text)
 		self.text = text
 
 		self.filename = filename
+		self.minFree = minFree
 
 		self.filelist = FileList(currDir, showDirectories = True, showFiles = False)
 		self["filelist"] = self.filelist
@@ -100,9 +110,34 @@ class LocationBox(Screen):
 	def cancel(self):
 		self.close(None)
 
-	def select(self):
-		if self.filelist.getCurrentDirectory() is not None:
+	def selectConfirmed(self, res):
+		if res: 
 			self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+
+	def select(self):
+		# Do nothing unless current Directory is valid
+		if self.filelist.getCurrentDirectory() is not None:
+			# Check if we need to have a minimum of free Space available
+			if self.minFree is not None:
+				# Try to read fs stats
+				try:
+					s = statvfs(self.filelist.getCurrentDirectory())
+					if (s.f_bavail * s.f_bsize) / 1000000 > self.minFree:
+						# Automatically confirm if we have enough free disk Space available
+						return self.selectConfirmed(True)
+				except OSError:
+					pass
+
+				# Ask User if he really wants to select this folder
+				self.session.openWithCallback(
+					self.selectConfirmed,
+					MessageBox,
+					"There might not be enough Space on the selected Partition.\nDo you really want to continue?",
+					type = MessageBox.TYPE_YESNO
+				)
+			# No minimum free Space means we can safely close
+			else:   
+				self.selectConfirmed(True)
 
 	def changeName(self):
 		if self.filename != "":
