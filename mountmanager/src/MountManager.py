@@ -9,9 +9,9 @@ from MountList import MountList
 class MountManager(Screen):
 	skin = """
 		<screen name="MountManager" position="140,148" size="420,250" title="Mount manager">
-			<ePixmap position="0,0" zPosition="1" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
-			<ePixmap position="140,0" zPosition="1" size="140,40" pixmap="key_yellow-fs8.png" transparent="1" alphatest="on" />
-			<ePixmap position="280,0" zPosition="1" size="140,40" pixmap="key_blue-fs8.png" transparent="1" alphatest="on" />
+			<ePixmap position="0,0" zPosition="1" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+			<ePixmap position="140,0" zPosition="1" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
+			<ePixmap position="280,0" zPosition="1" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
 			<widget name="key_green" position="0,0" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;21" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 			<widget name="key_yellow" position="140,0" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;21" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 			<widget name="key_blue" position="280,0" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;21" transparent="1" shadowColor="black" shadowOffset="-1,-1" />

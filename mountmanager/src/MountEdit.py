@@ -8,8 +8,8 @@ class MountEdit(Screen, ConfigListScreen):
 	skin = """
 		<screen name="MountEdit" position="130,150" size="450,240" title="Mount editor">
 			<widget name="config" position="0,0" size="450,200" scrollbarMode="showOnDemand" />
-			<ePixmap position="0,200" zPosition="4" size="140,40" pixmap="key_red-fs8.png" transparent="1" alphatest="on" />
-			<ePixmap position="140,200" zPosition="4" size="140,40" pixmap="key_green-fs8.png" transparent="1" alphatest="on" />
+			<ePixmap position="0,200" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+			<ePixmap position="140,200" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
 			<widget name="key_red" position="0,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 			<widget name="key_green" position="140,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
