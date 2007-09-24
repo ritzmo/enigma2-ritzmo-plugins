@@ -172,11 +172,11 @@ class MediaDownloader(Screen):
 			<widget name="wait" position="20,10" size="500,30" valign="center" font="Regular;23" />
 		</screen>"""
 
-	def __init__(self, session, url, doOpen = False, downloadTo = None):
+	def __init__(self, session, file, doOpen = False, downloadTo = None):
 		Screen.__init__(self, session)
 
-		# Save options local
-		self.url = url
+		# Save arguments local
+		self.file = file
 		self.doOpen = doOpen
 		self.filename = downloadTo
 
@@ -201,7 +201,8 @@ class MediaDownloader(Screen):
 				self.gotFilename,
 				LocationBox,
 				"Where to save?",
-				path.basename(self.url)
+				path.basename(self.file.path),
+				minFree = self.file.size
 			)
 
 	def gotFilename(self, res):
@@ -215,7 +216,7 @@ class MediaDownloader(Screen):
 
 	def fetchFile(self):
 		# Fetch file
-		downloadPage(self.url, self.filename).addCallback(self.gotFile).addErrback(self.error)
+		downloadPage(self.file.path, self.filename).addCallback(self.gotFile).addErrback(self.error)
 
 	def gotFile(self, data = ""):
 		# Try to open if we should
@@ -231,7 +232,7 @@ class MediaDownloader(Screen):
 	def error(self):
 		self.session.open(
 			MessageBox,
-			' '.join(["Error while downloading File:", self.url]),
+			' '.join(["Error while downloading File:", self.file.path]),
 			type = MessageBox.TYPE_ERROR,
 			timeout = 3
 		)
@@ -239,7 +240,8 @@ class MediaDownloader(Screen):
 
 def download_file(session, url, to = None, doOpen = False, **kwargs):
 	"""Provides a simple downloader Application"""
-	session.open(MediaDownloader, url, doOpen, to)
+	file = ScanFile(url, autodetect = False)
+	session.open(MediaDownloader, file, doOpen, to)
 
 def filescan_chosen(open, session, item):
 	if item:
@@ -252,7 +254,7 @@ def filescan_open(open, items, session, **kwargs):
 		# Create human-readable filenames
 		choices = [
 			(
-				item[item.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'),
+				item.path[item.path.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'),
 				item
 			)
 				for item in items
@@ -271,8 +273,8 @@ def filescan_open(open, items, session, **kwargs):
 def filescan(**kwargs):
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
-		def checkFile(self, filename):
-			return filename.startswith("http://") or filename.startswith("https://")
+		def checkFile(self, file):
+			return file.path.startswith("http://") or file.path.startswith("https://")
 
 	return [
 		RemoteScanner(
