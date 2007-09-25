@@ -32,7 +32,7 @@ from Components.Scanner import Scanner, ScanPath, openFile
 from Plugins.Plugin import PluginDescriptor
 
 # Download
-from twisted.web.client import downloadPage
+from HTTPProgressDownloader import HTTPProgressDownloaderSource, download
 
 class LocationBox(Screen):
 	"""Simple Class similar to MessageBox / ChoiceBox but used to choose a folder/pathname combination"""
@@ -168,8 +168,9 @@ class MediaDownloader(Screen):
 	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
 	for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
 
-	skin = """<screen name="MediaDownloader" position="100,150" size="540,40" >
+	skin = """<screen name="MediaDownloader" position="100,150" size="540,60" >
 			<widget name="wait" position="20,10" size="500,30" valign="center" font="Regular;23" />
+			<widget source="progress" render="Progress" position="2,40" size="536,20" />
 		</screen>"""
 
 	def __init__(self, session, file, doOpen = False, downloadTo = None):
@@ -182,6 +183,9 @@ class MediaDownloader(Screen):
 
 		# Inform user about whats currently done
 		self["wait"] = Label("Downloading...")
+		self["progress"] = HTTPProgressDownloaderSource()
+		if self.file.size:
+			self["progress"].writeValues(0, self.file.size*1048576)
 
 		# Call getFilename as soon as we are able to open a new screen
 		self.onExecBegin.append(self.getFilename)
@@ -216,7 +220,7 @@ class MediaDownloader(Screen):
 
 	def fetchFile(self):
 		# Fetch file
-		downloadPage(self.file.path, self.filename).addCallback(self.gotFile).addErrback(self.error)
+		download(self.file.path, self.filename, self["progress"].writeValues).addCallback(self.gotFile).addErrback(self.error)
 
 	def gotFile(self, data = ""):
 		# Try to open if we should
