@@ -14,15 +14,20 @@ class HTTPProgressDownloaderSource(Source):
         # Invalidate
         self.range = None
         self.value = 0
+        self.factor = 1
         self.changed((self.CHANGED_CLEAR, ))
 
     def writeValues(self, pos, max):
         # Only save range if not None
         if max is not None:
-            self.range = max
+            self.range = max / self.factor
 
         # Save pos
-        self.value = pos
+        self.value = pos / self.factor
+
+        # Increase Factor as long as range is too big
+        if self.range > 5000000:
+            self.factor *= 500
 
         # Trigger change
         self.changed((self.CHANGED_ALL, ))
