@@ -17,11 +17,12 @@ class HTTPProgressDownloaderSource(Source):
         self.changed((self.CHANGED_CLEAR, ))
 
     def writeValues(self, pos, max):
-        # Save new values if not None
+        # Only save range if not None
         if max is not None:
             self.range = max
-        if pos is not None:
-            self.value = pos
+
+        # Save pos
+        self.value = pos
 
         # Trigger change
         self.changed((self.CHANGED_ALL, ))
