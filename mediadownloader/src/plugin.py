@@ -146,14 +146,22 @@ class LocationBox(Screen):
 			self.session.openWithCallback(
 				self.nameChanged,
 				InputBox,
+				title = "Please enter a new filename",
 				text = self.filename
 			)
 
 	def nameChanged(self, res):
-		# TODO: inform user when empty name was rejected?
-		if res is not None and len(res):
-			self.filename = res
-			self.updateTarget()
+		if res is not None:
+			if len(res):
+				self.filename = res
+				self.updateTarget()
+			else:
+				self.session.open(
+					MessageBox,
+					"An empty filename is illegal.",
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 
 	def updateTarget(self):
 		if self.filelist.getCurrentDirectory() is not None:
@@ -173,12 +181,12 @@ class MediaDownloader(Screen):
 			<widget source="progress" render="Progress" position="2,40" size="536,20" />
 		</screen>"""
 
-	def __init__(self, session, file, doOpen = False, downloadTo = None, callback = None):
+	def __init__(self, session, file, askOpen = False, downloadTo = None, callback = None):
 		Screen.__init__(self, session)
 
 		# Save arguments local
 		self.file = file
-		self.doOpen = doOpen
+		self.askOpen = askOpen
 		self.filename = downloadTo
 		self.callback = callback
 
@@ -225,9 +233,9 @@ class MediaDownloader(Screen):
 		# Fetch file
 		download(self.file.path, self.filename, self["progress"].writeValues).addCallback(self.gotFile).addErrback(self.error)
 
-	def gotFile(self, data = ""):
-		# Try to open if we should
-		if self.doOpen and not openFile(self.session, None, self.filename):
+	def openCallback(self, res):
+		# Try to open file if res was True
+		if res and not openFile(self.session, None, self.filename):
 			self.session.open(
 				MessageBox,
 				"No suitable Viewer found!",
@@ -240,6 +248,23 @@ class MediaDownloader(Screen):
 			self.callback(self.filename)
 
 		self.close()
+
+	def gotFile(self, data = ""):
+		# Ask if file should be opened unless told not to
+		if self.askOpen:
+			self.session.openWithCallback(
+				self.openCallback,
+				MessageBox,
+				"Do you want to try to open the downloaded file?",
+				type = MessageBox.TYPE_YESNO
+			)
+		# Otherwise callback and close
+		else:
+			# Calback with Filename on success
+			if self.callback is not None:
+				self.callback(self.filename)
+
+				self.close()
 
 	def error(self):
 		self.session.open(
@@ -255,16 +280,16 @@ class MediaDownloader(Screen):
 
 		self.close()
 
-def download_file(session, url, to = None, doOpen = False, callback = None, **kwargs):
+def download_file(session, url, to = None, askOpen = False, callback = None, **kwargs):
 	"""Provides a simple downloader Application"""
 	file = ScanFile(url, autodetect = False)
-	session.open(MediaDownloader, file, doOpen, to, callbck)
+	session.open(MediaDownloader, file, askOpen, to, callbck)
 
-def filescan_chosen(open, session, item):
+def filescan_chosen(session, item):
 	if item:
-		session.open(MediaDownloader, item[1], doOpen = open)
+		session.open(MediaDownloader, item[1], askOpen = True)
 
-def filescan_open(open, items, session, **kwargs):
+def filescan_open(items, session, **kwargs):
 	"""Download a file from a given List"""
 	Len = len(items)
 	if Len > 1:
@@ -279,7 +304,7 @@ def filescan_open(open, items, session, **kwargs):
 
 		# And let the user choose one
 		session.openWithCallback(
-			boundFunction(filescan_chosen, open, session),
+			boundFunction(filescan_chosen, session),
 			ChoiceBox,
 			"Which file do you want to download?",
 			choices
@@ -302,17 +327,7 @@ def filescan(**kwargs):
 				],
 			name = "Download",
 			description = "Download...",
-			openfnc = boundFunction(filescan_open, False),
-		),
-		RemoteScanner(
-			mimetypes = None,
-			paths_to_scan =
-				[
-					ScanPath(path = "", with_subdirs = False),
-				],
-			name = "Download",
-			description = "Download and open...",
-			openfnc = boundFunction(filescan_open, True),
+			openfnc = filescan_open,
 		)
 	]
 
