@@ -174,63 +174,6 @@ class Mounts():
 			if file is not None:
 				file.close()
 
-	# TODO: deprecated
-	def saveFstab(self):
-		TMP_FSTAB = "/tmp/fstab"
-		FSTAB = "/etc/fstab"
-
-		file = None
-		out = []
-		move = True
-		try:
-			# Open System fstab
-			file = open(FSTAB, "r")
-
-			# Write everything from fstab into tempfile until identifier reached
-			for line in file_in:
-				if line.strip() == self.identity:
-					break
-				else:
-					out.append(line)
-
-			# Close file
-			file.close()
-
-			# Append identifier to outfile too
-			out.append(self.identity)
-			out.append('\n')
-
-			# Now start appending mounts
-			for mount in self.mounts:
-
-				# Continue only if mountpoint active
-				if mount[1] == "1":
-
-					# Create valid syntax
-					if mount[0] == "nfs":
-						host = ':'.join([mount[2], mount[3]])
-						options = mount[5]
-					else:
-						host = ''.join(["//", mount[2], "/", mount[3]])
-						options = ''.join(["username=", mount[5], ",password=", mount[6]])
-
-					out.append("%-30s %-15s %-5s %-15s 1 0\n" % (host, mount[4], mount[0], options))
-
-			# Open temporary fstab and write it
-			file = open(TMP_FSTAB, "w")
-			file.writelines(out)
-		except Exception, e:
-			print "[MountManager] Error creating new Fstab:", e
-			move = False
-		finally:
-			if file is not None:
-				file.close()
-
-		# We have to do this that way as files have to be closed first
-		if move:
-			# os.rename does not work ?!
-			system(' '.join(["cp", TMP_FSTAB, FSTAB]))
-
 	def umount(self):
 		# Only use active mountpoints
 		mountpoints = [x[4] for x in self.mounts if x[1] == "1"]
