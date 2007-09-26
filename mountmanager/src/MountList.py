@@ -3,6 +3,8 @@ from Components.MultiContent import MultiContentEntryText
 from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT
 
 class MountList(GUIComponent):
+	"""Defines a simple Component to show Mountpoint & status"""
+	
 	def __init__(self, entries):
 		GUIComponent.__init__(self)
 

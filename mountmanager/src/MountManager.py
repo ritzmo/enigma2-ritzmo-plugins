@@ -7,6 +7,8 @@ from MountEdit import MountEdit
 from MountList import MountList
 
 class MountManager(Screen):
+	"""Main Screen of MountManager."""
+
 	skin = """
 		<screen name="MountManager" position="140,148" size="420,250" title="Mount manager">
 			<ePixmap position="0,0" zPosition="1" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
@@ -32,6 +34,7 @@ class MountManager(Screen):
 		# Create List of Mounts
 		self["entries"] = MountList(mounts.getExtendedList())
 
+		# Define Actions
 		self["actions"] = ActionMap(["OkCancelActions", "ColorActions"],
 			{
 				"ok": self.ok,
@@ -47,6 +50,7 @@ class MountManager(Screen):
 		self["entries"].l.setList(mounts.getExtendedList())
 
 	def ok(self):
+		# Edit selected Mount
 		current = self["entries"].getCurrent()
 		if current is not None:
 			self.session.openWithCallback(self.refresh, MountEdit, mounts, org_mp = current[0])
@@ -63,9 +67,11 @@ class MountManager(Screen):
 		self.close()
 
 	def add(self):
+		# Add a new Mount
 		self.session.openWithCallback(self.refresh, MountEdit, mounts)
 
 	def remove(self):
+		# Remove selected Mount
 		current = self["entries"].getCurrent()
 		if current is not None:
 			mounts.remove(current[0])

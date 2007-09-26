@@ -5,6 +5,8 @@ from Components.ActionMap import ActionMap
 from Components.Button import Button
 
 class MountEdit(Screen, ConfigListScreen):
+	"""Edit a certain Mount or create a new one."""
+
 	skin = """
 		<screen name="MountEdit" position="130,150" size="450,240" title="Mount editor">
 			<widget name="config" position="0,0" size="450,200" scrollbarMode="showOnDemand" />

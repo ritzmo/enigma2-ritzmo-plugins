@@ -5,9 +5,7 @@ from xml.dom.minidom import parse as minidom_parse
 XML_FSTAB = "/etc/enigma2/mounts.xml"
 
 class Mounts():
-	# Needed for fstab-handling
-	identity = "# MountManager (don't edit anything below this line)"
-
+	"""Manages Mounts declared in a XML-Document."""
 	def __init__(self):
 		# Read in XML when initing
 		self.reload()
@@ -201,48 +199,44 @@ class Mounts():
 		# Initialize
 		self.pids = []
 
-		# TODO: Do we really want this to try/except ?
-		try:
-			for mount in self.mounts:
-				# Continue if inactive
-				if mount[1] == "0":
-					continue
+		for mount in self.mounts:
+			# Continue if inactive
+			if mount[1] == "0":
+				continue
 
-				# Make directory if subdir of /media
-				if mount[4].startswith("/media/"):
-					system(''.join(["mkdir -p ", mount[4]]))
+			# Make directory if subdir of /media
+			if mount[4].startswith("/media/"):
+				system(''.join(["mkdir -p ", mount[4]]))
 
-				# Fork to not hang
-				pid = fork()
-				if pid == 0:
-					print "Mounting:", mount[4]
+			# Fork to not hang
+			pid = fork()
+			if pid == 0:
+				print "Mounting:", mount[4]
 
-					# Prepare Settings
-					if mount[0] == "nfs":
-						# Syntax: <ip>:<share>
-						host = ':'.join([mount[2], mount[3]])
-						options = ''
-						split_options = mount[5].split(',')
-						for option in split_options:
-							options += ' '.join([" -o", option])
-					else:
-						# Syntax: //<ip>/<share>
-						host = ''.join(["//", mount[2], "/", mount[3]])
-						options = ''.join(["-o ", "username=", mount[5], " -o ", "password=", mount[6]])
-
-					# Mount
-					system(' '.join(["mount -t", mount[0], options, host, mount[4]]))
-					_exit(0)
+				# Prepare Settings
+				if mount[0] == "nfs":
+					# Syntax: <ip>:<share>
+					host = ':'.join([mount[2], mount[3]])
+					options = ''
+					split_options = mount[5].split(',')
+					for option in split_options:
+						options += ' '.join([" -o", option])
 				else:
-					self.pids.append(pid)
-		except Exception, e:
-			print "[MountManager] Error mounting:", e
-		finally:
-			# If we have processes running start a timer to take care of these
-			if len(self.pids):
-				self.timer = eTimer()
-				self.timer.timeout.get().append(self.pidTimerFire)
-				self.timer.startLongTimer(10)
+					# Syntax: //<ip>/<share>
+					host = ''.join(["//", mount[2], "/", mount[3]])
+					options = ''.join(["-o ", "username=", mount[5], " -o ", "password=", mount[6]])
+
+				# Mount
+				system(' '.join(["mount -t", mount[0], options, host, mount[4]]))
+				_exit(0)
+			else:
+				self.pids.append(pid)
+
+		# If we have processes running start a timer to take care of these
+		if len(self.pids):
+			self.timer = eTimer()
+			self.timer.timeout.get().append(self.pidTimerFire)
+			self.timer.startLongTimer(10)
 
 	def pidTimerFire(self):
 		# Walk through pids
