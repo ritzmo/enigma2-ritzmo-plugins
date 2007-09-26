@@ -1,8 +1,13 @@
+# GUI (Screens)
 from Screens.Screen import Screen
-from Components.config import getConfigListEntry, ConfigSelection, ConfigEnableDisable, ConfigText, ConfigIP
 from Components.ConfigList import ConfigListScreen
+
+# GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
+
+# Configuration
+from Components.config import getConfigListEntry, ConfigSelection, ConfigEnableDisable, ConfigText, ConfigIP
 
 class MountEdit(Screen, ConfigListScreen):
 	"""Edit a certain Mount or create a new one."""

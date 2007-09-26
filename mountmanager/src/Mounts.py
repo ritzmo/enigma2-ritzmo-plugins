@@ -1,5 +1,10 @@
+# Mainly mounting
 from os import system, fork, _exit, waitpid, WNOHANG, kill, path
+
+# To check for hung processes
 from enigma import eTimer
+
+# Parse config
 from xml.dom.minidom import parse as minidom_parse
 
 XML_FSTAB = "/etc/enigma2/mounts.xml"
