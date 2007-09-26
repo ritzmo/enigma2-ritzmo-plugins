@@ -173,13 +173,14 @@ class MediaDownloader(Screen):
 			<widget source="progress" render="Progress" position="2,40" size="536,20" />
 		</screen>"""
 
-	def __init__(self, session, file, doOpen = False, downloadTo = None):
+	def __init__(self, session, file, doOpen = False, downloadTo = None, callback = None):
 		Screen.__init__(self, session)
 
 		# Save arguments local
 		self.file = file
 		self.doOpen = doOpen
 		self.filename = downloadTo
+		self.callback = callback
 
 		# Inform user about whats currently done
 		self["wait"] = Label("Downloading...")
@@ -233,21 +234,31 @@ class MediaDownloader(Screen):
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
+
+		# Calback with Filename on success
+		if self.callback is not None:
+			self.callback(self.filename)
+
 		self.close()
 
 	def error(self):
 		self.session.open(
 			MessageBox,
-			' '.join(["Error while downloading File:", self.file.path]),
+			'\n'.join(["Error while downloading File:", self.file.path]),
 			type = MessageBox.TYPE_ERROR,
 			timeout = 3
 		)
+
+		# Calback with None on failure
+		if self.callback is not None:
+			self.callback(None)
+
 		self.close()
 
-def download_file(session, url, to = None, doOpen = False, **kwargs):
+def download_file(session, url, to = None, doOpen = False, callback = None, **kwargs):
 	"""Provides a simple downloader Application"""
 	file = ScanFile(url, autodetect = False)
-	session.open(MediaDownloader, file, doOpen, to)
+	session.open(MediaDownloader, file, doOpen, to, callbck)
 
 def filescan_chosen(open, session, item):
 	if item:

@@ -31,13 +31,12 @@ class HTTPProgressDownloaderSource(Source):
 
         # Trigger change
         self.changed((self.CHANGED_ALL, ))
-    
 
 class HTTPProgressDownloader(HTTPDownloader): 
     """Download to a file and keep track of progress."""
 
-    def __init__(self, url, fileOrName, writeProgress, method='GET', headers=None, agent="Twisted client"):
-        HTTPDownloader.__init__(self, url, fileOrName, method=method, headers=headers, agent=agent)
+    def __init__(self, url, fileOrName, writeProgress, *args, **kwargs):
+        HTTPDownloader.__init__(self, url, fileOrName, *args, **kwargs)
 
         # Save callback locally
         self.writeProgress = writeProgress
