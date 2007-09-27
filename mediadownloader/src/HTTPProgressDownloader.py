@@ -1,42 +1,10 @@
 from twisted.web.client import HTTPDownloader, _parse
 from twisted.internet import reactor
-from Components.Sources.Source import Source
-
-class HTTPProgressDownloaderSource(Source):
-    """Source to feed Progress Renderer from HTTPProgressDownloader"""
-
-    def __init__(self):
-        # Initialize and invalidate
-        Source.__init__(self)
-        self.invalidate()
-
-    def invalidate(self):
-        # Invalidate
-        self.range = None
-        self.value = 0
-        self.factor = 1
-        self.changed((self.CHANGED_CLEAR, ))
-
-    def writeValues(self, pos, max):
-        # Increase Factor as long as range is too big
-        if self.range > 5000000:
-            self.factor *= 500
-            self.range /= 500
-
-        # Only save range if not None
-        if max is not None:
-            self.range = max / self.factor
-
-        # Save pos
-        self.value = pos / self.factor        
-
-        # Trigger change
-        self.changed((self.CHANGED_ALL, ))
 
 class HTTPProgressDownloader(HTTPDownloader): 
     """Download to a file and keep track of progress."""
 
-    def __init__(self, url, fileOrName, writeProgress, *args, **kwargs):
+    def __init__(self, url, fileOrName, writeProgress = None, *args, **kwargs):
         HTTPDownloader.__init__(self, url, fileOrName, *args, **kwargs)
 
         # Save callback locally
@@ -63,7 +31,7 @@ class HTTPProgressDownloader(HTTPDownloader):
 
         return HTTPDownloader.pagePart(self, data)
 
-def download(url, file, writeProgress, contextFactory=None, *args, **kwargs):
+def download(url, file, writeProgress=None, contextFactory=None, *args, **kwargs):
     """Download a web page to a file but provide current-/total-length.
 
     @param file: path to file on filesystem, or file-like object.
