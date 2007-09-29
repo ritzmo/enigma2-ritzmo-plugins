@@ -51,7 +51,7 @@ def filescan_open(items, session, **kwargs):
 			choices
 		)
 	elif Len:
-		session.open(MediaDownloader, items[0], doOpen = open)
+		session.open(MediaDownloader, items[0], askOpen = True)
 
 # Return Scanner provided by this Plugin
 def filescan(**kwargs):
