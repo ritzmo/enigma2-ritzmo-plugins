@@ -32,7 +32,7 @@ class MediaDownloader(Screen):
 
         # Inform user about whats currently done
         self["wait"] = Label("Downloading...")
-        self["progress"] = HTTPProgressDownloaderSource()
+        self["progress"] = VariableProgressSource()
 
         # Set Limit if we know it already (Server might not tell it)
         if self.file.size:

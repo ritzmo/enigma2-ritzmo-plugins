@@ -37,7 +37,7 @@ def download(url, file, writeProgress=None, contextFactory=None, *args, **kwargs
     @param file: path to file on filesystem, or file-like object.
     @param writeProgress: function which takes two arguments (pos, length)
 
-    See HTTP(Progress)Downloader to see what extra args can be passed.
+    See HTTPDownloader to see what extra args can be passed.
     """
     scheme, host, port, path = _parse(url)
     factory = HTTPProgressDownloader(url, file, writeProgress, *args, **kwargs)
