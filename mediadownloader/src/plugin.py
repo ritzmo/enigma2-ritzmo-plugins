@@ -13,7 +13,7 @@ from MediaDownloader import MediaDownloader
 from Tools.BoundFunction import boundFunction
 
 # Scanner-Interface
-from Components.Scanner import Scanner, ScanPath, openFile
+from Components.Scanner import Scanner, ScanPath
 
 # Plugin definition
 from Plugins.Plugin import PluginDescriptor

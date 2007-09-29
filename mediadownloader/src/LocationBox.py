@@ -6,6 +6,9 @@ from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Screens.InputBox import InputBox
 
+# Generic
+from Tools.BoundFunction import boundFunction
+
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Label import Label
@@ -26,7 +29,7 @@ class LocationBox(Screen):
             <widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
         </screen>"""
 
-    def __init__(self, session, text = "", filename = "", currDir = "/", windowTitle = "Select Location", minFree = None):
+    def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = "Select Location", minFree = None):
         Screen.__init__(self, session)
 
         self["text"] = Label(text)

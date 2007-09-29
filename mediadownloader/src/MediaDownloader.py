@@ -12,6 +12,9 @@ from Components.Label import Label
 from HTTPProgressDownloader import download
 from VariableProgressSource import VariableProgressSource
 
+# Scanner-Interface
+from Components.Scanner import openFile
+
 class MediaDownloader(Screen):
     """Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
     for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
