@@ -37,16 +37,16 @@ class LocationBox(Screen, NumericalTextInput):
 
     def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = "Select Location", minFree = None):
         Screen.__init__(self, session)
-        NumericalTextInput.__init__(self, nextFunc = self.key_next)
+        NumericalTextInput.__init__(self, handleTimeout = False)
 
         # Quickselect Timer
         self.key_timer = eTimer()
         self.key_timer.timeout.get().append(self.key_reset)
+        self.key_timer_type = 0
 
         # Initialize Quickselect
-        self.lastNumber = -1
         self.curr_pos = -1
-        self.key_select = ""
+        self.quickselect = ""
 
         self["text"] = Label(text)
         self.text = text
@@ -203,9 +203,9 @@ class LocationBox(Screen, NumericalTextInput):
         self.key_timer.stop()
 
         # See if another key was pressed before
-        if number != self.lastNumber:
+        if number != self.lastKey:
+            # Reset lastKey again so NumericalTextInput triggers its keychange
             self.nextKey()
-            self.lastNumber = number
 
             # Try to select what was typed
             self.selectByStart()
@@ -215,11 +215,15 @@ class LocationBox(Screen, NumericalTextInput):
 
         # Get char and append to text
         char = self.getKey(number)
-        self.key_select = self.key_select[:self.curr_pos] + unicode(char)
+        self.quickselect = self.quickselect[:self.curr_pos] + unicode(char)
+
+        # Start Timeout
+        self.key_timer_type = 0
+        self.key_timer.start(1000, 1)
 
     def selectByStart(self):
         # Don't do anything on initial call
-        if not len(self.key_select):
+        if not len(self.quickselect):
             return
         
         # Don't select if no dir
@@ -231,7 +235,7 @@ class LocationBox(Screen, NumericalTextInput):
             idx = 0
 
             # We select by filename which is absolute
-            lookfor = self["filelist"].getCurrentDirectory() + self.key_select
+            lookfor = self["filelist"].getCurrentDirectory() + self.quickselect
 
             # Select file starting with generated text
             for file in files:
@@ -240,24 +244,27 @@ class LocationBox(Screen, NumericalTextInput):
                     break
                 idx += 1
 
-    def key_next(self):
-        # Invalidate Key
-        self.lastNumber = -1
+    def key_reset(self, force = False):
+        if not force and self.key_timer_type == 0:
+            # Try to select what was typed
+            self.selectByStart()
 
-        # Try to select what was typed
-        self.selectByStart()
+            # Reset Key
+            self.nextKey()
+            
+            # Change type
+            self.key_timer_type = 1
+            
+            # Start timeout again
+            self.key_timer.start(1000, 1)
+        else:
+            # Eventually stop Timer
+            self.key_timer.stop()
 
-        # Start timeout
-        self.key_timer.start(1000, 1)
-
-    def key_reset(self):
-        # Eventually stop Timer
-        self.key_timer.stop()
-
-        # Invalidate
-        self.lastNumber = -1
-        self.curr_pos = -1
-        self.key_select = ""
+            # Invalidate
+            self.lastKey = -1
+            self.curr_pos = -1
+            self.quickselect = ""
 
     def __repr__(self):
         return str(type(self)) + "(" + self.text + ")"
