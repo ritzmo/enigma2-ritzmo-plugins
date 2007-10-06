@@ -9,14 +9,20 @@ from Screens.InputBox import InputBox
 # Generic
 from Tools.BoundFunction import boundFunction
 
+# Quickselect
+from Tools.NumericalTextInput import NumericalTextInput
+
 # GUI (Components)
-from Components.ActionMap import ActionMap
+from Components.ActionMap import NumberActionMap
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.Button import Button
 from Components.FileList import FileList
 
-class LocationBox(Screen):
+# Timer
+from enigma import eTimer
+
+class LocationBox(Screen, NumericalTextInput):
     """Simple Class similar to MessageBox / ChoiceBox but used to choose a folder/pathname combination"""
 
     skin = """<screen name="LocationBox" position="100,130" size="540,340" >
@@ -31,6 +37,16 @@ class LocationBox(Screen):
 
     def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = "Select Location", minFree = None):
         Screen.__init__(self, session)
+        NumericalTextInput.__init__(self, nextFunc = self.key_next)
+
+        # Quickselect Timer
+        self.key_timer = eTimer()
+        self.key_timer.timeout.get().append(self.key_reset)
+
+        # Initialize Quickselect
+        self.lastNumber = -1
+        self.curr_pos = -1
+        self.key_select = ""
 
         self["text"] = Label(text)
         self.text = text
@@ -38,8 +54,7 @@ class LocationBox(Screen):
         self.filename = filename
         self.minFree = minFree
 
-        self.filelist = FileList(currDir, showDirectories = True, showFiles = False)
-        self["filelist"] = self.filelist
+        self["filelist"] = FileList(currDir, showDirectories = True, showFiles = False)
 
         self["key_green"] = Button(_("Confirm"))
         self["key_yellow"] = Button(_("Rename"))
@@ -49,7 +64,7 @@ class LocationBox(Screen):
 
         self["target"] = Label()
 
-        self["actions"] = ActionMap(["OkCancelActions", "DirectionsActions", "ColorActions"],
+        self["actions"] = NumberActionMap(["OkCancelActions", "DirectionsActions", "ColorActions", "NumberActions"],
         {
             "ok": self.ok,
             "cancel": self.cancel,
@@ -59,6 +74,16 @@ class LocationBox(Screen):
             "right": self.right,
             "up": self.up,
             "down": self.down,
+            "1": self.keyNumberGlobal,
+            "2": self.keyNumberGlobal,
+            "3": self.keyNumberGlobal,
+            "4": self.keyNumberGlobal,
+            "5": self.keyNumberGlobal,
+            "6": self.keyNumberGlobal,
+            "7": self.keyNumberGlobal,
+            "8": self.keyNumberGlobal,
+            "9": self.keyNumberGlobal,
+            "0": self.keyNumberGlobal
         })
 
         self.onShown.extend([
@@ -73,20 +98,36 @@ class LocationBox(Screen):
             self["key_yellow"].hide()
 
     def up(self):
+        # Reset Quickselect
+        self.key_reset()
+
         self["filelist"].up()
 
     def down(self):
+        # Reset Quickselect
+        self.key_reset()
+
         self["filelist"].down()
 
     def left(self):
+        # Reset Quickselect
+        self.key_reset()
+
         self["filelist"].pageUp()
 
     def right(self):
+        # Reset Quickselect
+        self.key_reset()
+
         self["filelist"].pageDown()
 
     def ok(self):
-        if self.filelist.canDescent():
-            self.filelist.descent()
+        # Reset Quickselect
+        self.key_reset()
+
+        if self["filelist"].canDescent():
+            self["filelist"].descent()
+            self["filelist"].instance.moveSelectionTo(0)
             self.updateTarget()
 
     def cancel(self):
@@ -94,16 +135,19 @@ class LocationBox(Screen):
 
     def selectConfirmed(self, res):
         if res: 
-            self.close(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+            self.close(''.join([self["filelist"].getCurrentDirectory(), self.filename]))
 
     def select(self):
+        # Reset Quickselect
+        self.key_reset()
+
         # Do nothing unless current Directory is valid
-        if self.filelist.getCurrentDirectory() is not None:
+        if self["filelist"].getCurrentDirectory() is not None:
             # Check if we need to have a minimum of free Space available
             if self.minFree is not None:
                 # Try to read fs stats
                 try:
-                    s = statvfs(self.filelist.getCurrentDirectory())
+                    s = statvfs(self["filelist"].getCurrentDirectory())
                     if (s.f_bavail * s.f_bsize) / 1000000 > self.minFree:
                         # Automatically confirm if we have enough free disk Space available
                         return self.selectConfirmed(True)
@@ -122,6 +166,9 @@ class LocationBox(Screen):
                 self.selectConfirmed(True)
 
     def changeName(self):
+        # Reset Quickselect
+        self.key_reset()
+
         if self.filename != "":
             # TODO: Add Information that changing extension is bad? disallow?
             # TODO: decide if using an inputbox is ok - we could also keep this in here
@@ -146,10 +193,71 @@ class LocationBox(Screen):
                 )
 
     def updateTarget(self):
-        if self.filelist.getCurrentDirectory() is not None:
-            self["target"].setText(''.join([self.filelist.getCurrentDirectory(), self.filename]))
+        if self["filelist"].getCurrentDirectory() is not None:
+            self["target"].setText(''.join([self["filelist"].getCurrentDirectory(), self.filename]))
         else:
             self["target"].setText("Invalid Location")
+
+    def keyNumberGlobal(self, number):
+        # Cancel Timeout
+        self.key_timer.stop()
+
+        # See if another key was pressed before
+        if number != self.lastNumber:
+            self.nextKey()
+            self.lastNumber = number
+
+            # Try to select what was typed
+            self.selectByStart()
+
+            # Increment position
+            self.curr_pos += 1
+
+        # Get char and append to text
+        char = self.getKey(number)
+        self.key_select = self.key_select[:self.curr_pos] + unicode(char)
+
+    def selectByStart(self):
+        # Don't do anything on initial call
+        if not len(self.key_select):
+            return
+        
+        # Don't select if no dir
+        if self["filelist"].getCurrentDirectory():
+            # TODO: implement proper method in Components.FileList
+            files = self["filelist"].getFileList()
+
+            # Initialize index
+            idx = 0
+
+            # We select by filename which is absolute
+            lookfor = self["filelist"].getCurrentDirectory() + self.key_select
+
+            # Select file starting with generated text
+            for file in files:
+                if file[0][0] and file[0][0].startswith(lookfor):
+                    self["filelist"].instance.moveSelectionTo(idx)
+                    break
+                idx += 1
+
+    def key_next(self):
+        # Invalidate Key
+        self.lastNumber = -1
+
+        # Try to select what was typed
+        self.selectByStart()
+
+        # Start timeout
+        self.key_timer.start(1000, 1)
+
+    def key_reset(self):
+        # Eventually stop Timer
+        self.key_timer.stop()
+
+        # Invalidate
+        self.lastNumber = -1
+        self.curr_pos = -1
+        self.key_select = ""
 
     def __repr__(self):
         return str(type(self)) + "(" + self.text + ")"
