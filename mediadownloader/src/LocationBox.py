@@ -39,6 +39,9 @@ class LocationBox(Screen, NumericalTextInput):
         Screen.__init__(self, session)
         NumericalTextInput.__init__(self, handleTimeout = False)
 
+        # Set useable chars
+        self.setUseableChars(u'1234567890abcdefghijklmnopqrstuvwxyz')
+
         # Quickselect Timer
         self.qs_timer = eTimer()
         self.qs_timer.timeout.get().append(self.timeout)
@@ -225,7 +228,7 @@ class LocationBox(Screen, NumericalTextInput):
         # Don't do anything on initial call
         if not len(self.quickselect):
             return
-        
+
         # Don't select if no dir
         if self["filelist"].getCurrentDirectory():
             # TODO: implement proper method in Components.FileList
@@ -239,7 +242,7 @@ class LocationBox(Screen, NumericalTextInput):
 
             # Select file starting with generated text
             for file in files:
-                if file[0][0] and file[0][0].startswith(lookfor):
+                if file[0][0] and file[0][0].lower().startswith(lookfor):
                     self["filelist"].instance.moveSelectionTo(idx)
                     break
                 idx += 1
@@ -252,10 +255,10 @@ class LocationBox(Screen, NumericalTextInput):
 
             # Reset Key
             self.lastKey = -1
-            
+
             # Change type
             self.qs_timer_type = 1
-            
+
             # Start timeout again
             self.qs_timer.start(1000, 1)
         # Timeout Quickselect
