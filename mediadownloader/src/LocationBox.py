@@ -40,9 +40,9 @@ class LocationBox(Screen, NumericalTextInput):
         NumericalTextInput.__init__(self, handleTimeout = False)
 
         # Quickselect Timer
-        self.key_timer = eTimer()
-        self.key_timer.timeout.get().append(self.key_reset)
-        self.key_timer_type = 0
+        self.qs_timer = eTimer()
+        self.qs_timer.timeout.get().append(self.timeout)
+        self.qs_timer_type = 0
 
         # Initialize Quickselect
         self.curr_pos = -1
@@ -99,31 +99,31 @@ class LocationBox(Screen, NumericalTextInput):
 
     def up(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         self["filelist"].up()
 
     def down(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         self["filelist"].down()
 
     def left(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         self["filelist"].pageUp()
 
     def right(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         self["filelist"].pageDown()
 
     def ok(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         if self["filelist"].canDescent():
             self["filelist"].descent()
@@ -139,7 +139,7 @@ class LocationBox(Screen, NumericalTextInput):
 
     def select(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         # Do nothing unless current Directory is valid
         if self["filelist"].getCurrentDirectory() is not None:
@@ -167,7 +167,7 @@ class LocationBox(Screen, NumericalTextInput):
 
     def changeName(self):
         # Reset Quickselect
-        self.key_reset()
+        self.timeout(force = True)
 
         if self.filename != "":
             # TODO: Add Information that changing extension is bad? disallow?
@@ -200,7 +200,7 @@ class LocationBox(Screen, NumericalTextInput):
 
     def keyNumberGlobal(self, number):
         # Cancel Timeout
-        self.key_timer.stop()
+        self.qs_timer.stop()
 
         # See if another key was pressed before
         if number != self.lastKey:
@@ -218,8 +218,8 @@ class LocationBox(Screen, NumericalTextInput):
         self.quickselect = self.quickselect[:self.curr_pos] + unicode(char)
 
         # Start Timeout
-        self.key_timer_type = 0
-        self.key_timer.start(1000, 1)
+        self.qs_timer_type = 0
+        self.qs_timer.start(1000, 1)
 
     def selectByStart(self):
         # Don't do anything on initial call
@@ -244,22 +244,24 @@ class LocationBox(Screen, NumericalTextInput):
                     break
                 idx += 1
 
-    def key_reset(self, force = False):
-        if not force and self.key_timer_type == 0:
+    def timeout(self, force = False):
+        # Timeout Key
+        if not force and self.qs_timer_type == 0:
             # Try to select what was typed
             self.selectByStart()
 
             # Reset Key
-            self.nextKey()
+            self.lastKey = -1
             
             # Change type
-            self.key_timer_type = 1
+            self.qs_timer_type = 1
             
             # Start timeout again
-            self.key_timer.start(1000, 1)
+            self.qs_timer.start(1000, 1)
+        # Timeout Quickselect
         else:
             # Eventually stop Timer
-            self.key_timer.stop()
+            self.qs_timer.stop()
 
             # Invalidate
             self.lastKey = -1
