@@ -21,12 +21,12 @@ def main(session, **kwargs):
 # Menu
 def menu(menuid, **kwargs):
 	if menuid == "network":
-		return [("Mount Manager", main)]
+		return [("Mount Manager", main, "mount_manager", None)]
 	return []
 
 # Plugin definitions
 def Plugins(**kwargs):
 	return [
 		    PluginDescriptor(name="Mount Manager", where = PluginDescriptor.WHERE_AUTOSTART, fnc=autostart),
-		    PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_SETUP, fnc=menu)
+		    PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_MENU, fnc=menu)
 	]
