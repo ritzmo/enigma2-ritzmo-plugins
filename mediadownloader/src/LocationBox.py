@@ -36,6 +36,7 @@ class LocationBox(Screen, NumericalTextInput):
         </screen>"""
 
     def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = "Select Location", minFree = None):
+        # Init parents
         Screen.__init__(self, session)
         NumericalTextInput.__init__(self, handleTimeout = False)
 
@@ -51,22 +52,29 @@ class LocationBox(Screen, NumericalTextInput):
         self.curr_pos = -1
         self.quickselect = ""
 
+        # Set Text
         self["text"] = Label(text)
-        self.text = text
 
+        # Save parameters locally
+        self.text = text
         self.filename = filename
         self.minFree = minFree
 
+        # Initialize FileList
         self["filelist"] = FileList(currDir, showDirectories = True, showFiles = False)
 
+        # Buttons
         self["key_green"] = Button(_("Confirm"))
         self["key_yellow"] = Button(_("Rename"))
 
+        # Background for Buttons
         self["green"] = Pixmap()
         self["yellow"] = Pixmap()
 
+        # Initialize Target
         self["target"] = Label()
 
+        # Define Actions
         self["actions"] = NumberActionMap(["OkCancelActions", "DirectionsActions", "ColorActions", "NumberActions"],
         {
             "ok": self.ok,
@@ -89,6 +97,7 @@ class LocationBox(Screen, NumericalTextInput):
             "0": self.keyNumberGlobal
         })
 
+        # Run some functions when shown
         self.onShown.extend([
             boundFunction(self.setTitle, windowTitle),
             self.updateTarget,
@@ -96,6 +105,7 @@ class LocationBox(Screen, NumericalTextInput):
         ])
 
     def showHideRename(self):
+        # Don't allow renaming when filename is empty
         if self.filename == "":
             self["yellow"].hide()
             self["key_yellow"].hide()
@@ -196,8 +206,10 @@ class LocationBox(Screen, NumericalTextInput):
                 )
 
     def updateTarget(self):
+        # Write Combination of Folder & Filename when Folder is valid
         if self["filelist"].getCurrentDirectory() is not None:
             self["target"].setText(''.join([self["filelist"].getCurrentDirectory(), self.filename]))
+        # Warning else
         else:
             self["target"].setText("Invalid Location")
 
