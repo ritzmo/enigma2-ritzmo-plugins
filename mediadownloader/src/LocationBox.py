@@ -13,7 +13,7 @@ from Tools.BoundFunction import boundFunction
 from Tools.NumericalTextInput import NumericalTextInput
 
 # GUI (Components)
-from Components.ActionMap import NumberActionMap
+from Components.ActionMap import NumberActionMap, ActionMap
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.Button import Button
@@ -74,8 +74,20 @@ class LocationBox(Screen, NumericalTextInput):
         # Initialize Target
         self["target"] = Label()
 
-        # Define Actions
-        self["actions"] = NumberActionMap(["OkCancelActions", "DirectionsActions", "ColorActions", "NumberActions"],
+        # Custom Action Handler
+        class LocationBoxActionMap(ActionMap):
+            def __init__(self, box, contexts = [ ], actions = { }, prio=0):                                                                                                                       
+                ActionMap.__init__(self, contexts, actions, prio)
+                self.box = box
+
+                def action(self, contexts, action):
+                    # Reset Quickselect
+                    self.box.timeout(force = True)
+                    print "LocationBoxActionMap.action", action
+
+                    return ActionMap.action(self, contexts, action)
+
+        self["actions"] = LocationBoxActionMap(self, ["OkCancelActions", "DirectionsActions", "ColorActions"],
         {
             "ok": self.ok,
             "cancel": self.cancel,
@@ -85,6 +97,10 @@ class LocationBox(Screen, NumericalTextInput):
             "right": self.right,
             "up": self.up,
             "down": self.down,
+        }, -2)
+        
+        self["NumberActions"] = NumberActionMap(["NumberActions"],
+        {
             "1": self.keyNumberGlobal,
             "2": self.keyNumberGlobal,
             "3": self.keyNumberGlobal,
@@ -111,33 +127,18 @@ class LocationBox(Screen, NumericalTextInput):
             self["key_yellow"].hide()
 
     def up(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         self["filelist"].up()
 
     def down(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         self["filelist"].down()
 
     def left(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         self["filelist"].pageUp()
 
     def right(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         self["filelist"].pageDown()
 
     def ok(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         if self["filelist"].canDescent():
             self["filelist"].descent()
             self["filelist"].instance.moveSelectionTo(0)
@@ -151,9 +152,6 @@ class LocationBox(Screen, NumericalTextInput):
             self.close(''.join([self["filelist"].getCurrentDirectory(), self.filename]))
 
     def select(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         # Do nothing unless current Directory is valid
         if self["filelist"].getCurrentDirectory() is not None:
             # Check if we need to have a minimum of free Space available
@@ -179,9 +177,6 @@ class LocationBox(Screen, NumericalTextInput):
                 self.selectConfirmed(True)
 
     def changeName(self):
-        # Reset Quickselect
-        self.timeout(force = True)
-
         if self.filename != "":
             # TODO: Add Information that changing extension is bad? disallow?
             # TODO: decide if using an inputbox is ok - we could also keep this in here
