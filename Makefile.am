@@ -1,2 +1,2 @@
 AUTOMAKE_OPTIONS = gnu
-SUBDIRS = mountmanager mediadownloader weatherforecast werbezapper
+SUBDIRS = epgrefresh mountmanager mediadownloader weatherforecast werbezapper

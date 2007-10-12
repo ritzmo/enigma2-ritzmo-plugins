@@ -6,6 +6,9 @@ AM_PATH_PYTHON()
 AC_OUTPUT([
 Makefile
 
+epgrefresh/Makefile
+epgrefresh/src/Makefile
+
 mountmanager/Makefile
 mountmanager/etc/Makefile
 mountmanager/src/Makefile
