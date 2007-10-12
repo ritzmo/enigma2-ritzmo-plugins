@@ -39,7 +39,7 @@ class EPGRefresh:
 
         # Check if more Services present
         # TODO: cache length?!
-        if len(self.services) < self.position:
+        if len(self.services) > self.position:
             # Play next service
             self.playService(self.services[self.position])
 
