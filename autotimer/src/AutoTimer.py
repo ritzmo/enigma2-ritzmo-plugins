@@ -7,7 +7,7 @@ from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, parseEvent
 
 # Timespan
-from time import localtime
+from time import localtime, mktime
 
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
@@ -25,9 +25,6 @@ class AutoTimer:
         # Parse config
         self.readXml()
         print "[AutoTimer] Generated List", self.timers
-
-        # Parse EPG & Add Events
-        self.parseEPG()
 
     def getValue(self, definitions, default, isList = True):
         # Initialize Output
@@ -113,6 +110,8 @@ class AutoTimer:
                 ))
 
     def parseEPG(self):
+        new = 0
+        skipped = 0
         epgcache = eEPGCache.getInstance()
 
         # Iterate Timer
@@ -129,61 +128,66 @@ class AutoTimer:
                     continue
 
                 for event in ret:
-                    # Format is (ServiceRef, EventId, BeginTime)
-                    # Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L)
+                    # Format is (ServiceRef, EventId, BeginTime, Duration)
+                    # Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
                     print "[AutoTimer] Checking Tuple:", event
 
                     # Check if we have Timelimit
-                    timeValid = False
                     if timer[1] is not None:
-                        # Parse Time
-                        t = localtime(event[2]) # H is t[3], M is t[4]
-
                         # From
                         tuple = timer[1][0].split(':')
-                        h = int(tuple[0])
-                        m = int(tuple[1])
-                        if h < t[3] or (h == t[3] and m <= t[4]):
-                            # To
-                            tuple = timer[1][1].split(':')
-                            h = int(tuple[0])
-                            m = int(tuple[1])
-                            if h > t[3] or (h == t[3] and m >= t[4]):
-                                timeValid = True
-                    else:
-                        timeValid = True
+                        begin = localtime(event[2])
+                        begin[2] = int(tuple[0])
+                        begin[3] = int(tuple[1]) 
+
+                        # To
+                        tuple = timer[1][1].split(':')
+                        end = localtime(event[2] + event[3])
+                        end[2] = int(tuple[0])
+                        end[3] = int(tuple[1])
+
+                        # Convert back
+                        begin = mktime(begin)
+                        end = mktime(end)
+
+                        print "BEGIN IS", begin
+                        print "END IS", end
+
+                        # Continue if not in Range
+                        if begin > event[2] or end < event[2] + event[3]:
+                            continue
 
                     # Check if we have Servicelimit
-                    serviceValid = False
                     if timer[2] is not None:
-                        if event[0] in timer[2]:
-                            serviceValid = True
+                        # Continue if service not allowed
+                        if event[0] not in timer[2]:
+                            continue
+
+                    print "[AutoTimer] Would add timer for this event"
+                    ref = eServiceReference(event[0])
+                    evt = epgcache.lookupEventId(ref, event[1])
+                    if evt:                            
+                        # Check for double Timers
+                        unique = True
+                        for rtimer in self.session.nav.RecordTimer.timer_list:
+                            # Serviceref equals and begin is only 10min different
+                            # TODO: improve check (eventId would be handy)
+                            if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
+                                print "[AutoTimer] Double timer found!!!!"
+                                unique = False
+                                skipped += 1
+                                break
+
+                        # If timer is "unique"
+                        if unique:
+                            print "[AutoTimer] Timer is unique. Adding now!"
+                            newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
+                            self.session.nav.RecordTimer.record(newEntry)
+                            new += 1
                     else:
-                        serviceValid = True
-
-                    # If Time & Service valid add Timer
-                    if timeValid and serviceValid:
-                        print "[AutoTimer] Would add timer for this event"
-                        ref = eServiceReference(event[0])
-                        evt = epgcache.lookupEventId(ref, event[1])
-                        if evt:                            
-                            # Check for double Timers
-                            double = False
-                            for rtimer in self.session.nav.RecordTimer.timer_list:
-                                # Serviceref equals and begin is only 10min different
-                                # TODO: improve check (eventId would be handy)
-                                if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
-                                    print "[AutoTimer] Double timer found!!!!"
-                                    double = True
-                                    break
-
-                            # If timer is "unique"
-                            if not double:
-                                print "[AutoTimer] Timer is unique. Adding now!"
-                                newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
-                                self.session.nav.RecordTimer.record(newEntry)
-                        else:
-                            print "[AutoTimer] Could not create Event!"
+                        print "[AutoTimer] Could not create Event!"
 
             except StandardError, se:
                 print "[AutoTimer] Error occured:", se
+
+        return (new, skipped)
