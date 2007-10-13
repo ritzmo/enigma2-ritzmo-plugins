@@ -25,7 +25,7 @@ class AutoTimer:
         # Parse config
         self.readXml()
         print "[AutoTimer] Generated List", self.timers
-        
+
         # Parse EPG & Add Events
         self.parseEPG()
 
@@ -58,7 +58,7 @@ class AutoTimer:
 
     def readXml(self):
         # Empty out timers
-        self.timers[:]
+        del self.timers[:]
 
         # Abort if no config found
         if not fileExists(XML_CONFIG):
@@ -66,19 +66,19 @@ class AutoTimer:
 
         # Parse Config
         dom = minidom_parse(XML_CONFIG)
-        
+
         # Get Config Element
         for config in dom.getElementsByTagName("autotimer"):
             # Iterate Timers
             for timer in config.getElementsByTagName("timer"):
                 # Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None)
-                
+
                 # Read out name
                 name = self.getValue(timer.getElementsByTagName("name"), None)
                 if name is None:
                     print "[AutoTimer] Erroneous config, skipping entry"
                     continue
-                
+
                 # Guess allowedtime
                 allowed = timer.getElementsByTagName("timespan")
                 if len(allowed):
@@ -152,7 +152,7 @@ class AutoTimer:
                                 timeValid = True
                     else:
                         timeValid = True
-                    
+
                     # Check if we have Servicelimit
                     serviceValid = False
                     if timer[2] is not None:
