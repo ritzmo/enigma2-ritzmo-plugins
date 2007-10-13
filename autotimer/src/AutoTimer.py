@@ -112,6 +112,52 @@ class AutoTimer:
 						servicelist
 				))
 
+	def set(self, name, tuple):
+		idx = 0
+		for timer in self.timers:
+			if timer[0] == name:
+				self.timers[idx] = tuple
+				return
+			idx += 1
+		self.timers.append(tuple)
+
+	def remove(self, name):
+		idx = 0
+		for timer in self.timers:
+			if timer[0] == name:
+				self.timers.pop(idx)
+				return
+
+	def writeXml(self):
+		# Generate List in RAM
+		list = ['<?xml version="1.0" ?>\n<autotimer>\n']
+
+		# Iterate timers
+		for timer in self.timers:
+			list.append(' <timer>\n')
+			list.append(''.join(['  <name>', timer[0], '</name>\n']))
+			if timer[1] is not None:
+				list.append('  <timespan>\n')
+				list.append(''.join(['   <from>', timer[1][0], '</from>\n']))
+				list.append(''.join(['   <to>', timer[1][1], '</to>\n']))
+				list.append('  </timespan>\n')
+			if timer[2] is not None:
+				for serviceref in timer[2]:
+					list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
+			list.append(' </timer>\n')
+		list.append('</autotimer>\n')
+
+		# Try Saving to Flash
+		file = None
+		try:
+			file = open(XML_CONFIG, "w")
+			file.writelines(list)
+		except Exception, e:
+			print "[AutoTimer] Error Saving Timer List:", e
+		finally:
+			if file is not None:
+				file.close()
+
 	def parseEPG(self):
 		new = 0
 		skipped = 0
