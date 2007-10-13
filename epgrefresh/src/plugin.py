@@ -21,5 +21,5 @@ def main(session, **kwargs):
 
 def Plugins(**kwargs):
 	return [
-        PluginDescriptor(name="EPGRefresh", description = "...", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
-    ]
+		PluginDescriptor(name="EPGRefresh", description = "...", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
+	]

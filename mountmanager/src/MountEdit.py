@@ -39,7 +39,7 @@ class MountEdit(Screen, ConfigListScreen):
 
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
-                self["key_green"] = Button(_("OK"))
+		self["key_green"] = Button(_("OK"))
 
 		# Init ConfigListScreen
 		ConfigListScreen.__init__(self, self.list, session = session)

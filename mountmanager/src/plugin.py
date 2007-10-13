@@ -27,6 +27,6 @@ def menu(menuid, **kwargs):
 # Plugin definitions
 def Plugins(**kwargs):
 	return [
-		    PluginDescriptor(name="Mount Manager", where = PluginDescriptor.WHERE_AUTOSTART, fnc=autostart),
-		    PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_MENU, fnc=menu)
+			PluginDescriptor(name="Mount Manager", where = PluginDescriptor.WHERE_AUTOSTART, fnc=autostart),
+			PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_MENU, fnc=menu)
 	]
