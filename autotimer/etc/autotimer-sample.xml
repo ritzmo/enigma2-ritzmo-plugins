@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<!-- Beispieldatei -->
+<!-- Dieser Block enthaelt all unsere Timer -->
+<autotimer>
+ <!-- Ein Beispieltimer -->
+ <timer>
+  <!-- Alles mit "Dr. House" im Titel aufzeichnen -->
+  <name>Dr. House</name>
+  <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
+  <timespan>
+   <from>20:15</from>
+   <to>23:00</to>
+  </timespan>
+  <!-- Auf RTL -->
+  <serviceref>1:0:1:2EE3:441:1:C00000:0:0:0:</serviceref>
+ </timer>
+
+ <!-- Ein weiterer Timer -->
+ <timer>
+  <!-- Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes -->
+  <name>ouse</name>
+  <!-- Keine Zeitbeschraenkung -->
+  <!-- Nur auf Pro7 und ORF aufzeichnen -->
+  <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
+  <serviceref>1:0:1:32C9:45D:1:C00000:0:0:0:</serviceref>
+ </timer>
+</autotimer>
+ 

@@ -6,6 +6,10 @@ AM_PATH_PYTHON()
 AC_OUTPUT([
 Makefile
 
+autotimer/Makefile
+autotimer/etc/Makefile
+autotimer/src/Makefile
+
 epgrefresh/Makefile
 epgrefresh/src/Makefile
 
