@@ -104,7 +104,7 @@ class AutoTimer:
 
                 # Finally append tuple
                 self.timers.append((
-                        name,
+                        str(name),
                         timetuple,
                         servicelist
                 ))
@@ -116,11 +116,9 @@ class AutoTimer:
 
         # Iterate Timer
         for timer in self.timers:
-            name = str(timer[0])
-            print "[AutoTimer] Searching for:", name
             try:
                 # Search EPG
-                ret = epgcache.search(('RIB', 100, eEPGCache.PARTIAL_TITLE_SEARCH, name, eEPGCache.NO_CASE_CHECK))
+                ret = epgcache.search(('RIBD', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[0], eEPGCache.NO_CASE_CHECK))
 
                 # Continue on empty result
                 if ret is None:
@@ -136,22 +134,19 @@ class AutoTimer:
                     if timer[1] is not None:
                         # From
                         tuple = timer[1][0].split(':')
-                        begin = localtime(event[2])
-                        begin[2] = int(tuple[0])
-                        begin[3] = int(tuple[1]) 
+                        begin = [x for x in localtime(event[2])]
+                        begin[3] = int(tuple[0])
+                        begin[4] = int(tuple[1]) 
 
                         # To
                         tuple = timer[1][1].split(':')
-                        end = localtime(event[2] + event[3])
-                        end[2] = int(tuple[0])
-                        end[3] = int(tuple[1])
+                        end = [x for x in localtime(event[2] + event[3])]
+                        end[3] = int(tuple[0])
+                        end[4] = int(tuple[1])
 
                         # Convert back
                         begin = mktime(begin)
                         end = mktime(end)
-
-                        print "BEGIN IS", begin
-                        print "END IS", end
 
                         # Continue if not in Range
                         if begin > event[2] or end < event[2] + event[3]:
@@ -163,7 +158,6 @@ class AutoTimer:
                         if event[0] not in timer[2]:
                             continue
 
-                    print "[AutoTimer] Would add timer for this event"
                     ref = eServiceReference(event[0])
                     evt = epgcache.lookupEventId(ref, event[1])
                     if evt:                            
@@ -173,14 +167,14 @@ class AutoTimer:
                             # Serviceref equals and begin is only 10min different
                             # TODO: improve check (eventId would be handy)
                             if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
-                                print "[AutoTimer] Double timer found!!!!"
+                                print "[AutoTimer] Event already scheduled."
                                 unique = False
                                 skipped += 1
                                 break
 
                         # If timer is "unique"
                         if unique:
-                            print "[AutoTimer] Timer is unique. Adding now!"
+                            print "[AutoTimer] Adding this event."
                             newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
                             self.session.nav.RecordTimer.record(newEntry)
                             new += 1
