@@ -9,13 +9,23 @@ from Screens.MessageBox import MessageBox
 
 # Plugin
 from AutoTimer import AutoTimer
+from AutoPoller import autopoller
 
 # Plugin definition
 from Plugins.Plugin import PluginDescriptor
 
+autotimer = None
+
+# Autostart
+def autostart(reason, session, **kwargs):
+	autotimer = AutoTimer(session)
+	autopoller.start(autotimer)
+
 # Mainfunction
 def main(session, **kwargs):
-	autotimer = AutoTimer(session)
+	if autotimer is None:
+		autotimer = AutoTimer(session)
+
 	ret = autotimer.parseEPG()
 	session.open(
 		MessageBox,
@@ -26,5 +36,6 @@ def main(session, **kwargs):
 
 def Plugins(**kwargs):
 	return [
-        PluginDescriptor(name="AutoTimer", description = "...", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
-    ]
+		PluginDescriptor(where = PluginDescriptor.WHERE_SESSIONSTART, fnc = autostart),
+		PluginDescriptor(name="AutoTimer", description = "...", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
+	]

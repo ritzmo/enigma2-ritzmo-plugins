@@ -15,173 +15,175 @@ from enigma import eEPGCache, eServiceReference
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
 
 class AutoTimer:
-    def __init__(self, session):
-        # Save session (somehow NavigationInstance.instance is None ?!)
-        self.session = session
+	def __init__(self, session):
+		# Save session (somehow NavigationInstance.instance is None ?!)
+		self.session = session
 
-        # Initialize Timers
-        self.timers = []
+		# Keep EPGCache
+		self.epgcache = eEPGCache.getInstance()
 
-        # Parse config
-        self.readXml()
-        print "[AutoTimer] Generated List", self.timers
+		# Initialize Timers
+		self.timers = []
 
-    def getValue(self, definitions, default, isList = True):
-        # Initialize Output
-        ret = ""
+		# Parse config
+		self.readXml()
+		print "[AutoTimer] Generated List", self.timers
 
-        # How many definitions are present
-        if isList:
-            Len = len(definitions)
-            if Len > 0:
-                childNodes = definitions[Len-1].childNodes
-            else:
-                childNodes = []
-        else:
-            childNodes = definitions.childNodes
+	def getValue(self, definitions, default, isList = True):
+		# Initialize Output
+		ret = ""
 
-        # Iterate through nodes of last one
-        for node in childNodes:
-            # Append text if we have a text node
-            if node.nodeType == node.TEXT_NODE:
-                ret = ret + node.data
+		# How many definitions are present
+		if isList:
+			Len = len(definitions)
+			if Len > 0:
+				childNodes = definitions[Len-1].childNodes
+			else:
+				childNodes = []
+		else:
+			childNodes = definitions.childNodes
 
-        # If output is still empty return default
-        if not len(ret):
-            return default
+		# Iterate through nodes of last one
+		for node in childNodes:
+			# Append text if we have a text node
+			if node.nodeType == node.TEXT_NODE:
+				ret = ret + node.data
 
-        # Otherwise return output
-        return ret
+		# If output is still empty return default
+		if not len(ret):
+			return default
 
-    def readXml(self):
-        # Empty out timers
-        del self.timers[:]
+		# Otherwise return output
+		return ret
 
-        # Abort if no config found
-        if not fileExists(XML_CONFIG):
-            return
+	def readXml(self):
+		# Empty out timers
+		del self.timers[:]
 
-        # Parse Config
-        dom = minidom_parse(XML_CONFIG)
+		# Abort if no config found
+		if not fileExists(XML_CONFIG):
+			return
 
-        # Get Config Element
-        for config in dom.getElementsByTagName("autotimer"):
-            # Iterate Timers
-            for timer in config.getElementsByTagName("timer"):
-                # Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None)
+		# Parse Config
+		dom = minidom_parse(XML_CONFIG)
 
-                # Read out name
-                name = self.getValue(timer.getElementsByTagName("name"), None)
-                if name is None:
-                    print "[AutoTimer] Erroneous config, skipping entry"
-                    continue
+		# Get Config Element
+		for config in dom.getElementsByTagName("autotimer"):
+			# Iterate Timers
+			for timer in config.getElementsByTagName("timer"):
+				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None)
 
-                # Guess allowedtime
-                allowed = timer.getElementsByTagName("timespan")
-                if len(allowed):
-                    # We only support 1 Timespan so far
-                    start = self.getValue(allowed[0].getElementsByTagName("from"), None)
-                    end = self.getValue(allowed[0].getElementsByTagName("to"), None)
-                    if start and end:
-                        timetuple = (start, end)
-                    else:
-                        timetuple = None
-                else:
-                    timetuple = None
+				# Read out name
+				name = self.getValue(timer.getElementsByTagName("name"), None)
+				if name is None:
+					print "[AutoTimer] Erroneous config, skipping entry"
+					continue
 
-                # Read out allowed services
-                allowed = timer.getElementsByTagName("serviceref")
-                if len(allowed):
-                    servicelist = []
-                    for service in allowed:
-                        value = self.getValue(service, None, False)
-                        if value:
-                            servicelist.append(value)
-                    if not len(servicelist):
-                        servicelist = None
-                else:
-                    servicelist = None
+				# Guess allowedtime
+				allowed = timer.getElementsByTagName("timespan")
+				if len(allowed):
+					# We only support 1 Timespan so far
+					start = self.getValue(allowed[0].getElementsByTagName("from"), None)
+					end = self.getValue(allowed[0].getElementsByTagName("to"), None)
+					if start and end:
+						timetuple = (start, end)
+					else:
+						timetuple = None
+				else:
+					timetuple = None
 
-                # Finally append tuple
-                self.timers.append((
-                        str(name),
-                        timetuple,
-                        servicelist
-                ))
+				# Read out allowed services
+				allowed = timer.getElementsByTagName("serviceref")
+				if len(allowed):
+					servicelist = []
+					for service in allowed:
+						value = self.getValue(service, None, False)
+						if value:
+							servicelist.append(value)
+					if not len(servicelist):
+						servicelist = None
+				else:
+					servicelist = None
 
-    def parseEPG(self):
-        new = 0
-        skipped = 0
-        epgcache = eEPGCache.getInstance()
+				# Finally append tuple
+				self.timers.append((
+						str(name),
+						timetuple,
+						servicelist
+				))
 
-        # Iterate Timer
-        for timer in self.timers:
-            try:
-                # Search EPG
-                ret = epgcache.search(('RIBD', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[0], eEPGCache.NO_CASE_CHECK))
+	def parseEPG(self):
+		new = 0
+		skipped = 0
 
-                # Continue on empty result
-                if ret is None:
-                    print "[AutoTimer] Got empty result"
-                    continue
+		# Iterate Timer
+		for timer in self.timers:
+			try:
+				# Search EPG
+				ret = self.epgcache.search(('RIBD', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[0], eEPGCache.NO_CASE_CHECK))
 
-                for event in ret:
-                    # Format is (ServiceRef, EventId, BeginTime, Duration)
-                    # Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
-                    print "[AutoTimer] Checking Tuple:", event
+				# Continue on empty result
+				if ret is None:
+					print "[AutoTimer] Got empty result"
+					continue
 
-                    # Check if we have Timelimit
-                    if timer[1] is not None:
-                        # From
-                        tuple = timer[1][0].split(':')
-                        begin = [x for x in localtime(event[2])]
-                        begin[3] = int(tuple[0])
-                        begin[4] = int(tuple[1]) 
+				for event in ret:
+					# Format is (ServiceRef, EventId, BeginTime, Duration)
+					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
+					print "[AutoTimer] Checking Tuple:", event
 
-                        # To
-                        tuple = timer[1][1].split(':')
-                        end = [x for x in localtime(event[2] + event[3])]
-                        end[3] = int(tuple[0])
-                        end[4] = int(tuple[1])
+					# Check if we have Timelimit
+					if timer[1] is not None:
+						# From
+						tuple = timer[1][0].split(':')
+						begin = [x for x in localtime(event[2])]
+						begin[3] = int(tuple[0])
+						begin[4] = int(tuple[1]) 
 
-                        # Convert back
-                        begin = mktime(begin)
-                        end = mktime(end)
+						# To
+						tuple = timer[1][1].split(':')
+						end = [x for x in localtime(event[2] + event[3])]
+						end[3] = int(tuple[0])
+						end[4] = int(tuple[1])
 
-                        # Continue if not in Range
-                        if begin > event[2] or end < event[2] + event[3]:
-                            continue
+						# Convert back
+						begin = mktime(begin)
+						end = mktime(end)
 
-                    # Check if we have Servicelimit
-                    if timer[2] is not None:
-                        # Continue if service not allowed
-                        if event[0] not in timer[2]:
-                            continue
+						# Continue if not in Range
+						if begin > event[2] or end < event[2] + event[3]:
+							continue
 
-                    ref = eServiceReference(event[0])
-                    evt = epgcache.lookupEventId(ref, event[1])
-                    if evt:                            
-                        # Check for double Timers
-                        unique = True
-                        for rtimer in self.session.nav.RecordTimer.timer_list:
-                            # Serviceref equals and begin is only 10min different
-                            # TODO: improve check (eventId would be handy)
-                            if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
-                                print "[AutoTimer] Event already scheduled."
-                                unique = False
-                                skipped += 1
-                                break
+					# Check if we have Servicelimit
+					if timer[2] is not None:
+						# Continue if service not allowed
+						if event[0] not in timer[2]:
+							continue
 
-                        # If timer is "unique"
-                        if unique:
-                            print "[AutoTimer] Adding this event."
-                            newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
-                            self.session.nav.RecordTimer.record(newEntry)
-                            new += 1
-                    else:
-                        print "[AutoTimer] Could not create Event!"
+					ref = eServiceReference(event[0])
+					evt = self.epgcache.lookupEventId(ref, event[1])
+					if evt:							
+						# Check for double Timers
+						unique = True
+						for rtimer in self.session.nav.RecordTimer.timer_list:
+							# Serviceref equals and begin is only 10min different
+							# TODO: improve check (eventId would be handy)
+							if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
+								print "[AutoTimer] Event already scheduled."
+								unique = False
+								skipped += 1
+								break
 
-            except StandardError, se:
-                print "[AutoTimer] Error occured:", se
+						# If timer is "unique"
+						if unique:
+							print "[AutoTimer] Adding this event."
+							newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
+							self.session.nav.RecordTimer.record(newEntry)
+							new += 1
+					else:
+						print "[AutoTimer] Could not create Event!"
 
-        return (new, skipped)
+			except StandardError, se:
+				print "[AutoTimer] Error occured:", se
+
+		return (new, skipped)
