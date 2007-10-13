@@ -18,11 +18,13 @@ autotimer = None
 
 # Autostart
 def autostart(reason, session, **kwargs):
+	global autotimer
 	autotimer = AutoTimer(session)
 	autopoller.start(autotimer)
 
 # Mainfunction
 def main(session, **kwargs):
+	global autotimer
 	if autotimer is None:
 		autotimer = AutoTimer(session)
 
