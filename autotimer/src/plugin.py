@@ -1,7 +1,7 @@
 #
 # Warning: This Plugin is WIP
 #
-# Later on this is meant to run automatically (in background)
+# TODO: Add Configuration (See GraphMultiEPG for Handling Services)
 #
 
 # GUI (Screens)

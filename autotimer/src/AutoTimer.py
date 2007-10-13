@@ -212,9 +212,8 @@ class AutoTimer:
 						# Check for double Timers
 						unique = True
 						for rtimer in self.session.nav.RecordTimer.timer_list:
-							# Serviceref equals and begin is only 10min different
-							# TODO: improve check (eventId would be handy)
-							if str(rtimer.service_ref) == event[0] and abs(rtimer.begin - event[2]) < 600:
+							# Serviceref equals and eventId is the same
+							if str(rtimer.service_ref) == event[0] and rtimer.eit == event[1]:
 								print "[AutoTimer] Event already scheduled."
 								unique = False
 								skipped += 1
