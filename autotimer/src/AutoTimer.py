@@ -1,25 +1,40 @@
+# Config
 from xml.dom.minidom import parse as minidom_parse
 from Tools.Directories import fileExists
 
+# Timer
 from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, parseEvent
 
+# Timespan
+from time import localtime
+
+# EPGCache & Event
 from enigma import eEPGCache, eServiceReference
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
 
 class AutoTimer:
     def __init__(self, session):
+        # Save session (somehow NavigationInstance.instance is None ?!)
         self.session = session
+
+        # Initialize Timers
+        self.timers = []
+
+        # Parse config
         self.readXml()
+        print "[AutoTimer] Generated List", self.timers
+        
+        # Parse EPG & Add Events
         self.parseEPG()
 
-    def getValue(self, definitions, default, nolist = False):
+    def getValue(self, definitions, default, isList = True):
         # Initialize Output
         ret = ""
 
         # How many definitions are present
-        if not nolist:
+        if isList:
             Len = len(definitions)
             if Len > 0:
                 childNodes = definitions[Len-1].childNodes
@@ -42,9 +57,14 @@ class AutoTimer:
         return ret
 
     def readXml(self):
-        self.timers = []
+        # Empty out timers
+        self.timers[:]
+
+        # Abort if no config found
         if not fileExists(XML_CONFIG):
             return
+
+        # Parse Config
         dom = minidom_parse(XML_CONFIG)
         
         # Get Config Element
@@ -77,7 +97,7 @@ class AutoTimer:
                 if len(allowed):
                     servicelist = []
                     for service in allowed:
-                        value = self.getValue(service, None, True)
+                        value = self.getValue(service, None, False)
                         if value:
                             servicelist.append(value)
                     if not len(servicelist):
@@ -100,6 +120,7 @@ class AutoTimer:
             name = str(timer[0])
             print "[AutoTimer] Searching for:", name
             try:
+                # Search EPG
                 ret = epgcache.search(('RIB', 100, eEPGCache.PARTIAL_TITLE_SEARCH, name, eEPGCache.NO_CASE_CHECK))
 
                 # Continue on empty result
@@ -116,14 +137,18 @@ class AutoTimer:
                     timeValid = False
                     if timer[1] is not None:
                         # Parse Time
-                        t = localtime(event[1]) # H is t[3], M is t[4]
+                        t = localtime(event[2]) # H is t[3], M is t[4]
 
                         # From
-                        h, m = timer[1][0].split(':')
-                        if h <= t[3] and m <= t[4]:
+                        tuple = timer[1][0].split(':')
+                        h = int(tuple[0])
+                        m = int(tuple[1])
+                        if h < t[3] or (h == t[3] and m <= t[4]):
                             # To
-                            h, m = timer[1][0].split(':')
-                            if h >= t[3] and m >= t[4]:
+                            tuple = timer[1][1].split(':')
+                            h = int(tuple[0])
+                            m = int(tuple[1])
+                            if h > t[3] or (h == t[3] and m >= t[4]):
                                 timeValid = True
                     else:
                         timeValid = True
