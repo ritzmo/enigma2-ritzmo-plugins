@@ -1,9 +1,6 @@
 #
 # To be used as easy-to-use Downloading Application by other Plugins
 #
-# WARNING:
-# Requires my plugin_viewer-Patch in its most recent version
-#
 
 # GUI (Screens)
 from Screens.ChoiceBox import ChoiceBox
