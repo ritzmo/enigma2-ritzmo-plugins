@@ -14,6 +14,9 @@ from AutoPoller import autopoller
 # Plugin definition
 from Plugins.Plugin import PluginDescriptor
 
+# ExpatError
+from xml.parsers.expat import ExpatError
+
 autotimer = None
 
 # Autostart
@@ -36,11 +39,11 @@ def main(session, **kwargs):
 
 	# Re-parse XML
 	try:
-		autotimer.parseXML()
+		autotimer.readXml()
 	except ExpatError, ee:
 		session.open(
 			MessageBox,
-			"Your config file is unparsable.",
+			"Your config file is not well-formed.\nError parsing in line: %s" % (ee.lineno),
 			type = MessageBox.TYPE_ERROR,
 			timeout = 5
 		)
