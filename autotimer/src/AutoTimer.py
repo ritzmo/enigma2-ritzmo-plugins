@@ -189,6 +189,8 @@ class AutoTimer:
 					print "[AutoTimer] Got empty result"
 					continue
 
+				spanbegin = None
+
 				for event in ret:
 					# Format is (ServiceRef, EventId, BeginTime, Duration)
 					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
@@ -200,33 +202,52 @@ class AutoTimer:
 
 					# Check if we have Timelimit
 					if timer[1] is not None:
-						# From
-						tuple = timer[1][0].split(':')
-						begin = [x for x in localtime(event[2])]
-						begin[3] = int(tuple[0])
-						begin[4] = int(tuple[1]) 
+						# Calculate Span if needed
+						if spanbegin is None:
+							spanbegin = [int(x) for x in timer[1][0].split(':')]
+							spanend = [int(x) for x in timer[1][1].split(':')]
+							if spanend[0] < spanbegin[0] or (spanend[0] == spanbegin[0] and spanend[1] == spanbegin[1]):
+								haveDayspan = True
+							else:
+								haveDayspan = False
 
-						# TODO: optimize this calculation
-						# To
-						tuple = timer[1][1].split(':')
-						h = int(tuple[0])
-						m = int(tuple[1])						
-						# Check if timespan changes days
-						if h < begin[3] or (h == begin[3] and m <= begin[4]):
-							end = [x for x in localtime(event[2] + 86400)]
+						# Event Begin Time
+						begin = localtime(event[2]) # 3 is h, 4 is m
+
+						# Check if EventBegin is earlier than SpanBegin
+						if begin[3] < spanbegin[0] or (begin[3] == spanbegin[0] and begin[4] < spanbegin[1]):
+							if haveDayspan:
+								# Now we need EventBegin to be earlier than SpanEnd
+								if begin[3] < spanend[0] or (begin[3] == spanend[0] and begin[4] <= spanend[1]):
+									end = localtime(event[2] + event[3]) # 3 is h, 4 is m
+									# Check if EventEnd is earlier than SpanEnd
+									if end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
+										pass
+									else:
+										continue
+								else:
+									continue
+							else:
+								continue
+						# EventBegin is later than SpanBegin
 						else:
-							end = begin[:]
-
-						end[3] = h
-						end[4] = m
-
-						# Convert back
-						begin = mktime(begin)
-						end = mktime(end)
-
-						# Continue if not in Range
-						if begin > event[2] or end < event[2] + event[3]:
-							continue
+							# Check if Span ends "earlier" than it started
+							end = localtime(event[2] + event[3]) # 3 is h, 4 is m
+							if haveDayspan:
+								# Check if End is later than begin
+								if end[3] > spanbegin[0] or (end[3] == spanbegin[0] and end[4] >= spanbegin[1]):
+									pass
+								# Check if end is earlier than end
+								elif end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
+									pass
+								else:
+									continue
+							else:
+								# Now we need EventEnd to be earlier than SpanEnd
+								if end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
+									pass
+								else:
+									continue
 
 					# Check if we have Servicelimit
 					if timer[2] is not None:
