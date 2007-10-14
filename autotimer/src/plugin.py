@@ -23,12 +23,10 @@ autotimer = None
 def autostart(reason, session, **kwargs):
 	global autotimer
 
-	# Don't crash on faulty XML
-	try:
-		autotimer = AutoTimer(session)
-	except ExpatError, ee:
-		pass
+	# Initialize AutoTimer
+	autotimer = AutoTimer(session)
 
+	# Start Poller
 	autopoller.start(autotimer)
 
 # Mainfunction
@@ -37,9 +35,15 @@ def main(session, **kwargs):
 	if autotimer is None:
 		autotimer = AutoTimer(session)
 
-	# Re-parse XML
+	# We might re-parse Xml so catch parsing error
 	try:
-		autotimer.readXml()
+		ret = autotimer.parseEPG()
+		session.open(
+			MessageBox,
+			"Found a total of %d matching Events.\n%d were new and scheduled for recording." % (ret[0] + ret[1], ret[0]),
+			type = MessageBox.TYPE_INFO,
+			timeout = 5
+		)
 	except ExpatError, ee:
 		session.open(
 			MessageBox,
@@ -47,15 +51,6 @@ def main(session, **kwargs):
 			type = MessageBox.TYPE_ERROR,
 			timeout = 5
 		)
-		return
-		
-	ret = autotimer.parseEPG()
-	session.open(
-		MessageBox,
-		"Found a total of %d matching Events.\n%d were new and scheduled for recording." % (ret[0] + ret[1], ret[0]),
-		type = MessageBox.TYPE_INFO,
-		timeout = 5
-	)
 
 def Plugins(**kwargs):
 	return [

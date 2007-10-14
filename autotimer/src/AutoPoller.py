@@ -18,7 +18,11 @@ class AutoPoller:
 		self.timer.stop()
 
 	def query(self):
-		self.autotimer.parseEPG()
+		# Ignore any exceptions
+		try:
+			self.autotimer.parseEPG()
+		except:
+			pass
 
 		self.timer.startLongTimer(INTERVAL)
 

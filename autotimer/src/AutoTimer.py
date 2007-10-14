@@ -1,6 +1,6 @@
 # Config
 from xml.dom.minidom import parse as minidom_parse
-from Tools.Directories import fileExists
+from os import path as os_path
 
 # Timer
 from ServiceReference import ServiceReference
@@ -25,9 +25,8 @@ class AutoTimer:
 		# Initialize Timers
 		self.timers = []
 
-		# Parse config
-		self.readXml()
-		print "[AutoTimer] Generated List", self.timers
+		# Empty mtime
+		self.configMtime = 0
 
 	def getValue(self, definitions, default, isList = True):
 		# Initialize Output
@@ -56,13 +55,19 @@ class AutoTimer:
 		# Otherwise return output
 		return ret
 
-	def readXml(self):
+	def readXml(self, mtime = None):
 		# Empty out timers
 		del self.timers[:]
 
 		# Abort if no config found
-		if not fileExists(XML_CONFIG):
+		if not os_path.exists(XML_CONFIG):
 			return
+
+		# Save mtime
+		if not mtime:
+			self.configMtime = os_path.getmtime(XML_CONFIG)
+		else:
+			self.configMtime = mtime
 
 		# Parse Config
 		dom = minidom_parse(XML_CONFIG)
@@ -157,10 +162,21 @@ class AutoTimer:
 		finally:
 			if file is not None:
 				file.close()
+				self.configMtime = time()
 
 	def parseEPG(self):
 		new = 0
 		skipped = 0
+
+		# Get Configs mtime
+		try:
+			mtime = os_path.getmtime(XML_CONFIG)
+		except:
+			mtime = 0
+
+		# Reparse Xml when needed
+		if mtime != self.configMtime:
+			self.readXml(mtime)
 
 		# Iterate Timer
 		for timer in self.timers:
@@ -190,11 +206,19 @@ class AutoTimer:
 						begin[3] = int(tuple[0])
 						begin[4] = int(tuple[1]) 
 
+						# TODO: optimize this calculation
 						# To
 						tuple = timer[1][1].split(':')
-						end = [x for x in localtime(event[2] + event[3])]
-						end[3] = int(tuple[0])
-						end[4] = int(tuple[1])
+						h = int(tuple[0])
+						m = int(tuple[1])						
+						# Check if timespan changes days
+						if h < begin[3] or (h == begin[3] and m <= begin[4]):
+							end = [x for x in localtime(event[2] + 86400)]
+						else:
+							end = begin[:]
+
+						end[3] = h
+						end[4] = m
 
 						# Convert back
 						begin = mktime(begin)
