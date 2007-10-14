@@ -19,7 +19,13 @@ autotimer = None
 # Autostart
 def autostart(reason, session, **kwargs):
 	global autotimer
-	autotimer = AutoTimer(session)
+
+	# Don't crash on faulty XML
+	try:
+		autotimer = AutoTimer(session)
+	except ExpatError, ee:
+		pass
+
 	autopoller.start(autotimer)
 
 # Mainfunction
@@ -28,6 +34,18 @@ def main(session, **kwargs):
 	if autotimer is None:
 		autotimer = AutoTimer(session)
 
+	# Re-parse XML
+	try:
+		autotimer.parseXML()
+	except ExpatError, ee:
+		session.open(
+			MessageBox,
+			"Your config file is unparsable.",
+			type = MessageBox.TYPE_ERROR,
+			timeout = 5
+		)
+		return
+		
 	ret = autotimer.parseEPG()
 	session.open(
 		MessageBox,
