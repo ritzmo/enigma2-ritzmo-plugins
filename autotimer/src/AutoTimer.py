@@ -7,7 +7,7 @@ from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, parseEvent
 
 # Timespan
-from time import localtime, mktime
+from time import localtime, mktime, time
 
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
@@ -177,6 +177,10 @@ class AutoTimer:
 					# Format is (ServiceRef, EventId, BeginTime, Duration)
 					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
 					print "[AutoTimer] Checking Tuple:", event
+
+					# If event starts in less than 60 seconds skip it
+					if event[2] < time() + 60:
+						continue
 
 					# Check if we have Timelimit
 					if timer[1] is not None:

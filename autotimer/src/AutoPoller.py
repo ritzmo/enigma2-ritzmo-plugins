@@ -12,7 +12,7 @@ class AutoPoller:
 
 	def start(self, autotimer):
 		self.autotimer = autotimer
-		self.timer.startLongTimer(INTERVAL)
+		self.timer.start(10, True)
 
 	def stop(self):
 		self.timer.stop()
