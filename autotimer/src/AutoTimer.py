@@ -211,43 +211,62 @@ class AutoTimer:
 							else:
 								haveDayspan = False
 
-						# Event Begin Time
-						begin = localtime(event[2]) # 3 is h, 4 is m
+						if haveDayspan:
+							# Make List of yesterday & today
+							yesterday = [x for x in localtime(event[2] - 86400)]
+							today = [x for x in localtime(event[2])]
 
-						# Check if EventBegin is earlier than SpanBegin
-						if begin[3] < spanbegin[0] or (begin[3] == spanbegin[0] and begin[4] < spanbegin[1]):
-							if haveDayspan:
-								# Now we need EventBegin to be earlier than SpanEnd
-								if begin[3] < spanend[0] or (begin[3] == spanend[0] and begin[4] <= spanend[1]):
-									end = localtime(event[2] + event[3]) # 3 is h, 4 is m
-									# Check if EventEnd is earlier than SpanEnd
-									if end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
-										pass
-									else:
-										continue
-								else:
+							# Make yesterday refer to yesterday's begin of timespan
+							yesterday[3] = spanbegin[0]
+							yesterday[4] = spanbegin[1]
+
+							# Make today refer to this days end of timespan
+							today[3] = spanend[0]
+							today[4] = spanend[1]
+							
+							# Convert back
+							begin = mktime(yesterday)
+							end = mktime(today)
+
+							# Check if Event spans from day before to eventday
+							if (begin > event[2] or end < event[2] + event[3]):
+								# Make List of tomorrow
+								tomorrow = [x for x in localtime(event[2] + 86400)]
+
+								# Today -> begin of timespan
+								today[3] = spanbegin[0]
+								today[4] = spanbegin[1]
+
+								# Tomorrow -> end of timespan
+								tomorrow[3] = spanend[0]
+								tomorrow[4] = spanend[1]
+							
+								# Convert back
+								begin = mktime(today)
+								end = mktime(tomorrow)
+
+								# Check if Eveent spans from eventday to day after
+								if begin > event[2] or end < event[2] + event[3]:
 									continue
-							else:
-								continue
-						# EventBegin is later than SpanBegin
 						else:
-							# Check if Span ends "earlier" than it started
-							end = localtime(event[2] + event[3]) # 3 is h, 4 is m
-							if haveDayspan:
-								# Check if End is later than begin
-								if end[3] > spanbegin[0] or (end[3] == spanbegin[0] and end[4] >= spanbegin[1]):
-									pass
-								# Check if end is earlier than end
-								elif end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
-									pass
-								else:
-									continue
-							else:
-								# Now we need EventEnd to be earlier than SpanEnd
-								if end[3] < spanend[0] or (end[3] == spanend[0] and end[4] <= spanend[1]):
-									pass
-								else:
-									continue
+							# Make List
+							today = [x for x in localtime(event[2])]
+
+							# Modify List to refer to begin of timespan
+							today[3] = spanbegin[0]
+							today[4] = spanbegin[1]
+
+							# Convert List back to timetamp
+							begin = mktime(today)
+
+							# Same for end of timespan
+							today[3] = spanend[0]
+							today[4] = spanend[1]
+							end = mktime(today)
+
+							# Check if event is between timespan
+							if begin > event[2] or end < event[2] + event[3]:
+								continue
 
 					# Check if we have Servicelimit
 					if timer[2] is not None:
