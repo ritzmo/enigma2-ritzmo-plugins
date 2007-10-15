@@ -4,7 +4,7 @@ from os import path as os_path
 
 # Timer
 from ServiceReference import ServiceReference
-from RecordTimer import RecordTimerEntry, parseEvent
+from RecordTimer import RecordTimerEntry, parseEvent, AFTEREVENT
 
 # Timespan
 from time import localtime, mktime, time
@@ -76,7 +76,7 @@ class AutoTimer:
 		for config in dom.getElementsByTagName("autotimer"):
 			# Iterate Timers
 			for timer in config.getElementsByTagName("timer"):
-				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None, timeoffset in m (before, after) or None)
+				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None, timeoffset in m (before, after) or None, afterevent)
 
 				# Read out name
 				name = self.getValue(timer.getElementsByTagName("name"), None)
@@ -124,12 +124,22 @@ class AutoTimer:
 				else:
 					offset = None
 
+				# Read out afterevent
+				afterevent = self.getValue(timer.getElementsByTagName("afterevent"), None)
+				if afterevent == "standby":
+					afterevent = AFTEREVENT.STANDBY
+				elif afterevent == "shutdown":
+					afterevent = AFTEREVENT.DEEPSTANDBY
+				else:
+					afterevent = AFTEREVENT.NONE					
+
 				# Finally append tuple
 				self.timers.append((
 						str(name),
 						timetuple,
 						servicelist,
-						offset
+						offset,
+						afterevent
 				))
 
 	def set(self, name, tuple):
@@ -166,12 +176,16 @@ class AutoTimer:
 					list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
 			if timer[3] is not None:
 				if timer[3][0] == timer[3][1]:
-					list.append(''.join(['  <offset>', timer[3][0], '</offset>\n']))
+					list.append(''.join(['  <offset>', timer[3][0]/60, '</offset>\n']))
 				else:
 					list.append('  <offset>\n')
-					list.append(''.join(['   <before>', timer[3][0], '</before>\n']))
-					list.append(''.join(['   <after>', timer[3][1], '</after>\n']))
+					list.append(''.join(['   <before>', timer[3][0]/60, '</before>\n']))
+					list.append(''.join(['   <after>', timer[3][1]/60, '</after>\n']))
 					list.append('  </offset>\n')
+			if timer[4] == AFTEREVENT.STANDBY:
+				list.append('  <afterevent>standby</afterevent>\n')
+			elif timer[4] == AFTEREVENT.DEEPSTANDBY:
+				list.append('  <afterevent>shutdown</afterevent>\n')
 			list.append(' </timer>\n')
 		list.append('</autotimer>\n')
 
@@ -320,7 +334,7 @@ class AutoTimer:
 								begin -= timer[3][0]
 								end += timer[3][1]
 
-							newEntry = RecordTimerEntry(ServiceReference(ref), begin, end, name, description, eit)
+							newEntry = RecordTimerEntry(ServiceReference(ref), begin, end, name, description, eit, afterEvent = timer[4])
 							self.session.nav.RecordTimer.record(newEntry)
 							new += 1
 					else:
