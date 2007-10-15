@@ -49,7 +49,7 @@ class AutoTimer:
 				ret = ret + node.data
 
 		# If output is still empty return default
-		if not len(ret):
+		if not len(ret.strip()):
 			return default
 
 		# Otherwise return output
@@ -76,7 +76,7 @@ class AutoTimer:
 		for config in dom.getElementsByTagName("autotimer"):
 			# Iterate Timers
 			for timer in config.getElementsByTagName("timer"):
-				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None)
+				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None, timeoffset in m (before, after) or None)
 
 				# Read out name
 				name = self.getValue(timer.getElementsByTagName("name"), None)
@@ -110,11 +110,26 @@ class AutoTimer:
 				else:
 					servicelist = None
 
+				# Read out offset
+				offset = timer.getElementsByTagName("offset")
+				if len(offset):
+					offset = offset[0]
+					value = self.getValue(offset, None, False)
+					if value is None:
+						before = int(self.getValue(offset.getElementsByTagName("before"), 0)) * 60
+						after = int(self.getValue(offset.getElementsByTagName("after"), 0)) * 60
+					else:
+						before = after = int(value) * 60
+					offset = (before, after)
+				else:
+					offset = None
+
 				# Finally append tuple
 				self.timers.append((
 						str(name),
 						timetuple,
-						servicelist
+						servicelist,
+						offset
 				))
 
 	def set(self, name, tuple):
@@ -149,6 +164,14 @@ class AutoTimer:
 			if timer[2] is not None:
 				for serviceref in timer[2]:
 					list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
+			if timer[3] is not None:
+				if timer[3][0] == timer[3][1]:
+					list.append(''.join(['  <offset>', timer[3][0], '</offset>\n']))
+				else:
+					list.append('  <offset>\n')
+					list.append(''.join(['   <before>', timer[3][0], '</before>\n']))
+					list.append(''.join(['   <after>', timer[3][1], '</after>\n']))
+					list.append('  </offset>\n')
 			list.append(' </timer>\n')
 		list.append('</autotimer>\n')
 
@@ -290,7 +313,14 @@ class AutoTimer:
 						# If timer is "unique"
 						if unique:
 							print "[AutoTimer] Adding this event."
-							newEntry = RecordTimerEntry(ServiceReference(ref), *parseEvent(evt))
+							(begin, end, name, description, eit) = parseEvent(evt)
+
+							# Apply custom offset
+							if timer[3] is not None:
+								begin -= timer[3][0]
+								end += timer[3][1]
+
+							newEntry = RecordTimerEntry(ServiceReference(ref), begin, end, name, description, eit)
 							self.session.nav.RecordTimer.record(newEntry)
 							new += 1
 					else:
