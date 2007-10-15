@@ -1,3 +1,3 @@
 installdir = /etc/enigma2
 
-install_DATA = mounts-sample.xml
+install_DATA = mounts.xml

@@ -1,3 +1,3 @@
 installdir = /etc/enigma2
 
-install_DATA = autotimer-sample.xml
+install_DATA = autotimer.xml
