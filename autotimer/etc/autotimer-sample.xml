@@ -13,6 +13,10 @@
   </timespan>
   <!-- Auf RTL -->
   <serviceref>1:0:1:2EE3:441:1:C00000:0:0:0:</serviceref>
+  <!-- 5 Minuten Offset davor/danach -->
+  <offset>5</offset>
+  <!-- Box in den Standby (auch moegl.: shutdown) schicken -->
+  <afterevent>standby</afterevent>
  </timer>
 
  <!-- Ein weiterer Timer -->
@@ -23,6 +27,12 @@
   <!-- Nur auf Pro7 und ORF aufzeichnen -->
   <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
   <serviceref>1:0:1:32C9:45D:1:C00000:0:0:0:</serviceref>
+  <!-- Offset: Vorher 2min, danach 3 -->
+  <offset>
+   <before>2</before>
+   <after>3</after>
+  </offset>
+  <!-- Kein Afterevent -->
  </timer>
 </autotimer>
  
