@@ -6,6 +6,7 @@
 
 # GUI (Screens)
 from Screens.MessageBox import MessageBox
+from AutoScreens import AutoTimerOverview
 
 # Plugin
 from AutoTimer import AutoTimer
@@ -35,6 +36,26 @@ def main(session, **kwargs):
 	if autotimer is None:
 		autotimer = AutoTimer(session)
 
+	# Do not run in background while editing, this might screw things up
+	if autopoller.shouldRun:
+		autopoller.stop()
+
+	session.openWithCallback(
+		editCallback,
+		AutoTimerOverview,
+		autotimer
+	)
+
+def editCallback(session):
+	global autotimer
+
+	if autopoller.shouldRun:
+		autopoller.start(autotimer, initial = False)
+
+	# Don't do anything when editing was canceled
+	if session is None:
+		return
+
 	# We might re-parse Xml so catch parsing error
 	try:
 		ret = autotimer.parseEPG()
@@ -55,5 +76,5 @@ def main(session, **kwargs):
 def Plugins(**kwargs):
 	return [
 		PluginDescriptor(where = PluginDescriptor.WHERE_SESSIONSTART, fnc = autostart),
-		PluginDescriptor(name="AutoTimer", description = "...", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
+		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
 	]
