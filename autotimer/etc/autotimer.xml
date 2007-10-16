@@ -17,6 +17,10 @@
   <offset>5</offset>
   <!-- Box in den Standby (auch moegl.: shutdown) schicken -->
   <afterevent>standby</afterevent>
+  <!-- Nicht Aufnehmen, wenn "Wiederholung" in der Beschreibung steht -->
+  <exclude where="description">Wiederholung</exclude>
+  <!-- Nicht Aufnehmen, wenn "Staffel 1" in Kurzbeschreibung -->
+  <exclude where="shortdescription">Staffel 1</exclude>
  </timer>
 
  <!-- Ein weiterer Timer -->
@@ -33,6 +37,8 @@
    <after>3</after>
   </offset>
   <!-- Kein Afterevent -->
+  <!-- Nicht Aufnahmen, wenn "Dr." im Titel steht -->
+  <exclude where="title">Dr.</exclude>
  </timer>
 </autotimer>
  

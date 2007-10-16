@@ -121,6 +121,10 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# We need to keep our Id
 		self.uniqueTimerId = timertuple[0]
 
+		# TODO: implement configuration for these - for now we just keep them
+		self.excludes = timertuple[6]
+		self.maxduration = timertuple[7]
+
 		# See if services are restricted
 		if timertuple[3] is None:
 			self.serviceRestriction = False
@@ -271,7 +275,9 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 			timetuple,
 			servicelist,
 			offset,
-			afterevent
+			afterevent,
+			self.excludes,
+			self.maxduration
 		))
 
 class AutoTimerOverview(Screen):
@@ -316,13 +322,16 @@ class AutoTimerOverview(Screen):
 		self.session.openWithCallback(
 			self.editCallback,
 			AutoTimerEdit,
+			# TODO: implement setting a default?
 			(
 				self.autotimer.getUniqueId(),	# Id
 				"",								# Name
 				None,							# Timespan
 				None,							# Services
 				None,							# Offset
-				AFTEREVENT.NONE					# AfterEvent
+				AFTEREVENT.NONE,				# AfterEvent
+				None,							# Excludes
+				None							# Maxlength
 			)
 		)
 

@@ -1,4 +1,4 @@
-# Config
+# Plugins Config
 from xml.dom.minidom import parse as minidom_parse
 from os import path as os_path
 
@@ -12,6 +12,7 @@ from time import localtime, mktime, time
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
 
+# Enigma2 Config (Timermargin)
 from Components.config import config
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
@@ -91,11 +92,11 @@ class AutoTimer:
 					continue
 
 				# Guess allowedtime
-				allowed = timer.getElementsByTagName("timespan")
-				if len(allowed):
+				elements = timer.getElementsByTagName("timespan")
+				if len(elements):
 					# We only support 1 Timespan so far
-					start = getValue(allowed[0].getElementsByTagName("from"), None)
-					end = getValue(allowed[0].getElementsByTagName("to"), None)
+					start = getValue(elements[0].getElementsByTagName("from"), None)
+					end = getValue(elements[0].getElementsByTagName("to"), None)
 					if start and end:
 						start = [int(x) for x in start.split(':')]
 						end = [int(x) for x in end.split(':')]
@@ -110,10 +111,10 @@ class AutoTimer:
 					timetuple = None
 
 				# Read out allowed services
-				allowed = timer.getElementsByTagName("serviceref")
-				if len(allowed):
+				elements = timer.getElementsByTagName("serviceref")
+				if len(elements):
 					servicelist = []
-					for service in allowed:
+					for service in elements:
 						value = getValue(service, None, False)
 						if value:
 							servicelist.append(value)
@@ -123,13 +124,12 @@ class AutoTimer:
 					servicelist = None
 
 				# Read out offset
-				offset = timer.getElementsByTagName("offset")
-				if len(offset):
-					offset = offset[0]
-					value = getValue(offset, None, False)
+				elements = timer.getElementsByTagName("offset")
+				if len(elements):
+					value = getValue(elements[0], None, False)
 					if value is None:
-						before = int(getValue(offset.getElementsByTagName("before"), 0)) * 60
-						after = int(getValue(offset.getElementsByTagName("after"), 0)) * 60
+						before = int(getValue(elements[0].getElementsByTagName("before"), 0)) * 60
+						after = int(getValue(elements[0].getElementsByTagName("after"), 0)) * 60
 					else:
 						before = after = int(value) * 60
 					offset = (before, after)
@@ -137,40 +137,35 @@ class AutoTimer:
 					offset = None
 
 				# Read out afterevent
+				idx = {"standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
 				afterevent = getValue(timer.getElementsByTagName("afterevent"), None)
-				if afterevent == "standby":
-					afterevent = AFTEREVENT.STANDBY
-				elif afterevent == "shutdown":
-					afterevent = AFTEREVENT.DEEPSTANDBY
-				else:
+				try:
+					afterevent = idx[afterevent]
+				except KeyError, ke:
 					afterevent = AFTEREVENT.NONE					
 
 				# Read out exclude
-				excludes = timer.getElementsByTagName("exclude")
-				if len(excludes):
-					title = []
-					for exclude in excludes.getElementsByTagName("title"):
+				elements = timer.getElementsByTagName("exclude")
+				if len(elements):
+					excludes = ([], [], [])
+					idx = {"title": 0, "shortdescription": 1, "description": 2}
+					for exclude in elements:
+						where = exclude.getAttribute("where")
 						value = getValue(exclude, None, False)
-						if value is not None:
-							titles.append(value.encode("UTF-8"))
-					short = []
-					for exclude in excludes.getElementsByTagName("shortdescription"):
-						value = getValue(exclude, None, False)
-						if value is not None:
-							short.append(value.encode("UTF-8"))
-					description = []
-					for exclude in excludes.getElementsByTagName("description"):
-						value = getValue(exclude, None, False)
-						if value is not None:
-							description.append(value.encode("UTF-8"))
-					excludes = (title, short, description)
+						if not (content and where):
+							continue
+
+						try:
+							excludes[idx[where]].append(value)
+						except KeyError, ke:
+							pass
 				else:
 					excludes = None
 
 				# Read out max length
-				maxlen = timer.getElementsByTagName("maxduration")
-				if len(maxlen):
-					maxlen = getValue(maxlen, None, False)
+				elements = timer.getElementsByTagName("maxduration")
+				if len(elements):
+					maxlen = getValue(elements, None, False)
 					if maxlen is not None:
 						maxlen *= 60
 				else:
@@ -235,19 +230,16 @@ class AutoTimer:
 					list.append(''.join(['   <before>', str(timer[4][0]/60), '</before>\n']))
 					list.append(''.join(['   <after>', str(timer[4][1]/60), '</after>\n']))
 					list.append('  </offset>\n')
-			if timer[5] == AFTEREVENT.STANDBY:
-				list.append('  <afterevent>standby</afterevent>\n')
-			elif timer[5] == AFTEREVENT.DEEPSTANDBY:
-				list.append('  <afterevent>shutdown</afterevent>\n')
+			if timer[5] is not AFTEREVENT.NONE:
+				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}
+				list.append(''.join(['  <afterevent>', afterevent, '</afterevent>\n']))
 			if timer[6] is not None:
-				list.append('  <exclude>\n')
 				for title in timer[6][0]:
-					list.append(''.join(['   <title>', title, '</title>\n']))
+					list.append(''.join(['  <exclude where="title">', title, '</exclude>\n']))
 				for short in timer[6][1]:
-					list.append(''.join(['   <shortdescription>', short, '</shortdescription>\n']))
+					list.append(''.join(['  <exclude where="shortdescription">', short, '</exclude>\n']))
 				for desc in timer[6][2]:
-					list.append(''.join(['   <description>', desc, '</description>\n']))
-				list.append('  </exclude>\n')
+					list.append(''.join(['  <exclude where="description">', desc, '</exclude>\n']))
 			if timer[7] is not None:
 				list.append(''.join(['  <maxduration>', str(timer[7]/60), '</maxduration>\n']))
 			list.append(' </timer>\n\n')
