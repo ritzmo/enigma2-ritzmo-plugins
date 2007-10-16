@@ -219,6 +219,7 @@ class AutoTimer:
 			if timer[0] == uniqueId:
 				self.timers.pop(idx)
 				return
+			idx += 1
 
 	def writeXml(self):
 		# Generate List in RAM
