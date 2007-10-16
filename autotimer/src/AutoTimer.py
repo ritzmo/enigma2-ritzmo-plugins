@@ -15,6 +15,9 @@ from enigma import eEPGCache, eServiceReference
 # Enigma2 Config (Timermargin)
 from Components.config import config
 
+#
+from AutoTimerComponent import AutoTimerComponent
+
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
 
 def getValue(definitions, default, isList = True):
@@ -38,7 +41,8 @@ def getValue(definitions, default, isList = True):
 			ret = ret + node.data
 
 	# If output is still empty return default
-	if not len(ret.strip()):
+	ret = ret.strip()
+	if not len(ret):
 		return default
 
 	# Otherwise return output
@@ -100,11 +104,7 @@ class AutoTimer:
 					if start and end:
 						start = [int(x) for x in start.split(':')]
 						end = [int(x) for x in end.split(':')]
-						if end[0] < start[0] or (end[0] == start[0] and end[1] <= start[1]):
-							haveDayspan = True
-						else:
-							haveDayspan = False
-						timetuple = (start, end, haveDayspan)
+						timetuple = (start, end)
 					else:
 						timetuple = None
 				else:
@@ -182,23 +182,26 @@ class AutoTimer:
 					enabled = True
 
 				# Finally append tuple
-				self.timers.append((
+				self.timers.append(AutoTimerComponent(
 						self.uniqueTimerId,
 						name.encode('UTF-8'),
-						timetuple,
-						servicelist,
-						offset,
-						afterevent,
-						excludes,
-						maxlen,
-						enabled
+						enabled,
+						timespan = timetuple,
+						services = servicelist,
+						offset = offset,
+						afterevent = afterevent,
+						exclude = excludes,
+						maxduration = maxlen
 				))
 
 	def getTimerList(self):
 		return self.timers
 
 	def getEnabledTimerList(self):
-		return [x for x in self.timers if x[8]]
+		return [x for x in self.timers if x.enabled]
+
+	def getTupleTimerList(self):
+		return [(x,) for x in self.timers]
 
 	def getUniqueId(self):
 		self.uniqueTimerId += 1
@@ -207,7 +210,7 @@ class AutoTimer:
 	def set(self, tuple):
 		idx = 0
 		for timer in self.timers:
-			if timer[0] == tuple[0]:
+			if timer.id == tuple.id:
 				self.timers[idx] = tuple
 				return
 			idx += 1
@@ -216,7 +219,7 @@ class AutoTimer:
 	def remove(self, uniqueId):
 		idx = 0
 		for timer in self.timers:
-			if timer[0] == uniqueId:
+			if timer.id == uniqueId:
 				self.timers.pop(idx)
 				return
 			idx += 1
@@ -228,36 +231,34 @@ class AutoTimer:
 		# Iterate timers
 		for timer in self.timers:
 			list.append(' <timer>\n')
-			list.append(''.join(['  <name>', timer[1], '</name>\n']))
-			if timer[2] is not None:
+			list.append(''.join(['  <name>', timer.name, '</name>\n']))
+			if timer.hasTimespan():
 				list.append('  <timespan>\n')
-				list.append(''.join(['   <from>', '%02d:%02d' % (timer[2][0][0], timer[2][0][1]), '</from>\n']))
-				list.append(''.join(['   <to>', '%02d:%02d' % (timer[2][1][0], timer[2][1][1]), '</to>\n']))
+				list.append(''.join(['   <from>', timer.getTimespanBegin(), '</from>\n']))
+				list.append(''.join(['   <to>', timer.getTimespanEnd(), '</to>\n']))
 				list.append('  </timespan>\n')
-			if timer[3] is not None:
-				for serviceref in timer[3]:
-					list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
-			if timer[4] is not None:
-				if timer[4][0] == timer[4][1]:
-					list.append(''.join(['  <offset>', str(timer[4][0]/60), '</offset>\n']))
+			for serviceref in timer.getServices():
+				list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
+			if timer.hasOffset():
+				if timer.isOffsetEqual():
+					list.append(''.join(['  <offset>', str(timer.getOffsetBegin()), '</offset>\n']))
 				else:
 					list.append('  <offset>\n')
-					list.append(''.join(['   <before>', str(timer[4][0]/60), '</before>\n']))
-					list.append(''.join(['   <after>', str(timer[4][1]/60), '</after>\n']))
+					list.append(''.join(['   <before>', str(timer.getOffsetBegin()), '</before>\n']))
+					list.append(''.join(['   <after>', str(timer.getOffsetEnd()), '</after>\n']))
 					list.append('  </offset>\n')
-			if timer[5] is not AFTEREVENT.NONE:
-				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer[5]]
+			if timer.getAfterEvent() != AFTEREVENT.NONE:
+				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer.getAfterEvent()]
 				list.append(''.join(['  <afterevent>', afterevent, '</afterevent>\n']))
-			if timer[6] is not None:
-				for title in timer[6][0]:
-					list.append(''.join(['  <exclude where="title">', title, '</exclude>\n']))
-				for short in timer[6][1]:
-					list.append(''.join(['  <exclude where="shortdescription">', short, '</exclude>\n']))
-				for desc in timer[6][2]:
-					list.append(''.join(['  <exclude where="description">', desc, '</exclude>\n']))
-			if timer[7] is not None:
-				list.append(''.join(['  <maxduration>', str(timer[7]/60), '</maxduration>\n']))
-			if not timer[8]:
+			for title in timer.getExcludedTitle():
+				list.append(''.join(['  <exclude where="title">', title, '</exclude>\n']))
+			for short in timer.getExcludedShort():
+				list.append(''.join(['  <exclude where="shortdescription">', short, '</exclude>\n']))
+			for desc in timer.getExcludedDescription():
+				list.append(''.join(['  <exclude where="description">', desc, '</exclude>\n']))
+			if timer.hasDuration():
+				list.append(''.join(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n']))
+			if not timer.enabled:
 				list.append(''.join(['  <enabled>no</enabled>\n']))
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
@@ -265,7 +266,7 @@ class AutoTimer:
 		# Try Saving to Flash
 		file = None
 		try:
-			file = open(XML_CONFIG, "w")
+			file = open(XML_CONFIG, 'w')
 			file.writelines(list)
 
 			# FIXME: This should actually be placed inside a finally-block but python 2.4 does not support this - waiting for some images to upgrade
@@ -292,7 +293,7 @@ class AutoTimer:
 		for timer in self.getEnabledTimerList():
 			try:
 				# Search EPG
-				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
+				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.name, eEPGCache.NO_CASE_CHECK))
 
 				# Continue on empty result
 				if ret is None:
@@ -305,8 +306,11 @@ class AutoTimer:
 					# Other information will be gathered from the Event
 					print "[AutoTimer] Checking Tuple:", event
 
-					ref = eServiceReference(event[0])
-					evt = self.epgcache.lookupEventId(ref, event[1])
+					# Check if Service is disallowed first as its the only property available here
+					if timer.checkServices(event[0]):
+						continue
+
+					evt = self.epgcache.lookupEventId(eServiceReference(event[0]), event[1])
 					if not evt:
 						print "[AutoTimer] Could not create Event!"
 						continue
@@ -317,63 +321,9 @@ class AutoTimer:
 					if begin < time() + 60:
 						continue
 
-					# Check if duration exceeds our limit
-					if timer[7] is not None:
-						if begin-end > timer[7]:
-							continue
-
-					# Check if we have Timelimit
-					if timer[2] is not None:
-						# Calculate Span if needed
-						cbegin = localtime(begin) # 3 is h, 4 is m
-
-						# Check if we span a day
-						if timer[2][2]:
-							# Check if begin of event is not later than our timespan starts
-							if not (cbegin[3] > timer[2][0][0] or (cbegin[3] == timer[2][0][0] and cbegin[4] >= timer[2][0][1])):
-								# If it does check if it is not earlier than out timespan ends
-								if not (cbegin[3] < timer[2][1][0] or (cbegin[3] == timer[2][1][0] and cbegin[4] <= timer[2][1][1])):
-									# If so, event is not in our timespan
-									continue
-						else:
-							# Check if event does not begin later than out timespan starts 
-							if not (cbegin[3] > timer[2][0][0] or (cbegin[3] == timer[2][0][0] and cbegin[4] >= timer[2][0][1])):
-								# Its out of our timespan then
-								continue
-							# Check if event does not begin earlier than out timespan ends
-							if not (cbegin[3] < timer[2][1][0] or (cbegin[3] == timer[2][1][0] and cbegin[4] <= timer[2][1][1])):
-								# Its out of our timespan
-								continue
-
-					# Check if we have Servicelimit
-					if timer[3] is not None:
-						# Continue if service not allowed
-						if event[0] not in timer[3]:
-							continue
-
-					# Check if we have excludes
-					if timer[6] is not None:
-						ext_desc = evt.getExtendedDescription()
-						stop = False
-						# Continue if exclude found in string
-						for title in timer[6][0]:
-							if title in name:
-								stop = True
-								break
-						if stop:
-							continue
-						for short in timer[6][1]:
-							if short in description:
-								stop = True
-								break
-						if stop:
-							continue
-						for desc in timer[6][2]:
-							if desc in ext_desc:
-								stop = True
-								break
-						if stop:
-							continue
+					# Check Duration, Timespan and Excludes
+					if timer.checkDuration(begin-end) or timer.checkTimespan(begin) or timer.checkExcluded(name, description, evt.getExtendedDescription()):
+						continue
 
 					# Check for double Timers
 					unique = True
@@ -390,11 +340,9 @@ class AutoTimer:
 						print "[AutoTimer] Adding this event."
  
 						# Apply custom offset
-						if timer[4] is not None:
-							begin -= timer[4][0]
-							end += timer[4][1]
+						begin, end = timer.applyOffset(begin, end)
 
-						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], afterEvent = timer[5])
+						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], afterEvent = timer.getAfterEvent())
 						self.session.nav.RecordTimer.record(newEntry)
 						new += 1
 

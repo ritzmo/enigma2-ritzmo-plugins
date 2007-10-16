@@ -22,10 +22,10 @@ class AutoList(GUIComponent):
 		instance.setContent(self.l)
 		instance.setItemHeight(25)
 
-	def buildListboxEntry(self, uniqueTimerId, name, timespan, services, offset, afterevent, excludes, maxlength, enabled):
+	def buildListboxEntry(self, timer):
 		res = [ None ]
 		width = self.l.getItemSize().width()
-		res.append(MultiContentEntryText(pos=(0, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = name.encode("UTF-8")))
+		res.append(MultiContentEntryText(pos=(0, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
 
 		return res
 

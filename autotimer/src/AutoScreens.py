@@ -14,6 +14,11 @@ from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigTex
 # Timer
 from RecordTimer import AFTEREVENT
 
+from time import localtime, mktime
+
+# Plugin
+from AutoTimerComponent import AutoTimerComponent
+
 class AutoChannelEdit(Screen, ConfigListScreen):
 	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="560,240">
 		<widget name="config" position="0,0" size="560,200" scrollbarMode="showOnDemand" />
@@ -105,35 +110,34 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 		))
 
 class AutoTimerEdit(Screen, ConfigListScreen):
-	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,150" size="450,240">
-		<widget name="config" position="0,0" size="450,200" scrollbarMode="showOnDemand" />
-		<ePixmap position="0,200" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,200" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
-		<ePixmap position="310,200" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="310,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,150" size="450,280">
+		<widget name="config" position="0,0" size="450,240" scrollbarMode="showOnDemand" />
+		<ePixmap position="0,240" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,240" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="310,240" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="310,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
-	def __init__(self, session, timertuple):
+	def __init__(self, session, timer):
 		Screen.__init__(self, session)
 
 		# We need to keep our Id
-		self.uniqueTimerId = timertuple[0]
+		self.uniqueTimerId = timer.id
 
 		# TODO: implement configuration for these - for now we just keep them
-		self.excludes = timertuple[6]
-		self.maxduration = timertuple[7]
+		self.excludes = timer.exclude
+		self.maxduration = timer.maxduration
 
 		# See if services are restricted
-		if timertuple[3] is None:
-			self.serviceRestriction = False
-			self.services = []
-		else:
+		self.services = timer.getServices()
+		if len(self.services):
 			self.serviceRestriction = True
-			self.services = timertuple[3]
+		else:
+			self.serviceRestriction = False
 
-		self.createSetup(timertuple)
+		self.createSetup(timer)
 
 		# We might need to change shown items, so add some notifiers
 		self.timespan.addNotifier(self.reloadList, initial_call = False)
@@ -157,19 +161,28 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 			}
 		)
 
-	def createSetup(self, timertuple):
+	def createSetup(self, timer):
 		# Name
-		self.name = ConfigText(default = timertuple[1], fixed_size = False)
+		self.name = ConfigText(default = timer.name, fixed_size = False)
 
 		# Timespan
-		if timertuple[2] is not None:
+		now = [x for x in localtime()]
+		if timer.hasTimespan() is not None:
 			default = True
-			begin = timertuple[2][0][0] * 3600 + timertuple[2][0][1] * 60 
-			end = timertuple[2][1][0] * 3600 + timertuple[2][1][1] * 60
+			now[3] = timer.timespan[0][0]
+			now[4] = timer.timespan[0][1]
+			begin = mktime(now)
+			now[3] = timer.timespan[1][0]
+			now[4] = timer.timespan[1][1]
+			end = mktime(now)
 		else:
 			default = False
-			begin = 72900	# 20:15
-			end = 83700		# 23:15
+			now[3] = 20
+			now[4] = 15
+			begin = mktime(now)
+			now[3] = 23
+			now[4] = 15
+			end = mktime(now)
 		self.timespan = ConfigEnableDisable(default = default)
 		self.timespanbegin = ConfigClock(default = begin)
 		self.timespanend = ConfigClock(default = end)
@@ -177,10 +190,10 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# Services have their own Screen
 
 		# Offset
-		if timertuple[4] is not None:
+		if timer.hasOffset():
 			default = True
-			begin = timertuple[4][0] / 60
-			end = timertuple[4][1] / 60
+			begin = timer.getOffsetBegin()
+			end = timer.getOffsetEnd()
 		else:
 			default = False
 			begin = 5
@@ -190,11 +203,11 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		self.offsetend = ConfigInteger(default = end, limits = (0, 60))
 
 		# AfterEvent
-		afterevent = { AFTEREVENT.NONE: "nothing", AFTEREVENT.DEEPSTANDBY: "deepstandby", AFTEREVENT.STANDBY: "standby"}[timertuple[5]]
+		afterevent = { AFTEREVENT.NONE: "nothing", AFTEREVENT.DEEPSTANDBY: "deepstandby", AFTEREVENT.STANDBY: "standby"}[timer.getAfterEvent()]
 		self.afterevent = ConfigSelection(choices = [("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
 
 		# Enabled
-		self.enabled = ConfigEnableDisable(default = timertuple[8])
+		self.enabled = ConfigEnableDisable(default = timer.enabled)
 
 	def refresh(self):
 		# First two entries are always shown
@@ -249,11 +262,7 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		if self.timespan.value:
 			start = self.timespanbegin.value
 			end = self.timespanend.value
-			if end[0] < start[0] or (end[0] == start[0] and end[1] <= start[1]):
-				haveDayspan = True
-			else:	
-				haveDayspan = False
-			timetuple = (start, end, haveDayspan)
+			timetuple = (start, end)
 		else:
 			timetuple= None
 
@@ -273,16 +282,16 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		afterevent = {"nothing": AFTEREVENT.NONE, "deepstandby": AFTEREVENT.DEEPSTANDBY, "standby": AFTEREVENT.STANDBY}[self.afterevent.value]
 
 		# Close and return tuple
-		self.close((
+		self.close(AutoTimerComponent(
 			self.uniqueTimerId,
 			self.name.value,
-			timetuple,
-			servicelist,
-			offset,
-			afterevent,
-			self.excludes,
-			self.maxduration,
-			self.enabled.value
+			self.enabled.value,
+			timespan = timetuple,
+			services = servicelist,
+			offset = offset,
+			afterevent = afterevent,
+			exclude = self.excludes,
+			maxduration = self.maxduration
 		))
 
 class AutoTimerOverview(Screen):
@@ -302,7 +311,12 @@ class AutoTimerOverview(Screen):
 
 		# Save autotimer and read in Xml
 		self.autotimer = autotimer
-		autotimer.readXml()
+		try:
+			self.autotimer.readXml()
+		except:
+			# Don't crash during development
+			import traceback, sys
+			traceback.print_exc(file=sys.stdout)
 
 		# Button Labels
 		self["key_green"] = Button(_("Save"))
@@ -310,7 +324,7 @@ class AutoTimerOverview(Screen):
 		self["key_blue"] = Button(_("Add"))
 
 		# Create List of Timers
-		self["entries"] = AutoList(autotimer.getTimerList())
+		self["entries"] = AutoList(autotimer.getTupleTimerList())
 
 		# Define Actions
 		self["actions"] = ActionMap(["OkCancelActions", "ColorActions"],
@@ -328,22 +342,16 @@ class AutoTimerOverview(Screen):
 			self.editCallback,
 			AutoTimerEdit,
 			# TODO: implement setting a default?
-			(
+			AutoTimerComponent(
 				self.autotimer.getUniqueId(),	# Id
 				"",								# Name
-				None,							# Timespan
-				None,							# Services
-				None,							# Offset
-				AFTEREVENT.NONE,				# AfterEvent
-				None,							# Excludes
-				None,							# Maxlength
-				True							# Enabled
+				True							# Enabled				
 			)
 		)
 
 	def refresh(self):
 		# Re-assign List
-		self["entries"].setList(self.autotimer.getTimerList())
+		self["entries"].setList(self.autotimer.getTupleTimerList())
 
 	def ok(self):
 		# Edit selected Timer
@@ -352,7 +360,7 @@ class AutoTimerOverview(Screen):
 			self.session.openWithCallback(
 				self.editCallback,
 				AutoTimerEdit,
-				current
+				current[0]
 			)
 
 	def editCallback(self, res):
@@ -364,7 +372,7 @@ class AutoTimerOverview(Screen):
 		# Remove selected Timer
 		current = self["entries"].getCurrent()
 		if current is not None:
-			self.autotimer.remove(current[0])
+			self.autotimer.remove(current[0].id)
 			self.refresh()
 
 	def cancel(self):
