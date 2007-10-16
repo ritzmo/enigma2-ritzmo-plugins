@@ -4,13 +4,15 @@ from os import path as os_path
 
 # Timer
 from ServiceReference import ServiceReference
-from RecordTimer import RecordTimerEntry, parseEvent, AFTEREVENT
+from RecordTimer import RecordTimerEntry, AFTEREVENT
 
 # Timespan
 from time import localtime, mktime, time
 
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
+
+from Components.config import config
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
 
@@ -143,14 +145,37 @@ class AutoTimer:
 				else:
 					afterevent = AFTEREVENT.NONE					
 
+				# Read out exclude
+				excludes = timer.getElementsByTagName("exclude")
+				if len(excludes):
+					title = []
+					for exclude in excludes.getElementsByTagName("title"):
+						value = getValue(exclude, None, False)
+						if value is not None:
+							titles.append(value.encode("UTF-8"))
+					short = []
+					for exclude in excludes.getElementsByTagName("shortdescription"):
+						value = getValue(exclude, None, False)
+						if value is not None:
+							short.append(value.encode("UTF-8"))
+					description = []
+					for exclude in excludes.getElementsByTagName("description"):
+						value = getValue(exclude, None, False)
+						if value is not None:
+							description.append(value.encode("UTF-8"))
+					excludes = (title, short, description)
+				else:
+					excludes = None
+
 				# Finally append tuple
 				self.timers.append((
 						self.uniqueTimerId,
-						str(name),
+						name.encode('UTF-8'),
 						timetuple,
 						servicelist,
 						offset,
-						afterevent
+						afterevent,
+						excludes
 				))
 
 	def getTimerList(self):
@@ -204,6 +229,15 @@ class AutoTimer:
 				list.append('  <afterevent>standby</afterevent>\n')
 			elif timer[5] == AFTEREVENT.DEEPSTANDBY:
 				list.append('  <afterevent>shutdown</afterevent>\n')
+			if timer[6] is not None:
+				list.append('  <exclude>\n')
+				for title in timer[6][0]:
+					list.append(''.join(['   <title>', title, '</title>\n']))
+				for short in timer[6][1]:
+					list.append(''.join(['   <shortdescription>', short, '</shortdescription>\n']))
+				for desc in timer[6][2]:
+					list.append(''.join(['   <description>', desc, '</description>\n']))
+				list.append('  </exclude>\n')
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
 
@@ -237,7 +271,7 @@ class AutoTimer:
 		for timer in self.timers:
 			try:
 				# Search EPG
-				ret = self.epgcache.search(('RIBD', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
+				ret = self.epgcache.search(('RIBDTSE', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
 
 				# Continue on empty result
 				if ret is None:
@@ -245,8 +279,8 @@ class AutoTimer:
 					continue
 
 				for event in ret:
-					# Format is (ServiceRef, EventId, BeginTime, Duration)
-					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L)
+					# Format is (ServiceRef, EventId, BeginTime, Duration, Title, Short, Description)
+					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L, "Sendung mit dem Titel", "Eine Sendung mit Titel", "Beschreibung der Sendung mit Titel")
 					print "[AutoTimer] Checking Tuple:", event
 
 					# If event starts in less than 60 seconds skip it
@@ -320,32 +354,43 @@ class AutoTimer:
 						if event[0] not in timer[3]:
 							continue
 
-					ref = eServiceReference(event[0])
-					evt = self.epgcache.lookupEventId(ref, event[1])
-					if evt:							
-						# Check for double Timers
-						unique = True
-						for rtimer in self.session.nav.RecordTimer.timer_list:
-							# Serviceref equals and eventId is the same
-							if str(rtimer.service_ref) == event[0] and rtimer.eit == event[1]:
-								print "[AutoTimer] Event already scheduled."
-								unique = False
-								skipped += 1
-								break
+					# Check if we have excludes
+					if timer[6] is not None:
+						# Continue if exclude found in string
+						for title in timer[6][0]:
+							if title in event[4]:
+								continue
+						for short in timer[6][1]:
+							if short in event[5]:
+								continue
+						for desc in timer[6][2]:
+							if desc in event[6]:
+								continue
 
-						# If timer is "unique"
-						if unique:
-							print "[AutoTimer] Adding this event."
-							(begin, end, name, description, eit) = parseEvent(evt)
+					# Check for double Timers
+					unique = True
+					for rtimer in self.session.nav.RecordTimer.timer_list:
+						# Serviceref equals and eventId is the same
+						if str(rtimer.service_ref) == event[0] and rtimer.eit == event[1]:
+							print "[AutoTimer] Event already scheduled."
+							unique = False
+							skipped += 1
+							break
 
-							# Apply custom offset
-							if timer[4] is not None:
-								begin -= timer[4][0]
-								end += timer[4][1]
+					# If timer is "unique"
+					if unique:
+						print "[AutoTimer] Adding this event."
+						begin = event[2] - config.recording.margin_before.value * 60
+						end = event[2] + event[3] + config.recording.margin_after.value * 60
+ 
+						# Apply custom offset
+						if timer[4] is not None:
+							begin -= timer[4][0]
+							end += timer[4][1]
 
-							newEntry = RecordTimerEntry(ServiceReference(ref), begin, end, name, description, eit, afterEvent = timer[5])
-							self.session.nav.RecordTimer.record(newEntry)
-							new += 1
+						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, event[4], event[5], event[1], afterEvent = timer[5])
+						self.session.nav.RecordTimer.record(newEntry)
+						new += 1
 					else:
 						print "[AutoTimer] Could not create Event!"
 
