@@ -72,6 +72,10 @@ def editCallback(session):
 			type = MessageBox.TYPE_ERROR,
 			timeout = 5
 		)
+	except:
+		# Don't crash during development
+		import traceback, sys
+		traceback.print_exc(file=sys.stdout)
 
 def Plugins(**kwargs):
 	return [

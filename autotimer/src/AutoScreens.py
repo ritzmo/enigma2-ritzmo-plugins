@@ -366,7 +366,12 @@ class AutoTimerOverview(Screen):
 
 	def save(self):
 		# Save Xml
-		self.autotimer.writeXml()
+		try:
+			self.autotimer.writeXml()
+		except:
+			# Don't crash during development
+			import traceback, sys
+			traceback.print_exc(file=sys.stdout)
 
 		# Nothing else to be done?
 		self.close(self.session)

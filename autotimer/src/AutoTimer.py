@@ -4,7 +4,7 @@ from os import path as os_path
 
 # Timer
 from ServiceReference import ServiceReference
-from RecordTimer import RecordTimerEntry, AFTEREVENT
+from RecordTimer import RecordTimerEntry, parseEvent, AFTEREVENT
 
 # Timespan
 from time import localtime, mktime, time
@@ -152,11 +152,11 @@ class AutoTimer:
 					for exclude in elements:
 						where = exclude.getAttribute("where")
 						value = getValue(exclude, None, False)
-						if not (content and where):
+						if not (value and where):
 							continue
 
 						try:
-							excludes[idx[where]].append(value)
+							excludes[idx[where]].append(value.encode("UTF-8"))
 						except KeyError, ke:
 							pass
 				else:
@@ -231,7 +231,7 @@ class AutoTimer:
 					list.append(''.join(['   <after>', str(timer[4][1]/60), '</after>\n']))
 					list.append('  </offset>\n')
 			if timer[5] is not AFTEREVENT.NONE:
-				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}
+				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer[5]]
 				list.append(''.join(['  <afterevent>', afterevent, '</afterevent>\n']))
 			if timer[6] is not None:
 				for title in timer[6][0]:
@@ -275,7 +275,7 @@ class AutoTimer:
 		for timer in self.timers:
 			try:
 				# Search EPG
-				ret = self.epgcache.search(('RIBDTSE', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
+				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
 
 				# Continue on empty result
 				if ret is None:
@@ -283,17 +283,26 @@ class AutoTimer:
 					continue
 
 				for event in ret:
-					# Format is (ServiceRef, EventId, BeginTime, Duration, Title, Short, Description)
-					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L, 1192287455L, 600L, "Sendung mit dem Titel", "Eine Sendung mit Titel", "Beschreibung der Sendung mit Titel")
+					# Format is (ServiceRef, EventId)
+					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L)
+					# Other information will be gathered from the Event
 					print "[AutoTimer] Checking Tuple:", event
+					
+					ref = eServiceReference(event[0])
+					evt = self.epgcache.lookupEventId(ref, event[1])
+					if not evt:
+						print "[AutoTimer] Could not create Event!"
+						continue
+
+					(begin, end, name, description, _) = parseEvent(evt)
 
 					# If event starts in less than 60 seconds skip it
-					if event[2] < time() + 60:
+					if begin < time() + 60:
 						continue
 
 					# Check if duration exceeds our limit
 					if timer[7] is not None:
-						if event[3] > timer[7]:
+						if begin-end > timer[7]:
 							continue
 
 					# Check if we have Timelimit
@@ -305,8 +314,8 @@ class AutoTimer:
 
 						if timer[2][2]:
 							# Make List of yesterday & today
-							yesterday = [x for x in localtime(event[2] - 86400)]
-							today = [x for x in localtime(event[2])]
+							yesterday = [x for x in localtime(begin - 86400)]
+							today = [x for x in localtime(begin)]
 
 							# Make yesterday refer to yesterday's begin of timespan
 							yesterday[3] = timer[2][0][0]
@@ -321,9 +330,9 @@ class AutoTimer:
 							end = mktime(today)
 
 							# Check if Event starts between eventday and the day before
-							if (begin > event[2] or end < event[2]):
+							if (begin > begin or end < begin):
 								# Make List of tomorrow
-								tomorrow = [x for x in localtime(event[2] + 86400)]
+								tomorrow = [x for x in localtime(begin + 86400)]
 
 								# Today -> begin of timespan
 								today[3] = timer[2][0][0]
@@ -338,11 +347,11 @@ class AutoTimer:
 								end = mktime(tomorrow)
 
 								# Check if Event starts between eventday and day after
-								if begin > event[2] or end < event[2]:
+								if begin > begin or end < begin:
 									continue
 						else:
 							# Make List
-							today = [x for x in localtime(event[2])]
+							today = [x for x in localtime(begin)]
 
 							# Modify List to refer to begin of timespan
 							today[3] = timer[2][0][0]
@@ -357,7 +366,7 @@ class AutoTimer:
 							end = mktime(today)
 
 							# Check if event starts between timespan
-							if begin > event[2] or end < event[2]:
+							if begin > begin or end < begin:
 								continue
 
 					# Check if we have Servicelimit
@@ -368,16 +377,27 @@ class AutoTimer:
 
 					# Check if we have excludes
 					if timer[6] is not None:
+						ext_desc = evt.getExtendedDescription()
+						stop = False
 						# Continue if exclude found in string
 						for title in timer[6][0]:
-							if title in event[4]:
-								continue
+							if title in name:
+								stop = True
+								break
+						if stop:
+							continue
 						for short in timer[6][1]:
-							if short in event[5]:
-								continue
+							if short in description:
+								stop = True
+								break
+						if stop:
+							continue
 						for desc in timer[6][2]:
-							if desc in event[6]:
-								continue
+							if desc in ext_desc:
+								stop = True
+								break
+						if stop:
+							continue
 
 					# Check for double Timers
 					unique = True
@@ -392,21 +412,19 @@ class AutoTimer:
 					# If timer is "unique"
 					if unique:
 						print "[AutoTimer] Adding this event."
-						begin = event[2] - config.recording.margin_before.value * 60
-						end = event[2] + event[3] + config.recording.margin_after.value * 60
  
 						# Apply custom offset
 						if timer[4] is not None:
 							begin -= timer[4][0]
 							end += timer[4][1]
 
-						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, event[4], event[5], event[1], afterEvent = timer[5])
+						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], afterEvent = timer[5])
 						self.session.nav.RecordTimer.record(newEntry)
 						new += 1
-					else:
-						print "[AutoTimer] Could not create Event!"
 
 			except StandardError, se:
-				print "[AutoTimer] Error occured:", se
+				# Give some more useful information
+				import traceback, sys
+				traceback.print_exc(file=sys.stdout)
 
 		return (new, skipped)
