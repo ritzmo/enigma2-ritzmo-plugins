@@ -167,6 +167,15 @@ class AutoTimer:
 				else:
 					excludes = None
 
+				# Read out max length
+				maxlen = timer.getElementsByTagName("maxduration")
+				if len(maxlen):
+					maxlen = getValue(maxlen, None, False)
+					if maxlen is not None:
+						maxlen *= 60
+				else:
+					maxlen = None
+
 				# Finally append tuple
 				self.timers.append((
 						self.uniqueTimerId,
@@ -175,7 +184,8 @@ class AutoTimer:
 						servicelist,
 						offset,
 						afterevent,
-						excludes
+						excludes,
+						maxlen
 				))
 
 	def getTimerList(self):
@@ -238,6 +248,8 @@ class AutoTimer:
 				for desc in timer[6][2]:
 					list.append(''.join(['   <description>', desc, '</description>\n']))
 				list.append('  </exclude>\n')
+			if timer[7] is not None:
+				list.append(''.join(['  <maxduration>', str(timer[7]/60), '</maxduration>\n']))
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
 
@@ -287,9 +299,17 @@ class AutoTimer:
 					if event[2] < time() + 60:
 						continue
 
+					# Check if duration exceeds our limit
+					if timer[7] is not None:
+						if event[3] > timer[7]:
+							continue
+
 					# Check if we have Timelimit
 					if timer[2] is not None:
 						# Calculate Span if needed
+
+						# TODO: We don't want to check the whole event but only its start...
+						# so we might aswell just check the clock rather than the day
 
 						if timer[2][2]:
 							# Make List of yesterday & today
@@ -308,8 +328,8 @@ class AutoTimer:
 							begin = mktime(yesterday)
 							end = mktime(today)
 
-							# Check if Event spans from day before to eventday
-							if (begin > event[2] or end < event[2] + event[3]):
+							# Check if Event starts between eventday and the day before
+							if (begin > event[2] or end < event[2]):
 								# Make List of tomorrow
 								tomorrow = [x for x in localtime(event[2] + 86400)]
 
@@ -325,8 +345,8 @@ class AutoTimer:
 								begin = mktime(today)
 								end = mktime(tomorrow)
 
-								# Check if Eveent spans from eventday to day after
-								if begin > event[2] or end < event[2] + event[3]:
+								# Check if Event starts between eventday and day after
+								if begin > event[2] or end < event[2]:
 									continue
 						else:
 							# Make List
@@ -344,8 +364,8 @@ class AutoTimer:
 							today[4] = timer[2][1][1]
 							end = mktime(today)
 
-							# Check if event is between timespan
-							if begin > event[2] or end < event[2] + event[3]:
+							# Check if event starts between timespan
+							if begin > event[2] or end < event[2]:
 								continue
 
 					# Check if we have Servicelimit
