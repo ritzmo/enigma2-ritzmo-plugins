@@ -167,9 +167,19 @@ class AutoTimer:
 				if len(elements):
 					maxlen = getValue(elements, None, False)
 					if maxlen is not None:
-						maxlen *= 60
+						maxlen = int(maxlen)*60
 				else:
 					maxlen = None
+
+				# Read out enabled status
+				elements = timer.getElementsByTagName("enabled")
+				if len(elements):
+					if getValue(elements, "yes") == "no":
+						enabled = False
+					else:
+						enabled = True
+				else:
+					enabled = True
 
 				# Finally append tuple
 				self.timers.append((
@@ -180,11 +190,15 @@ class AutoTimer:
 						offset,
 						afterevent,
 						excludes,
-						maxlen
+						maxlen,
+						enabled
 				))
 
 	def getTimerList(self):
 		return self.timers
+
+	def getEnabledTimerList(self):
+		return [x for x in self.timers if x[8]]
 
 	def getUniqueId(self):
 		self.uniqueTimerId += 1
@@ -242,6 +256,8 @@ class AutoTimer:
 					list.append(''.join(['  <exclude where="description">', desc, '</exclude>\n']))
 			if timer[7] is not None:
 				list.append(''.join(['  <maxduration>', str(timer[7]/60), '</maxduration>\n']))
+			if not timer[8]:
+				list.append(''.join(['  <enabled>no</enabled>\n']))
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
 
@@ -272,7 +288,7 @@ class AutoTimer:
 			self.readXml(mtime)
 
 		# Iterate Timer
-		for timer in self.timers:
+		for timer in self.getEnabledTimerList():
 			try:
 				# Search EPG
 				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer[1], eEPGCache.NO_CASE_CHECK))
@@ -287,7 +303,7 @@ class AutoTimer:
 					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L)
 					# Other information will be gathered from the Event
 					print "[AutoTimer] Checking Tuple:", event
-					
+
 					ref = eServiceReference(event[0])
 					evt = self.epgcache.lookupEventId(ref, event[1])
 					if not evt:
@@ -308,65 +324,24 @@ class AutoTimer:
 					# Check if we have Timelimit
 					if timer[2] is not None:
 						# Calculate Span if needed
+						cbegin = localtime(begin) # 3 is h, 4 is m
 
-						# TODO: We don't want to check the whole event but only its start...
-						# so we might aswell just check the clock rather than the day
-
+						# Check if we span a day
 						if timer[2][2]:
-							# Make List of yesterday & today
-							yesterday = [x for x in localtime(begin - 86400)]
-							today = [x for x in localtime(begin)]
-
-							# Make yesterday refer to yesterday's begin of timespan
-							yesterday[3] = timer[2][0][0]
-							yesterday[4] = timer[2][0][1]
-
-							# Make today refer to this days end of timespan
-							today[3] = timer[2][1][0]
-							today[4] = timer[2][1][1]
-							
-							# Convert back
-							begin = mktime(yesterday)
-							end = mktime(today)
-
-							# Check if Event starts between eventday and the day before
-							if (begin > begin or end < begin):
-								# Make List of tomorrow
-								tomorrow = [x for x in localtime(begin + 86400)]
-
-								# Today -> begin of timespan
-								today[3] = timer[2][0][0]
-								today[4] = timer[2][0][1]
-
-								# Tomorrow -> end of timespan
-								tomorrow[3] = timer[2][1][0]
-								tomorrow[4] = timer[2][1][1]
-							
-								# Convert back
-								begin = mktime(today)
-								end = mktime(tomorrow)
-
-								# Check if Event starts between eventday and day after
-								if begin > begin or end < begin:
+							# Check if begin of event is not later than our timespan starts
+							if not (cbegin[3] > timer[2][0][0] or (cbegin[3] == timer[2][0][0] and cbegin[4] >= timer[2][0][1])):
+								# If it does check if it is not earlier than out timespan ends
+								if not (cbegin[3] < timer[2][1][0] or (cbegin[3] == timer[2][1][0] and cbegin[4] <= timer[2][1][1])):
+									# If so, event is not in our timespan
 									continue
 						else:
-							# Make List
-							today = [x for x in localtime(begin)]
-
-							# Modify List to refer to begin of timespan
-							today[3] = timer[2][0][0]
-							today[4] = timer[2][0][1]
-
-							# Convert List back to timetamp
-							begin = mktime(today)
-
-							# Same for end of timespan
-							today[3] = timer[2][1][0]
-							today[4] = timer[2][1][1]
-							end = mktime(today)
-
-							# Check if event starts between timespan
-							if begin > begin or end < begin:
+							# Check if event does not begin later than out timespan starts 
+							if not (cbegin[3] > timer[2][0][0] or (cbegin[3] == timer[2][0][0] and cbegin[4] >= timer[2][0][1])):
+								# Its out of our timespan then
+								continue
+							# Check if event does not begin earlier than out timespan ends
+							if not (cbegin[3] < timer[2][1][0] or (cbegin[3] == timer[2][1][0] and cbegin[4] <= timer[2][1][1])):
+								# Its out of our timespan
 								continue
 
 					# Check if we have Servicelimit

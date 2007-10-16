@@ -193,9 +193,13 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		afterevent = { AFTEREVENT.NONE: "nothing", AFTEREVENT.DEEPSTANDBY: "deepstandby", AFTEREVENT.STANDBY: "standby"}[timertuple[5]]
 		self.afterevent = ConfigSelection(choices = [("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
 
+		# Enabled
+		self.enabled = ConfigEnableDisable(default = timertuple[8])
+
 	def refresh(self):
 		# First two entries are always shown
 		self.list = [
+			getConfigListEntry(_("Enabled"), self.enabled),
 			getConfigListEntry("Match Title", self.name),
 			getConfigListEntry("Only match during Timespan", self.timespan)
 		]
@@ -277,7 +281,8 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 			offset,
 			afterevent,
 			self.excludes,
-			self.maxduration
+			self.maxduration,
+			self.enabled.value
 		))
 
 class AutoTimerOverview(Screen):
@@ -331,7 +336,8 @@ class AutoTimerOverview(Screen):
 				None,							# Offset
 				AFTEREVENT.NONE,				# AfterEvent
 				None,							# Excludes
-				None							# Maxlength
+				None,							# Maxlength
+				True							# Enabled
 			)
 		)
 

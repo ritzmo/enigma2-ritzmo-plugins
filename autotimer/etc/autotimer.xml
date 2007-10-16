@@ -23,7 +23,7 @@
   <exclude where="shortdescription">Staffel 1</exclude>
  </timer>
 
- <!-- Ein weiterer Timer -->
+ <!-- Ein weiterer (inaktiver) Timer -->
  <timer>
   <!-- Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes -->
   <name>ouse</name>
@@ -39,6 +39,8 @@
   <!-- Kein Afterevent -->
   <!-- Nicht Aufnahmen, wenn "Dr." im Titel steht -->
   <exclude where="title">Dr.</exclude>
+  <!-- Timer ist inaktiv -->
+  <enabled>no</enabled>
  </timer>
 </autotimer>
  
