@@ -1,7 +1,7 @@
 from time import localtime
 from RecordTimer import AFTEREVENT
 
-class AutoTimerComponent:
+class AutoTimerComponent(object):
 	def __init__(self, id, *args, **kwargs):
 		self.id = id
 		self.setValues(*args, **kwargs)
@@ -180,7 +180,7 @@ class AutoTimerComponent:
 		return self.afterevent[1][0] is not None
 
 	def checkAfterEventTimespan(self, end):
-		return self.checkTimespan(end, *self.afterevent[1])
+		return self.checkAnyTimespan(end, *self.afterevent[1])
 
 	def getAfterEvent(self):
 		return self.afterevent[0]

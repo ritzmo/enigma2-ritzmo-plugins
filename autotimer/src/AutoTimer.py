@@ -276,7 +276,7 @@ class AutoTimer:
 				list.extend(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n'])
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
-		print list
+
 		# Try Saving to Flash
 		file = None
 		try:
