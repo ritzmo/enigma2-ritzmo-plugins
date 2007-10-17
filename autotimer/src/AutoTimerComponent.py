@@ -1,18 +1,18 @@
+# Needed to check timespans
 from time import localtime
-from RecordTimer import AFTEREVENT
 
 class AutoTimerComponent(object):
 	def __init__(self, id, *args, **kwargs):
 		self.id = id
 		self.setValues(*args, **kwargs)
 
-	def setValues(self, name, enabled, timespan = None, services = None, offset = None, afterevent = AFTEREVENT.NONE, exclude = None, maxduration = None):
+	def setValues(self, name, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None):
 		self.name = name
-		self.setTimespan(timespan)
-		self.setServices(services)
+		self.timespan = timespan
+		self.services = services
 		self.offset = offset
-		self.setAfterEvent(afterevent)
-		self.setExclude(exclude)
+		self.aftervent = afterevent
+		self.exclude = exlude
 		self.maxduration = maxduration
 		self.enabled = enabled
 
