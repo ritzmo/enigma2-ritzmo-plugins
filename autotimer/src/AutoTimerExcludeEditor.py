@@ -104,7 +104,6 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				pos = len(list)
 				text = _("Filter in Description")
 
-			
 			list.insert(pos, getConfigListEntry(text, ConfigText(fixed_size = False)))
 			self["config"].setList(list)
 

@@ -8,20 +8,22 @@ class AutoTimerComponent:
 
 	def setValues(self, name, enabled, timespan = None, services = None, offset = None, afterevent = AFTEREVENT.NONE, exclude = None, maxduration = None):
 		self.name = name
-		self.timespan = timespan
-		self.services = services
+		self.setTimespan(timespan)
+		self.setServices(services)
 		self.offset = offset
-		self.afterevent = afterevent
-		self.exclude = exclude
+		self.setAfterEvent(afterevent)
+		self.setExclude(exclude)
 		self.maxduration = maxduration
 		self.enabled = enabled
 
-	def setTimespan(self, timespan):
+	def calculateDayspan(self, timespan):
 		if timespan and (timespan[1][0] < timespan[0][0] or (timespan[1][0] == timespan[0][0] and timespan[1][1] <= timespan[0][1])):
-			self.haveDayspan = True
+			return (timespan, True)
 		else:
-			self.haveDayspan = False
-		self._timespan = timespan
+			return (timespan, False)
+
+	def setTimespan(self, timespan):
+		self._timespan = self.calculateDayspan(timespan)
 
 	def getTimespan(self):
 		return self._timespan
@@ -50,43 +52,58 @@ class AutoTimerComponent:
 
 	services = property(getServices, setServices)
 
+	def setAfterEvent(self, afterevent):
+		if afterevent is None:
+			self._afterevent = None
+		else:
+			afterevent, timespan = afterevent
+			self._afterevent = (afterevent, self.calculateDayspan(timespan))
+
+	def getCompleteAfterEvent(self):
+		return self._afterevent
+
+	afterevent = property(getCompleteAfterEvent, setAfterEvent)
+
 	def hasTimespan(self):
-		return self.timespan is not None
+		return self.timespan[0] is not None
 
 	def getTimespanBegin(self):
-		return '%02d:%02d' % (self.timespan[0][0], self.timespan[0][1])
+		return '%02d:%02d' % (self.timespan[0][0][0], self.timespan[0][0][1])
 
 	def getTimespanEnd(self):
-		return '%02d:%02d' % (self.timespan[1][0], self.timespan[1][1])
+		return '%02d:%02d' % (self.timespan[0][1][0], self.timespan[0][1][1])
 
-	def checkTimespan(self, begin):
-		if self.timespan is None:
+	def checkAnyTimespan(self, timestamp, span, haveDayspan):
+		if span is None:
 			return True
 
 		# Calculate Span if needed
-		cbegin = localtime(begin) # 3 is h, 4 is m
+		time = localtime(timestamp) # 3 is h, 4 is m
 
 		# Check if we span a day
-		if self.haveDayspan:
+		if haveDayspan:
 			# Check if begin of event is later than our timespan starts
-			if cbegin[3] > self.timespan[0][0] or (cbegin[3] == self.timespan[0][0] and cbegin[4] >= self.timespan[0][1]):
+			if time[3] > span[0][0] or (time[3] == span[0][0] and time[4] >= span[0][1]):
 				# If so, event is in our timespan
 				return True
 			# If it does check if it is earlier than out timespan ends
-			if cbegin[3] < self.timespan[1][0] or (cbegin[3] == self.timespan[1][0] and cbegin[4] <= self.timespan[1][1]):
+			if time[3] < span[1][0] or (time[3] == span[1][0] and time[4] <= span[1][1]):
 				# If so, event is in our timespan
 				return True
 			return False
 		else:
 			# Check if event begins earlier than our timespan starts 
-			if cbegin[3] < self.timespan[0][0] or (cbegin[3] == self.timespan[0][0] and cbegin[4] <= self.timespan[0][1]):
+			if time[3] < span[0][0] or (time[3] == span[0][0] and time[4] <= span[0][1]):
 				# Its out of our timespan then
 				return True
 			# Check if event begins later than out timespan ends
-			if cbegin[3] > self.timespan[1][0] or (cbegin[3] == self.timespan[1][0] and cbegin[4] >= self.timespan[1][1]):
+			if time[3] > span[1][0] or (time[3] == span[1][0] and time[4] >= span[1][1]):
 				# Its out of our timespan then
 				return True
 			return False
+
+	def checkTimespan(self, begin):
+		return self.checkAnyTimespan(begin, *self.timespan)
 
 	def hasDuration(self):
 		return self.maxduration is not None
@@ -156,8 +173,26 @@ class AutoTimerComponent:
 	def getOffsetEnd(self):
 		return self.offset[1]/60
 
+	def hasAfterEvent(self):
+		return self.afterevent is not None
+
+	def hasAfterEventTimespan(self):
+		return self.afterevent[1][0] is not None
+
+	def checkAfterEventTimespan(self, end):
+		return self.checkTimespan(end, *self.afterevent[1])
+
 	def getAfterEvent(self):
-		return self.afterevent		
+		return self.afterevent[0]
+
+	def getAfterEventBegin(self):
+		return '%02d:%02d' % (self.afterevent[1][0][0][0], self.afterevent[1][0][0][1])
+
+	def getAfterEventEnd(self):
+		return '%02d:%02d' % (self.afterevent[1][0][1][0], self.afterevent[1][0][1][1])
+
+	def getEnabled(self):
+		return self.enabled and "yes" or "no"
 
 	def __repr__(self):
 		return "<AutomaticTimer " + self.name + " (" + str(self.timespan) + ", " + str(self.services) + ", " + str(self.offset) + ", " + str(self.afterevent) + ", " + str(self.exclude) + ", " + str(self.maxduration) + ", " + str(self.enabled) + ")>"

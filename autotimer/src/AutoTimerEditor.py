@@ -18,16 +18,16 @@ from RecordTimer import AFTEREVENT
 from time import localtime, mktime
 
 class AutoTimerEditor(Screen, ConfigListScreen):
-	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="75,130" size="565,325">
-		<widget name="config" position="5,5" size="555,280" scrollbarMode="showOnDemand" />
-		<ePixmap position="0,285" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,285" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,285" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,285" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="75,155" size="565,280">
+		<widget name="config" position="5,5" size="555,225" scrollbarMode="showOnDemand" />
+		<ePixmap position="0,235" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,235" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,235" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,235" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="420,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, timer):
@@ -56,6 +56,8 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.timespan.addNotifier(self.reloadList, initial_call = False)
 		self.offset.addNotifier(self.reloadList, initial_call = False)
 		self.duration.addNotifier(self.reloadList, initial_call = False)
+		self.afterevent.addNotifier(self.reloadList, initial_call = False)
+		self.afterevent_timespan.addNotifier(self.reloadList, initial_call = False)
 
 		self.refresh()
 
@@ -85,11 +87,11 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		now = [x for x in localtime()]
 		if timer.hasTimespan():
 			default = True
-			now[3] = timer.timespan[0][0]
-			now[4] = timer.timespan[0][1]
+			now[3] = timer.timespan[0][0][0]
+			now[4] = timer.timespan[0][0][1]
 			begin = mktime(now)
-			now[3] = timer.timespan[1][0]
-			now[4] = timer.timespan[1][1]
+			now[3] = timer.timespan[0][1][0]
+			now[4] = timer.timespan[0][1][1]
 			end = mktime(now)
 		else:
 			default = False
@@ -119,8 +121,32 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.offsetend = ConfigInteger(default = end, limits = (0, 60))
 
 		# AfterEvent
-		afterevent = { AFTEREVENT.NONE: "nothing", AFTEREVENT.DEEPSTANDBY: "deepstandby", AFTEREVENT.STANDBY: "standby"}[timer.getAfterEvent()]
-		self.afterevent = ConfigSelection(choices = [("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
+		if timer.hasAfterEvent():
+			afterevent = { AFTEREVENT.NONE: "nothing", AFTEREVENT.DEEPSTANDBY: "deepstandby", AFTEREVENT.STANDBY: "standby"}[timer.getAfterEvent()]
+		else:
+			afterevent = "default"
+		self.afterevent = ConfigSelection(choices = [("default", _("standard")), ("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
+
+		# AfterEvent (Timespan)
+		if timer.hasAfterEvent() and timer.hasAfterEventTimespan():
+			default = True 
+			now[3] = timer.afterevent[1][0][0][0]
+			now[4] = timer.afterevent[1][0][0][1]
+			begin = mktime(now)
+			now[3] = timer.afterevent[1][0][1][0]
+			now[4] = timer.afterevent[1][0][1][1]
+			end = mktime(now)
+		else:
+			default = False
+			now[3] = 23
+			now[4] = 15
+			begin = mktime(now)
+			now[3] = 7
+			now[4] = 0
+			end = mktime(now)
+		self.afterevent_timespan = ConfigEnableDisable(default = default)
+		self.afterevent_timespanbegin = ConfigClock(default = begin)
+		self.afterevent_timespanend = ConfigClock(default = end)
 
 		# Enabled
 		self.enabled = ConfigYesNo(default = timer.enabled)
@@ -168,6 +194,17 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			])
 
 		self.list.append(getConfigListEntry(_("After event"), self.afterevent))
+
+		# Only allow setting afterevent timespan when afterevent is active
+		if self.afterevent.value != "default":
+			self.list.append(getConfigListEntry(_("Execute after Event during Timespan"), self.afterevent_timespan))
+
+			# Only allow editing timespan when it's enabled
+			if self.afterevent_timespan.value:
+				self.list.extend([
+					getConfigListEntry(_("Begin of after Event Timespan"), self.afterevent_timespanbegin),
+					getConfigListEntry(_("End of after Event Timespan"), self.afterevent_timespanend)
+				])
 
 	def reloadList(self, value):
 		self.refresh()
@@ -230,7 +267,17 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			self.timer.offset = None
 
 		# AfterEvent
-		self.timer.afterevent = {"nothing": AFTEREVENT.NONE, "deepstandby": AFTEREVENT.DEEPSTANDBY, "standby": AFTEREVENT.STANDBY}[self.afterevent.value]
+		if self.timer.afterevent.value == "default":
+			self.timer.afterevent = None
+		else:
+			afterevent = {"nothing": AFTEREVENT.NONE, "deepstandby": AFTEREVENT.DEEPSTANDBY, "standby": AFTEREVENT.STANDBY}[self.afterevent.value]
+			# AfterEvent Timespan
+			if self.timer.afterevent_timespan.value:
+				start = self.afterevent_timespanbegin.value
+				end = self.afterevent_timespanend.value
+				self.timer.afterevent = (afterevent, (start, end))
+			else:
+				self.timer.afterevent = (afterevent, None)
 
 		# Maxduration
 		if self.duration.value:

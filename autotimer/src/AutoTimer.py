@@ -19,6 +19,7 @@ from Components.config import config
 from AutoTimerComponent import AutoTimerComponent
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
+CURRENT_CONFIG_VERSION = "2"
 
 def getValue(definitions, default, isList = True):
 	# Initialize Output
@@ -82,6 +83,11 @@ class AutoTimer:
 
 		# Get Config Element
 		for config in dom.getElementsByTagName("autotimer"):
+			# Parse old configuration files
+			if config.getAttribute("version") != CURRENT_CONFIG_VERSION:
+				from OldConfigurationParser import parseConfig
+				parseConfig(config, self.timers, config.getAttribute("version"))
+				continue
 			# Iterate Timers
 			for timer in config.getElementsByTagName("timer"):
 				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None, timeoffset in m (before, after) or None, afterevent)
@@ -90,22 +96,33 @@ class AutoTimer:
 				self.uniqueTimerId += 1
 
 				# Read out name
-				name = getValue(timer.getElementsByTagName("name"), None)
+				name = timer.getAttribute("name")
 				if name is None:
-					print "[AutoTimer] Erroneous config, skipping entry"
+					print '[AutoTimer] Erroneous config is missing attribute "name", skipping entry'
+					continue
+
+				enabled = timer.getAttribute("enabled") or "yes"
+				if enabled == "no":
+					enabled = False
+				elif enabled == "yes":
+					enabled = True
+				else:
+					print '[AutoTimer] Erroneous config contains invalid value for "enabled":', enabled,', skipping entry'
 					continue
 
 				# Guess allowedtime
 				elements = timer.getElementsByTagName("timespan")
-				if len(elements):
-					# We only support 1 Timespan so far
-					start = getValue(elements[0].getElementsByTagName("from"), None)
-					end = getValue(elements[0].getElementsByTagName("to"), None)
+				Len = len(elements)
+				if Len:
+					# Read out last definition
+					start = elements[Len-1].getAttribute("from")
+					end = elements[Len-1].getAttribute("to")
 					if start and end:
 						start = [int(x) for x in start.split(':')]
 						end = [int(x) for x in end.split(':')]
 						timetuple = (start, end)
 					else:
+						print '[AutoTimer] Erroneous config contains invalid definition of "timespan", ignoring definition'
 						timetuple = None
 				else:
 					timetuple = None
@@ -123,11 +140,12 @@ class AutoTimer:
 
 				# Read out offset
 				elements = timer.getElementsByTagName("offset")
-				if len(elements):
-					value = getValue(elements, None)
-					if value is None:
-						before = int(getValue(elements[0].getElementsByTagName("before"), 0)) * 60
-						after = int(getValue(elements[0].getElementsByTagName("after"), 0)) * 60
+				Len = len(elements)
+				if Len:
+					value = elements[Len-1].getAttribute("both")
+					if value == '':
+						before = int(elements[Len-1].getAttribute("before") or 0) * 60
+						after = int(elements[Len-1].getAttribute("after") or 0) * 60
 					else:
 						before = after = int(value) * 60
 					offset = (before, after)
@@ -135,12 +153,26 @@ class AutoTimer:
 					offset = None
 
 				# Read out afterevent
-				idx = {"standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
-				afterevent = getValue(timer.getElementsByTagName("afterevent"), None)
-				try:
-					afterevent = idx[afterevent]
-				except KeyError, ke:
-					afterevent = AFTEREVENT.NONE					
+				elements = timer.getElementsByTagName("afterevent")
+				Len = len(elements)
+				if Len:
+					idx = {"none": AFTEREVENT.NONE, "standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
+					value = getValue(elements[Len-1], None, False)
+					try:
+						value = idx[value]
+						start = elements[Len-1].getAttribute("from")
+						end = elements[Len-1].getAttribute("to")
+						if start and end:
+							start = [int(x) for x in start.split(':')]
+							end = [int(x) for x in end.split(':')]
+							afterevent = (value, (start, end))
+						else:
+							afterevent = (value, None)
+					except KeyError, ke:
+						print '[AutoTimer] Erroneous config contains invalid value for "afterevent":', afterevent,', ignoring definition'
+						afterevent = None
+				else:
+					afterevent = None
 
 				# Read out exclude
 				elements = timer.getElementsByTagName("exclude")
@@ -168,16 +200,6 @@ class AutoTimer:
 						maxlen = int(maxlen)*60
 				else:
 					maxlen = None
-
-				# Read out enabled status
-				elements = timer.getElementsByTagName("enabled")
-				if len(elements):
-					if getValue(elements, "yes") == "no":
-						enabled = False
-					else:
-						enabled = True
-				else:
-					enabled = True
 
 				# Finally append tuple
 				self.timers.append(AutoTimerComponent(
@@ -224,43 +246,37 @@ class AutoTimer:
 
 	def writeXml(self):
 		# Generate List in RAM
-		list = ['<?xml version="1.0" ?>\n<autotimer>\n\n']
+		list = ['<?xml version="1.0" ?>\n<autotimer version="', CURRENT_CONFIG_VERSION, '">\n\n']
 
 		# Iterate timers
 		for timer in self.timers:
-			list.append(' <timer>\n')
-			list.append(''.join(['  <name>', timer.name, '</name>\n']))
+			list.extend([' <timer name="', timer.name, '" enabled="', timer.getEnabled(), '">\n'])
 			if timer.hasTimespan():
-				list.append('  <timespan>\n')
-				list.append(''.join(['   <from>', timer.getTimespanBegin(), '</from>\n']))
-				list.append(''.join(['   <to>', timer.getTimespanEnd(), '</to>\n']))
-				list.append('  </timespan>\n')
+				list.extend(['  <timespan from="', timer.getTimespanBegin(), '" to="', timer.getTimespanEnd(), '" />\n'])
 			for serviceref in timer.getServices():
-				list.append(''.join(['  <serviceref>', serviceref, '</serviceref>\n']))
+				list.extend(['  <serviceref>', serviceref, '</serviceref>\n'])
 			if timer.hasOffset():
 				if timer.isOffsetEqual():
-					list.append(''.join(['  <offset>', str(timer.getOffsetBegin()), '</offset>\n']))
+					list.extend(['  <offset both="', str(timer.getOffsetBegin()), '" />\n'])
 				else:
-					list.append('  <offset>\n')
-					list.append(''.join(['   <before>', str(timer.getOffsetBegin()), '</before>\n']))
-					list.append(''.join(['   <after>', str(timer.getOffsetEnd()), '</after>\n']))
-					list.append('  </offset>\n')
-			if timer.getAfterEvent() != AFTEREVENT.NONE:
-				afterevent = {AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer.getAfterEvent()]
-				list.append(''.join(['  <afterevent>', afterevent, '</afterevent>\n']))
+					list.extend(['  <offset before="', str(timer.getOffsetBegin()), '" after="', str(timer.getOffsetEnd()), '" />\n'])
+			if timer.hasAfterEvent():
+				afterevent = {AFTEREVENT.NONE: "none", AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer.getAfterEvent()]
+				if timer.hasAfterEventTimespan():
+					list.extend(['  <afterevent from="', timer.getAfterEventBegin(), '" to="', timer.getAfterEventEnd(), '">', afterevent, '</afterevent>\n'])
+				else:
+					list.extend(['  <afterevent>', afterevent, '</afterevent>\n'])
 			for title in timer.getExcludedTitle():
-				list.append(''.join(['  <exclude where="title">', title, '</exclude>\n']))
+				list.extend(['  <exclude where="title">', title, '</exclude>\n'])
 			for short in timer.getExcludedShort():
-				list.append(''.join(['  <exclude where="shortdescription">', short, '</exclude>\n']))
+				list.extend(['  <exclude where="shortdescription">', short, '</exclude>\n'])
 			for desc in timer.getExcludedDescription():
-				list.append(''.join(['  <exclude where="description">', desc, '</exclude>\n']))
+				list.extend(['  <exclude where="description">', desc, '</exclude>\n'])
 			if timer.hasDuration():
-				list.append(''.join(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n']))
-			if not timer.enabled:
-				list.append(''.join(['  <enabled>no</enabled>\n']))
+				list.extend(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n'])
 			list.append(' </timer>\n\n')
 		list.append('</autotimer>\n')
-
+		print list
 		# Try Saving to Flash
 		file = None
 		try:
@@ -337,10 +353,19 @@ class AutoTimer:
 					if unique:
 						print "[AutoTimer] Adding this event."
  
+ 						# Apply afterEvent
+ 						kwargs = {}
+ 						if timer.hasAfterEvent():
+ 							if timer.hasAfterEventTimespan():
+ 								if timer.checkAfterEventTimespan(end):
+ 									kwargs["afterEvent"] = timer.getAfterEvent()
+ 							else:
+ 								kwargs["afterEvent"] = timer.getAfterEvent()
+ 
 						# Apply custom offset
 						begin, end = timer.applyOffset(begin, end)
 
-						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], afterEvent = timer.getAfterEvent())
+						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], **kwargs)
 						self.session.nav.RecordTimer.record(newEntry)
 						new += 1
 
