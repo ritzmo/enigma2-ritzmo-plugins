@@ -2,6 +2,7 @@
 from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 from Screens.ChannelSelection import SimpleChannelSelection
+from Screens.ChoiceBox import ChoiceBox
 
 # GUI (Components)
 from AutoList import AutoList
@@ -22,6 +23,135 @@ from ServiceReference import ServiceReference
 
 # Plugin
 from AutoTimerComponent import AutoTimerComponent
+
+class AutoExcludeEdit(Screen, ConfigListScreen):
+	skin = """<screen name="AutoExcludeEdit" title="Edit AutoTimer Excludes" position="75,150" size="565,245">
+		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
+		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="145,205" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="285,205" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="425,205" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="5,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="145,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="285,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="425,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	</screen>"""
+
+	def __init__(self, session, excludeset, excludes):
+		Screen.__init__(self, session)
+
+		self.list = [
+			getConfigListEntry(_("Enable Filtering"), ConfigEnableDisable(default = excludeset))
+		]
+
+		self.list.extend([
+			getConfigListEntry(_("Filter in Title"), ConfigText(default = x, fixed_size = False))
+				for x in excludes[0]
+		])
+		self.lenTitles = len(self.list)
+		self.list.extend([
+			getConfigListEntry(_("Filter in Shortdescription"), ConfigText(default = x, fixed_size = False))
+				for x in excludes[1]
+		])
+		self.lenShorts = len(self.list)
+		self.list.extend([
+			getConfigListEntry(_("Filter in Description"), ConfigText(default = x, fixed_size = False))
+				for x in excludes[2]
+		])
+
+		ConfigListScreen.__init__(self, self.list, session = session)
+
+		# Initialize Buttons
+		self["key_red"] = Button(_("Cancel"))
+		self["key_green"] = Button(_("Save"))
+		self["key_yellow"] = Button(_("delete"))
+		self["key_blue"] = Button(_("New"))
+
+		# Define Actions
+		self["actions"] = ActionMap(["SetupActions", "ColorActions"],
+			{
+				"cancel": self.cancel,
+				"save": self.save,
+				"yellow": self.remove,
+				"blue": self.new
+			}
+		)
+
+	def remove(self):
+		idx = self["config"].getCurrentIndex()
+		if idx:
+			if idx < self.lenTitles:
+				self.lenTitles -= 1
+			elif idx < self.lenShorts:
+				self.lenShorts -= 1
+
+			list = self["config"].getList()
+			list.remove(self["config"].getCurrent())
+			self["config"].setList(list)
+
+	def new(self):
+		self.session.openWithCallback(
+			self.typeSelected,
+			ChoiceBox,
+			_("Select type of Filter"),
+			[
+				(_("Title"), 0),
+				(_("Shortdescription"), 1),
+				(_("Description"), 2)
+			]
+			
+		)
+
+	def typeSelected(self, ret):
+		if ret is not None:
+			list = self["config"].getList()
+
+			if ret[1] == 0:
+				pos = self.lenTitles
+				self.lenTitles += 1
+				text = _("Filter in Title")
+			elif ret[1] == 1:
+				pos = self.lenShorts
+				self.lenShorts += 1
+				text = _("Filter in Shortdescription")
+			else:
+				pos = len(list)
+				text = _("Filter in Description")
+
+			
+			list.insert(pos, getConfigListEntry(text, ConfigText(fixed_size = False)))
+			self["config"].setList(list)
+
+	def cancel(self):
+		self.close(None)
+
+	def save(self):
+		list = self["config"].getList()
+		restriction = list.pop(0)
+
+		# Warning, accessing a ConfigListEntry directly might be considered evil!
+
+		idx = 0
+		titles = []
+		shorts = []
+		desc = []
+		for item in list:
+			# Skip empty entries
+			if item[1].value == "":
+				idx += 1
+				continue
+			if idx < self.lenTitles:
+				titles.append(item[1].value.encode("UTF-8"))
+			elif idx < self.lenShorts:
+				shorts.append(item[1].value.encode("UTF-8"))
+			else:
+				desc.append(item[1].value.encode("UTF-8"))
+			idx += 1
+
+		self.close((
+			restriction[1].value,
+			(titles, shorts, desc)
+		))
 
 class AutoChannelEdit(Screen, ConfigListScreen):
 	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="565,245">
@@ -102,14 +232,16 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 		))
 
 class AutoTimerEdit(Screen, ConfigListScreen):
-	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,130" size="450,305">
-		<widget name="config" position="5,5" size="440,260" scrollbarMode="showOnDemand" />
-		<ePixmap position="0,265" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,265" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
-		<ePixmap position="310,265" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="310,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="75,130" size="565,325">
+		<widget name="config" position="5,5" size="555,280" scrollbarMode="showOnDemand" />
+		<ePixmap position="0,285" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,285" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,285" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,285" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="420,285" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, timer):
@@ -118,8 +250,12 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# We need to keep our Id
 		self.uniqueTimerId = timer.id
 
-		# TODO: implement configuration for these - for now we just keep them
-		self.excludes = timer.exclude
+		# See if we are excluding some strings
+		self.excludes = (timer.getExcludedTitle(), timer.getExcludedShort(), timer.getExcludedDescription())
+		if len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2]):
+			self.excludesSet = True
+		else:
+			self.excludesSet = False
 
 		# See if services are restricted
 		self.services = timer.getServices()
@@ -142,13 +278,15 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button(_("OK"))
-		self["key_blue"] = Button(_("Edit Channels"))
+		self["key_yellow"] = Button(_("Edit Excludes"))
+ 		self["key_blue"] = Button(_("Edit Channels"))
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions", "ColorActions"],
 			{
 				"cancel": self.cancel,
 				"save": self.save,
+				"yellow": self.editExcludes,
 				"blue": self.editChannels
 			}
 		)
@@ -249,15 +387,29 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		self.refresh()
 		self["config"].setList(self.list)
 
+	def editExcludes(self):
+		self.session.openWithCallback(
+			self.editExcludesCallback,
+			AutoExcludeEdit,
+			self.excludesSet,
+			self.excludes
+		)
+
+	def editExcludesCallback(self, ret):
+		if ret:
+			print ret
+			self.excludesSet = ret[0]
+			self.excludes = ret[1]
+
 	def editChannels(self):
 		self.session.openWithCallback(
-			self.editCallback,
+			self.editChannelsCallback,
 			AutoChannelEdit,
 			self.serviceRestriction,
 			self.services
 		)
 
-	def editCallback(self, ret):
+	def editChannelsCallback(self, ret):
 		if ret:
 			self.serviceRestriction = ret[0]
 			self.services = ret[1] 
@@ -296,6 +448,15 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 			maxduration = self.durationlength.value*60
 		else:
 			maxduration = None
+
+		# Excludes
+		if self.excludesSet:
+			if len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2]):
+				excludes = self.excludes
+			else:
+				excludes = None
+		else:
+			excludes = None
 
 		# Close and return tuple
 		self.close(AutoTimerComponent(
