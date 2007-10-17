@@ -11,8 +11,8 @@ class AutoTimerComponent(object):
 		self.timespan = timespan
 		self.services = services
 		self.offset = offset
-		self.aftervent = afterevent
-		self.exclude = exlude
+		self.afterevent = afterevent
+		self.exclude = exclude
 		self.maxduration = maxduration
 		self.enabled = enabled
 
@@ -75,7 +75,7 @@ class AutoTimerComponent(object):
 
 	def checkAnyTimespan(self, timestamp, span, haveDayspan):
 		if span is None:
-			return True
+			return False
 
 		# Calculate Span if needed
 		time = localtime(timestamp) # 3 is h, 4 is m
