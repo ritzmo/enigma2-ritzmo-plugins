@@ -1,21 +1,16 @@
 <?xml version="1.0" ?>
 <!-- Beispieldatei -->
 <!-- Dieser Block enthaelt all unsere Timer -->
-<autotimer>
- <!-- Ein Beispieltimer -->
- <timer>
-  <!-- Alles mit "Dr. House" im Titel aufzeichnen -->
-  <name>Dr. House</name>
+<autotimer version="2">
+ <!-- Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet -->
+ <timer name="Dr. House">
   <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
-  <timespan>
-   <from>20:15</from>
-   <to>23:00</to>
-  </timespan>
+  <timespan from"20:15" to="23:00" />
   <!-- Auf RTL -->
   <serviceref>1:0:1:2EE3:441:1:C00000:0:0:0:</serviceref>
   <!-- 5 Minuten Offset davor/danach -->
-  <offset>5</offset>
-  <!-- Box in den Standby (auch moegl.: shutdown) schicken -->
+  <offset both="5" />
+  <!-- Box in den Standby schicken -->
   <afterevent>standby</afterevent>
   <!-- Nicht Aufnehmen, wenn "Wiederholung" in der Beschreibung steht -->
   <exclude where="description">Wiederholung</exclude>
@@ -23,24 +18,34 @@
   <exclude where="shortdescription">Staffel 1</exclude>
  </timer>
 
- <!-- Ein weiterer (inaktiver) Timer -->
- <timer>
-  <!-- Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes -->
-  <name>ouse</name>
+ <!--
+    Ein weiterer Timer:
+        - Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes
+        - Timer ist inaktiv
+ -->
+ <timer name="ouse" enabled="no">
   <!-- Keine Zeitbeschraenkung -->
   <!-- Nur auf Pro7 und ORF aufzeichnen -->
   <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
   <serviceref>1:0:1:32C9:45D:1:C00000:0:0:0:</serviceref>
   <!-- Offset: Vorher 2min, danach 3 -->
-  <offset>
-   <before>2</before>
-   <after>3</after>
-  </offset>
-  <!-- Kein Afterevent -->
+  <offset before="2" after="3" />
+  <!-- Kein Afterevent, benutze den Standardwert von Enigma2 -->
   <!-- Nicht Aufnahmen, wenn "Dr." im Titel steht -->
   <exclude where="title">Dr.</exclude>
-  <!-- Timer ist inaktiv -->
-  <enabled>no</enabled>
  </timer>
+
+ <!--
+    Ein dritter Timer:
+        - Alles mit "Malcolm" im Zizel aufzeichnen
+ -->
+ <timer name="Malcolm" enabled="yes">
+  <!-- Keine Zeitbeschraenkung -->
+  <!-- Auf allen Sendern aufzeichnen -->
+  <!-- Kein Offset -->
+  <!-- Wenn die Sendung zwischen 23:00 und 06:00 Uhr endet Box herunterfahren -->
+  <afterevent from="23:00" to="06:00">shutdown</afterevent>
+ </timer>
+
 </autotimer>
  
