@@ -9,7 +9,7 @@ from Components.ActionMap import ActionMap
 from Components.Button import Button
 
 # Configuration
-from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigText, ConfigClock, ConfigInteger, ConfigSelection
+from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigYesNo, ConfigText, ConfigClock, ConfigInteger, ConfigSelection
 
 # Timer
 from RecordTimer import AFTEREVENT
@@ -40,11 +40,11 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 		Screen.__init__(self, session)
 
 		self.list = [
-			getConfigListEntry("Enable Channel Restriction", ConfigEnableDisable(default = servicerestriction))
+			getConfigListEntry(_("Enable Channel Restriction"), ConfigEnableDisable(default = servicerestriction))
 		]
 
 		self.list.extend([
-			getConfigListEntry("Allowed Channel", ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))]))
+			getConfigListEntry(_("Record on"), ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))]))
 				for x in servicelist
 		])
 
@@ -102,14 +102,14 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 		))
 
 class AutoTimerEdit(Screen, ConfigListScreen):
-	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,150" size="450,280">
-		<widget name="config" position="5,5" size="440,235" scrollbarMode="showOnDemand" />
-		<ePixmap position="0,240" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,240" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
-		<ePixmap position="310,240" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="310,240" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,130" size="450,305">
+		<widget name="config" position="5,5" size="440,260" scrollbarMode="showOnDemand" />
+		<ePixmap position="0,265" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,265" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="310,265" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="310,265" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, timer):
@@ -120,7 +120,6 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 
 		# TODO: implement configuration for these - for now we just keep them
 		self.excludes = timer.exclude
-		self.maxduration = timer.maxduration
 
 		# See if services are restricted
 		self.services = timer.getServices()
@@ -134,6 +133,7 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# We might need to change shown items, so add some notifiers
 		self.timespan.addNotifier(self.reloadList, initial_call = False)
 		self.offset.addNotifier(self.reloadList, initial_call = False)
+		self.duration.addNotifier(self.reloadList, initial_call = False)
 
 		self.refresh()
 
@@ -199,30 +199,48 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		self.afterevent = ConfigSelection(choices = [("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
 
 		# Enabled
-		self.enabled = ConfigEnableDisable(default = timer.enabled)
+		self.enabled = ConfigYesNo(default = timer.enabled)
+
+		# Maxduration
+		if timer.hasDuration():
+			default = True
+			duration = timer.getDuration()
+		else:
+			default = False
+			duration =70
+		self.duration = ConfigEnableDisable(default = default)
+		self.durationlength = ConfigInteger(default = duration, limits = (0, 600))
 
 	def refresh(self):
 		# First two entries are always shown
 		self.list = [
 			getConfigListEntry(_("Enabled"), self.enabled),
-			getConfigListEntry("Match Title", self.name),
-			getConfigListEntry("Only match during Timespan", self.timespan)
+			getConfigListEntry(_("Match Title"), self.name),
+			getConfigListEntry(_("Only match during Timespan"), self.timespan)
 		]
 
 		# Only allow editing timespan when it's enabled
 		if self.timespan.value:
 			self.list.extend([
-				getConfigListEntry("Begin of Timespan", self.timespanbegin),
-				getConfigListEntry("End of Timespan", self.timespanend)
+				getConfigListEntry(_("Begin of Timespan"), self.timespanbegin),
+				getConfigListEntry(_("End of Timespan"), self.timespanend)
 			])
 
-		self.list.append(getConfigListEntry("Custom offset", self.offset))
+		self.list.append(getConfigListEntry(_("Custom offset"), self.offset))
 
 		# Only allow editing offsets when it's enabled
 		if self.offset.value:
 			self.list.extend([
-				getConfigListEntry("Offset before recording (in m)", self.offsetbegin),
-				getConfigListEntry("Offset after recording (in m)", self.offsetend)
+				getConfigListEntry(_("Offset before recording (in m)"), self.offsetbegin),
+				getConfigListEntry(_("Offset after recording (in m)"), self.offsetend)
+			])
+
+		self.list.append(getConfigListEntry(_("Set maximum Duration"), self.duration))
+
+		# Only allow editing maxduration when it's enabled
+		if self.duration.value:
+			self.list.extend([
+				getConfigListEntry(_("Maximum Duration (in m)"), self.durationlength)
 			])
 
 		self.list.append(getConfigListEntry(_("After event"), self.afterevent))
@@ -273,6 +291,12 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 		# AfterEvent
 		afterevent = {"nothing": AFTEREVENT.NONE, "deepstandby": AFTEREVENT.DEEPSTANDBY, "standby": AFTEREVENT.STANDBY}[self.afterevent.value]
 
+		# Maxduration
+		if self.duration.value:
+			maxduration = self.durationlength.value*60
+		else:
+			maxduration = None
+
 		# Close and return tuple
 		self.close(AutoTimerComponent(
 			self.uniqueTimerId,
@@ -283,7 +307,7 @@ class AutoTimerEdit(Screen, ConfigListScreen):
 			offset = offset,
 			afterevent = afterevent,
 			exclude = self.excludes,
-			maxduration = self.maxduration
+			maxduration = maxduration
 		))
 
 class AutoTimerOverview(Screen):
