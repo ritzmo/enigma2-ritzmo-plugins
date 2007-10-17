@@ -6,7 +6,7 @@
 
 # GUI (Screens)
 from Screens.MessageBox import MessageBox
-from AutoScreens import AutoTimerOverview
+from AutoTimerOverview import AutoTimerOverview
 
 # Plugin
 from AutoTimer import AutoTimer

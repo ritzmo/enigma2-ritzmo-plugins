@@ -3,7 +3,7 @@ from Components.GUIComponent import GUIComponent
 from Components.MultiContent import MultiContentEntryText
 from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT#, RT_HALIGN_RIGHT
 
-class AutoList(GUIComponent):
+class AutoTimerList(GUIComponent):
 	"""Defines a simple Component to show Timer name"""
 	
 	def __init__(self, entries):

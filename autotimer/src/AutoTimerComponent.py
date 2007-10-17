@@ -9,16 +9,46 @@ class AutoTimerComponent:
 	def setValues(self, name, enabled, timespan = None, services = None, offset = None, afterevent = AFTEREVENT.NONE, exclude = None, maxduration = None):
 		self.name = name
 		self.timespan = timespan
-		if timespan and (timespan[1][0] < timespan[0][0] or (timespan[1][0] == timespan[0][0] and timespan[1][1] <= timespan[0][1])):
-			self.haveDayspan = True
-		else:
-			self.haveDayspan = False
 		self.services = services
 		self.offset = offset
 		self.afterevent = afterevent
 		self.exclude = exclude
 		self.maxduration = maxduration
 		self.enabled = enabled
+
+	def setTimespan(self, timespan):
+		if timespan and (timespan[1][0] < timespan[0][0] or (timespan[1][0] == timespan[0][0] and timespan[1][1] <= timespan[0][1])):
+			self.haveDayspan = True
+		else:
+			self.haveDayspan = False
+		self._timespan = timespan
+
+	def getTimespan(self):
+		return self._timespan
+
+	timespan = property(getTimespan, setTimespan)
+
+	def setExclude(self, exclude):
+		if exclude and (len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2])):
+			self._exclude = exclude
+		else:
+			self._exclude = None
+
+	def getExclude(self):
+		return self._exclude
+
+	exclude = property(getExclude, setExclude)
+
+	def setServices(self, services):
+		if services and len(services):
+			self._services = services
+		else:
+			self._services = None
+
+	def getServices(self):
+		return self._services
+
+	services = property(getServices, setServices)
 
 	def hasTimespan(self):
 		return self.timespan is not None

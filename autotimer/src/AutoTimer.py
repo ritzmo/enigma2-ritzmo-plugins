@@ -15,7 +15,7 @@ from enigma import eEPGCache, eServiceReference
 # Enigma2 Config (Timermargin)
 from Components.config import config
 
-#
+# AutoTimer Component
 from AutoTimerComponent import AutoTimerComponent
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
@@ -118,8 +118,6 @@ class AutoTimer:
 						value = getValue(service, None, False)
 						if value:
 							servicelist.append(value)
-					if not len(servicelist):
-						servicelist = None
 				else:
 					servicelist = None
 
