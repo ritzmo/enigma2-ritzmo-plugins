@@ -86,7 +86,6 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Timespan
 		now = [x for x in localtime()]
 		if timer.hasTimespan():
-			print timer.timespan
 			default = True
 			now[3] = timer.timespan[0][0][0]
 			now[4] = timer.timespan[0][0][1]
