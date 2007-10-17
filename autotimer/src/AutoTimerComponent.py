@@ -77,27 +77,30 @@ class AutoTimerComponent(object):
 		if span is None:
 			return False
 
+		# Extract these to improve readability
+		begin, end = span
+
 		# Calculate Span if needed
 		time = localtime(timestamp) # 3 is h, 4 is m
 
 		# Check if we span a day
 		if haveDayspan:
 			# Check if begin of event is later than our timespan starts
-			if time[3] > span[0][0] or (time[3] == span[0][0] and time[4] >= span[0][1]):
+			if time[3] > begin[0] or (time[3] == begin[0] and time[4] >= begin[1]):
 				# If so, event is in our timespan
-				return True
-			# If it does check if it is earlier than out timespan ends
-			if time[3] < span[1][0] or (time[3] == span[1][0] and time[4] <= span[1][1]):
+				return False
+			# Check if begin of event is earlier than our timespan end
+			if time[3] < end[0] or (time[3] == end[0] and time[4] <= end[1]):
 				# If so, event is in our timespan
-				return True
-			return False
+				return False
+			return True
 		else:
 			# Check if event begins earlier than our timespan starts 
-			if time[3] < span[0][0] or (time[3] == span[0][0] and time[4] <= span[0][1]):
+			if time[3] < begin[0] or (time[3] == begin[0] and time[4] <= begin[1]):
 				# Its out of our timespan then
 				return True
-			# Check if event begins later than out timespan ends
-			if time[3] > span[1][0] or (time[3] == span[1][0] and time[4] >= span[1][1]):
+			# Check if event begins later than our timespan ends
+			if time[3] > end[0] or (time[3] == end[0] and time[4] >= end[1]):
 				# Its out of our timespan then
 				return True
 			return False
