@@ -25,7 +25,7 @@ class AutoList(GUIComponent):
 	def buildListboxEntry(self, timer):
 		res = [ None ]
 		width = self.l.getItemSize().width()
-		res.append(MultiContentEntryText(pos=(0, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
+		res.append(MultiContentEntryText(pos=(5, 5), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
 
 		return res
 

@@ -14,22 +14,26 @@ from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigTex
 # Timer
 from RecordTimer import AFTEREVENT
 
+# Needed to convert our timestamp back and forth
 from time import localtime, mktime
+
+# Show ServiceName instead of ServiceReference
+from ServiceReference import ServiceReference
 
 # Plugin
 from AutoTimerComponent import AutoTimerComponent
 
 class AutoChannelEdit(Screen, ConfigListScreen):
-	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="560,240">
-		<widget name="config" position="0,0" size="560,200" scrollbarMode="showOnDemand" />
-		<ePixmap position="0,200" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,200" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,200" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,200" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,200" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="565,245">
+		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
+		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
+		<ePixmap position="145,205" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="285,205" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="425,205" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="5,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="145,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="285,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="425,205" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, servicerestriction, servicelist):
@@ -39,20 +43,8 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 			getConfigListEntry("Enable Channel Restriction", ConfigEnableDisable(default = servicerestriction))
 		]
 
-		#
-		# TODO
-		# FIXME
-		# WARNING
-		#
-		# We're using ConfigText here because we can't give ConfigNothin a value
-		# and there is no other uneditable element - you better not break the
-		# ServiceRef (by accident) ;)
-		#
-		# I'd actually like to show ServiceName instead of ServiceRef but did not
-		# come up with a solution for this yet.
-		#
 		self.list.extend([
-			getConfigListEntry("Allowed Channel", ConfigText(default = x, fixed_size= True))
+			getConfigListEntry("Allowed Channel", ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))]))
 				for x in servicelist
 		])
 
@@ -90,7 +82,7 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 	def finishedChannelSelection(self, *args):
 		if len(args):
 			list = self["config"].getList()
-			list.append(getConfigListEntry("Allowed Channel", ConfigText(default = args[0].toString().encode('UTF-8'), fixed_size= True)))
+			list.append(getConfigListEntry("Allowed Channel", ConfigSelection(choices = [(args[0].toString(), ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))])))
 			self["config"].setList(list)
 
 	def cancel(self):
@@ -104,14 +96,14 @@ class AutoChannelEdit(Screen, ConfigListScreen):
 		self.close((
 			restriction[1].value,
 			[
-				x[1].value
+				x[1].value.encode("UTF-8")
 					for x in list
 			]
 		))
 
 class AutoTimerEdit(Screen, ConfigListScreen):
 	skin = """<screen name="AutoTimerEdit" title="Edit AutoTimer" position="130,150" size="450,280">
-		<widget name="config" position="0,0" size="450,240" scrollbarMode="showOnDemand" />
+		<widget name="config" position="5,5" size="440,235" scrollbarMode="showOnDemand" />
 		<ePixmap position="0,240" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
 		<ePixmap position="140,240" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
 		<ePixmap position="310,240" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
