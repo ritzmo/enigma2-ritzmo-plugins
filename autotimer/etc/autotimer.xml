@@ -5,7 +5,7 @@
  <!-- Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet -->
  <timer name="Dr. House">
   <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
-  <timespan from"20:15" to="23:00" />
+  <timespan from="20:15" to="23:00" />
   <!-- Auf RTL -->
   <serviceref>1:0:1:2EE3:441:1:C00000:0:0:0:</serviceref>
   <!-- 5 Minuten Offset davor/danach -->
