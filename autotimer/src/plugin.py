@@ -63,14 +63,14 @@ def editCallback(session):
 			MessageBox,
 			"Found a total of %d matching Events.\n%d were new and scheduled for recording." % (ret[0] + ret[1], ret[0]),
 			type = MessageBox.TYPE_INFO,
-			timeout = 5
+			timeout = 10
 		)
 	except ExpatError, ee:
 		session.open(
 			MessageBox,
 			"Your config file is not well-formed.\nError parsing in line: %s" % (ee.lineno),
 			type = MessageBox.TYPE_ERROR,
-			timeout = 5
+			timeout = 10
 		)
 	except:
 		# Don't crash during development
