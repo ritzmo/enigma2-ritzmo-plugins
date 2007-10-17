@@ -239,7 +239,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			self.services = ret[1] 
 
 	def cancel(self):
-		self.close()
+		self.close(None)
 
 	def save(self):
 		# Name
@@ -294,4 +294,4 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			self.timer.exclude = None
 
 		# Close
-		self.close()
+		self.close(self.timer)

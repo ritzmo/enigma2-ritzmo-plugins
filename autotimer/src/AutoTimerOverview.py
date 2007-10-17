@@ -55,7 +55,7 @@ class AutoTimerOverview(Screen):
 
 	def add(self):
 		self.session.openWithCallback(
-			self.refresh,
+			self.addCallback,
 			AutoTimerEditor,
 			# TODO: implement setting a default?
 			AutoTimerComponent(
@@ -64,6 +64,11 @@ class AutoTimerOverview(Screen):
 				True							# Enabled				
 			)
 		)
+
+	def addCallback(self, ret):
+		if ret:
+			self.autotimer.set(ret)
+			self.refresh()
 
 	def refresh(self, res = None):
 		# Re-assign List

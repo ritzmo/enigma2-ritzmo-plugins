@@ -87,6 +87,7 @@ class AutoTimer:
 			if config.getAttribute("version") != CURRENT_CONFIG_VERSION:
 				from OldConfigurationParser import parseConfig
 				parseConfig(config, self.timers, config.getAttribute("version"))
+				self.uniqueTimerId = len(self.timers)
 				continue
 			# Iterate Timers
 			for timer in config.getElementsByTagName("timer"):
