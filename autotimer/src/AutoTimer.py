@@ -126,7 +126,7 @@ class AutoTimer:
 				# Read out offset
 				elements = timer.getElementsByTagName("offset")
 				if len(elements):
-					value = getValue(elements[0], None, False)
+					value = getValue(elements, None)
 					if value is None:
 						before = int(getValue(elements[0].getElementsByTagName("before"), 0)) * 60
 						after = int(getValue(elements[0].getElementsByTagName("after"), 0)) * 60
@@ -165,7 +165,7 @@ class AutoTimer:
 				# Read out max length
 				elements = timer.getElementsByTagName("maxduration")
 				if len(elements):
-					maxlen = getValue(elements, None, False)
+					maxlen = getValue(elements, None)
 					if maxlen is not None:
 						maxlen = int(maxlen)*60
 				else:
