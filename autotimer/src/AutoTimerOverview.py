@@ -25,14 +25,8 @@ class AutoTimerOverview(Screen):
 	def __init__(self, session, autotimer):
 		Screen.__init__(self, session)
 
-		# Save autotimer and read in Xml
+		# Save autotimer
 		self.autotimer = autotimer
-		try:
-			self.autotimer.readXml()
-		except:
-			# Don't crash during development
-			import traceback, sys
-			traceback.print_exc(file=sys.stdout)
 
 		# Button Labels
 		self["key_green"] = Button(_("Save"))
@@ -40,7 +34,7 @@ class AutoTimerOverview(Screen):
 		self["key_blue"] = Button(_("Add"))
 
 		# Create List of Timers
-		self["entries"] = AutoTimerList(autotimer.getTupleTimerList())
+		self["entries"] = AutoTimerList(self.autotimer.getTupleTimerList())
 
 		# Define Actions
 		self["actions"] = ActionMap(["OkCancelActions", "ColorActions"],

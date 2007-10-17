@@ -21,20 +21,51 @@ from xml.parsers.expat import ExpatError
 autotimer = None
 
 # Autostart
-def autostart(reason, session, **kwargs):
+def autostart(reason, **kwargs):
 	global autotimer
 
-	# Initialize AutoTimer
-	autotimer = AutoTimer(session)
+	# Only launch when we also get a session
+	if reason == 0 and kwargs.has_key("session"):
+		# Initialize AutoTimer
+		autotimer = AutoTimer(kwargs["session"])
 
-	# Start Poller
-	autopoller.start(autotimer)
+		# Start Poller
+		autopoller.start(autotimer)
+	# Shutdown
+	elif reason == 1:
+		# Stop Poller
+		autopoller.stop()
+
+		# Remove AutoTimer
+		autotimer = None
 
 # Mainfunction
 def main(session, **kwargs):
 	global autotimer
 	if autotimer is None:
 		autotimer = AutoTimer(session)
+
+	try:
+		autotimer.readXml()
+	except ExpatError, ee:
+		session.open(
+			MessageBox,
+			"Your config file is not well-formed.\nError parsing in line: %s" % (ee.lineno),
+			type = MessageBox.TYPE_ERROR,
+			timeout = 10
+		)
+		return
+	except Exception, e:
+		# Don't crash during development
+		import traceback, sys
+		traceback.print_exc(file=sys.stdout)
+		session.open(
+			MessageBox,
+			"An unexpected error occured: %s" % (e),
+			type = MessageBox.TYPE_ERROR,
+			timeout = 10
+		)
+		return
 
 	# Do not run in background while editing, this might screw things up
 	if autopoller.shouldRun:
@@ -65,20 +96,20 @@ def editCallback(session):
 			type = MessageBox.TYPE_INFO,
 			timeout = 10
 		)
-	except ExpatError, ee:
-		session.open(
-			MessageBox,
-			"Your config file is not well-formed.\nError parsing in line: %s" % (ee.lineno),
-			type = MessageBox.TYPE_ERROR,
-			timeout = 10
-		)
-	except:
+	except Exception, e:
 		# Don't crash during development
 		import traceback, sys
 		traceback.print_exc(file=sys.stdout)
+		session.open(
+			MessageBox,
+			"An unexpected error occured: %s" % (e),
+			type = MessageBox.TYPE_ERROR,
+			timeout = 10
+		)
 
 def Plugins(**kwargs):
 	return [
-		PluginDescriptor(where = PluginDescriptor.WHERE_SESSIONSTART, fnc = autostart),
-		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
+		PluginDescriptor(where = [PluginDescriptor.WHERE_AUTOSTART, PluginDescriptor.WHERE_SESSIONSTART], fnc = autostart),
+		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main),
+		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main)
 	]

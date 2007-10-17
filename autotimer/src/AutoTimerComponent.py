@@ -31,7 +31,7 @@ class AutoTimerComponent(object):
 	timespan = property(getTimespan, setTimespan)
 
 	def setExclude(self, exclude):
-		if exclude and (len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2])):
+		if exclude and (len(exclude[0]) or len(exclude[1]) or len(exclude[2])):
 			self._exclude = exclude
 		else:
 			self._exclude = None

@@ -30,7 +30,9 @@ class AutoPoller:
 		try:
 			self.autotimer.parseEPG()
 		except:
-			pass
+			# Dump error to stdout
+			import traceback, sys
+			traceback.print_exc(file=sys.stdout)
 
 		self.timer.startLongTimer(INTERVAL)
 
