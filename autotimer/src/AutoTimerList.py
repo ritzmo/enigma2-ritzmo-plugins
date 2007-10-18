@@ -27,10 +27,10 @@ class AutoTimerList(GUIComponent):
 		width = self.l.getItemSize().width()
 		if timer.enabled:
 			# Append with default color
-			res.append(MultiContentEntryText(pos=(5, 5), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
+			res.append(MultiContentEntryText(pos=(5, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
 		else:
 			# Append with grey as color
-			res.append(MultiContentEntryText(pos=(5, 5), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name, color = int("#bcbbbc"[1:], 0x10)))
+			res.append(MultiContentEntryText(pos=(5, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name, color = int("#bcbbbc"[1:], 0x10)))
 
 		return res
 

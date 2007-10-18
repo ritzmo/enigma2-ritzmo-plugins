@@ -2,6 +2,9 @@
 from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 
+# GUI (Summary)
+from Screens.Setup import SetupSummary
+
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
@@ -21,13 +24,16 @@ class AutoTimerConfiguration(Screen, ConfigListScreen):
 	def __init__(self, session):
 		Screen.__init__(self, session)
 
+		# Summary
+		self.setup_title = "AutoTimer Configuration"
+		self.onChangedEntry = []
+
 		self.list = [
 			getConfigListEntry(_("Poll automatically"), config.plugins.autotimer.autopoll),
 			getConfigListEntry(_("Poll Interval (in h)"), config.plugins.autotimer.interval),
-			getConfigListEntry(_("Write extended Configfile"), config.plugins.autotimer.extendedconfig)
 		]
 
-		ConfigListScreen.__init__(self, self.list, session = session)
+		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)
 
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
@@ -40,3 +46,22 @@ class AutoTimerConfiguration(Screen, ConfigListScreen):
 				"save": self.keySave,
 			}
 		)
+
+		# Trigger change
+		self.changed()
+
+	def changed(self):
+		for x in self.onChangedEntry:
+			try:
+				x()
+			except:
+				pass
+
+	def getCurrentEntry(self):
+		return self["config"].getCurrent()[0]
+
+	def getCurrentValue(self):
+		return str(self["config"].getCurrent()[1].getText())
+
+	def createSummary(self):
+		return SetupSummary

@@ -17,11 +17,10 @@ from Plugins.Plugin import PluginDescriptor
 from xml.parsers.expat import ExpatError
 
 # Config
-from Components.config import config, ConfigSubsection, ConfigSubList, ConfigEnableDisable, ConfigInteger, ConfigText
 
+from Components.config import config, ConfigSubsection, ConfigSubList, ConfigEnableDisable, ConfigInteger, ConfigText
 # Initialize Configuration
 config.plugins.autotimer = ConfigSubsection()
-config.plugins.autotimer.extendedconfig = ConfigEnableDisable(default = False)
 config.plugins.autotimer.autopoll = ConfigEnableDisable(default = False)
 config.plugins.autotimer.interval = ConfigInteger(default = 3, limits=(1, 24))
 

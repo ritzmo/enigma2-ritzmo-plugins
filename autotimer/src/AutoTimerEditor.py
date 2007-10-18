@@ -4,6 +4,9 @@ from Components.ConfigList import ConfigListScreen
 from AutoTimerChannelEditor import AutoTimerChannelEditor
 from AutoTimerExcludeEditor import AutoTimerExcludeEditor
 
+# GUI (Summary)
+from Screens.Setup import SetupSummary
+
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
@@ -36,9 +39,13 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Keep Timer
 		self.timer = timer
 
+		# Summary
+		self.setup_title = "AutoTimer Editor"
+		self.onChangedEntry = []
+
 		# See if we are excluding some strings
-		self.excludes = (timer.getExcludedTitle(), timer.getExcludedShort(), timer.getExcludedDescription())
-		if len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2]):
+		self.excludes = (timer.getExcludedTitle(), timer.getExcludedShort(), timer.getExcludedDescription(), timer.getExcludedDays())
+		if len(self.excludes[0]) or len(self.excludes[1]) or len(self.excludes[2]) or len(self.excludes[3]):
 			self.excludesSet = True
 		else:
 			self.excludesSet = False
@@ -61,7 +68,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 		self.refresh()
 
-		ConfigListScreen.__init__(self, self.list, session = session)
+		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)
 
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
@@ -78,6 +85,25 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 				"blue": self.editChannels
 			}
 		)
+
+		# Trigger change
+		self.changed()
+
+	def changed(self):
+		for x in self.onChangedEntry:
+			try:
+				x()
+			except:
+				pass
+
+	def getCurrentEntry(self):
+		return self["config"].getCurrent()[0]
+
+	def getCurrentValue(self):
+		return str(self["config"].getCurrent()[1].getText())
+
+	def createSummary(self):
+		return SetupSummary
 
 	def createSetup(self, timer):
 		# Name
@@ -245,11 +271,11 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.close(None)
 
 	def save(self):
-		# Name
-		self.timer.name = self.name.value
-
 		# Match
 		self.timer.match = self.match.value
+
+		# Name
+		self.timer.name = self.name.value or self.match.value
 
 		# Enabled
 		self.timer.enabled = self.enabled.value

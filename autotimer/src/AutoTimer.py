@@ -268,10 +268,8 @@ class AutoTimer:
 				list.extend(['  <timespan from="', timer.getTimespanBegin(), '" to="', timer.getTimespanEnd(), '" />\n'])
 			for serviceref in timer.getServices():
 				list.extend(['  <serviceref>', serviceref, '</serviceref>'])
-				if config.plugins.autotimer.extendedconfig.value:
-					ref = ServiceReference(str(serviceref))
-					list.extend([' <!-- ', ref.getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"), ' -->'])
-				list.append('\n')
+				ref = ServiceReference(str(serviceref))
+				list.extend([' <!-- ', ref.getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"), ' -->\n'])
 			if timer.hasOffset():
 				if timer.isOffsetEqual():
 					list.extend(['  <offset both="', str(timer.getOffsetBegin()), '" />\n'])

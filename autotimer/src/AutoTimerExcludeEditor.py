@@ -3,6 +3,9 @@ from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 from Screens.ChoiceBox import ChoiceBox
 
+# GUI (Summary)
+from Screens.Setup import SetupSummary
+
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
@@ -26,6 +29,10 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 	def __init__(self, session, excludeset, excludes):
 		Screen.__init__(self, session)
 
+		# Summary
+		self.setup_title = "AutoTimer Excludes"
+		self.onChangedEntry = []
+
 		self.list = [
 			getConfigListEntry(_("Enable Filtering"), ConfigEnableDisable(default = excludeset))
 		]
@@ -45,13 +52,13 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				for x in excludes[2]
 		])
 		self.lenDescs = len(self.list)
-		weekdays = {0: _("Monday"), 1: _("Tuesday"),  2: _("Wednesday"),  3: _("Thursday"),  4: _("Friday"),  5: _("Saturday"),  6: _("Friday")}
+		weekdays = [("0", _("Monday")), ("1", _("Tuesday")),  ("2", _("Wednesday")),  ("3", _("Thursday")),  ("4", _("Friday")),  ("5", _("Saturday")),  ("6", _("Sunday"))]
 		self.list.extend([
 			getConfigListEntry(_("Filter on Weekday"), ConfigSelection(choices = weekdays, default = x))
 				for x in excludes[3]
 		])
 
-		ConfigListScreen.__init__(self, self.list, session = session)
+		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)
 
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
@@ -68,6 +75,25 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				"blue": self.new
 			}
 		)
+
+		# Trigger change
+		self.changed()
+
+	def changed(self):
+		for x in self.onChangedEntry:
+			try:
+				x()
+			except:
+				pass
+
+	def getCurrentEntry(self):
+		return self["config"].getCurrent()[0]
+
+	def getCurrentValue(self):
+		return str(self["config"].getCurrent()[1].getText())
+
+	def createSummary(self):
+		return SetupSummary
 
 	def remove(self):
 		idx = self["config"].getCurrentIndex()
@@ -115,7 +141,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				entry = getConfigListEntry(_("Filter in Description"), ConfigText(fixed_size = False))
 			else:
 				pos = len(self.list)
-				weekdays = {0: _("Monday"), 1: _("Tuesday"),  2: _("Wednesday"),  3: _("Thursday"),  4: _("Friday"),  5: _("Saturday"),  6: _("Friday")}
+				weekdays = [("0", _("Monday")), ("1", _("Tuesday")),  ("2", _("Wednesday")),  ("3", _("Thursday")),  ("4", _("Friday")),  ("5", _("Saturday")),  ("6", _("Sunday"))]
 				entry = getConfigListEntry(_("Filter on Weekday"), ConfigSelection(choices = weekdays))
 
 			list.insert(pos, entry)

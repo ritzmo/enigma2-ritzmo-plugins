@@ -3,6 +3,9 @@ from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 from Screens.ChannelSelection import SimpleChannelSelection
 
+# GUI (Summary)
+from Screens.Setup import SetupSummary
+
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
@@ -32,6 +35,10 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 	def __init__(self, session, servicerestriction, servicelist):
 		Screen.__init__(self, session)
 
+		# Summary
+		self.setup_title = "AutoTimer Channels"
+		self.onChangedEntry = []
+
 		self.list = [
 			getConfigListEntry(_("Enable Channel Restriction"), ConfigEnableDisable(default = servicerestriction))
 		]
@@ -41,7 +48,7 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 				for x in servicelist
 		])
 
-		ConfigListScreen.__init__(self, self.list, session = session)
+		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)
 
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
@@ -58,6 +65,25 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 				"blue": self.newChannel
 			}
 		)
+
+		# Trigger change
+		self.changed()
+
+	def changed(self):
+		for x in self.onChangedEntry:
+			try:
+				x()
+			except:
+				pass
+
+	def getCurrentEntry(self):
+		return self["config"].getCurrent()[0]
+
+	def getCurrentValue(self):
+		return str(self["config"].getCurrent()[1].getText())
+
+	def createSummary(self):
+		return SetupSummary
 
 	def removeChannel(self):
 		if self["config"].getCurrentIndex() != 0:
