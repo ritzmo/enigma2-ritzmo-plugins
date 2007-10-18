@@ -3,8 +3,9 @@ class AutoTimerComponent(object):
 		self.id = id
 		self.setValues(*args, **kwargs)
 
-	def setValues(self, name, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None):
 		self.name = name
+		self.match = match
 		self.timespan = timespan
 		self.services = services
 		self.offset = offset

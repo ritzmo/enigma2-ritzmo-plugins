@@ -55,13 +55,14 @@ class AutoTimerOverview(Screen):
 			AutoTimerComponent(
 				self.autotimer.getUniqueId(),	# Id
 				"",								# Name
+				"",								# Match
 				True							# Enabled				
 			)
 		)
 
 	def addCallback(self, ret):
 		if ret:
-			self.autotimer.set(ret)
+			self.autotimer.add(ret)
 			self.refresh()
 
 	def refresh(self, res = None):

@@ -83,6 +83,9 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Name
 		self.name = ConfigText(default = timer.name, fixed_size = False)
 
+		# Match
+		self.match = ConfigText(default = timer.match, fixed_size = False)
+
 		# Timespan
 		now = [x for x in localtime()]
 		if timer.hasTimespan():
@@ -163,10 +166,11 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.durationlength = ConfigInteger(default = duration, limits = (0, 600))
 
 	def refresh(self):
-		# First two entries are always shown
+		# First four entries are always shown
 		self.list = [
 			getConfigListEntry(_("Enabled"), self.enabled),
-			getConfigListEntry(_("Match Title"), self.name),
+			getConfigListEntry(_("Description"), self.name),
+			getConfigListEntry(_("Match Title"), self.match),
 			getConfigListEntry(_("Only match during Timespan"), self.timespan)
 		]
 
@@ -243,6 +247,9 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 	def save(self):
 		# Name
 		self.timer.name = self.name.value
+
+		# Match
+		self.timer.match = self.match.value
 
 		# Enabled
 		self.timer.enabled = self.enabled.value

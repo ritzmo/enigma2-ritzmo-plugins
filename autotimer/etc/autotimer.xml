@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <!-- Beispieldatei -->
 <!-- Dieser Block enthaelt all unsere Timer -->
-<autotimer version="2">
+<autotimer version="3">
  <!-- Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet -->
- <timer name="Dr. House">
+ <timer name="Dr. House RTL, ORF" match="Dr. House">
   <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
   <timespan from="20:15" to="23:00" />
   <!-- Auf RTL -->
@@ -23,7 +23,7 @@
         - Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes
         - Timer ist inaktiv
  -->
- <timer name="ouse" enabled="no">
+ <timer name="Alles mit ouse" match="ouse" enabled="no">
   <!-- Keine Zeitbeschraenkung -->
   <!-- Nur auf Pro7 und ORF aufzeichnen -->
   <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
@@ -39,7 +39,7 @@
     Ein dritter Timer:
         - Alles mit "Malcolm" im Zizel aufzeichnen
  -->
- <timer name="Malcolm" enabled="yes">
+ <timer name="Sendungen mit Malcolm" match="Malcolm" enabled="yes">
   <!-- Keine Zeitbeschraenkung -->
   <!-- Auf allen Sendern aufzeichnen -->
   <!-- Kein Offset -->

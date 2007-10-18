@@ -7,7 +7,7 @@ from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, parseEvent, AFTEREVENT
 
 # Timespan
-from time import localtime, mktime, time
+from time import localtime, time
 
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
@@ -19,7 +19,7 @@ from Components.config import config
 from AutoTimerComponent import AutoTimerComponent
 
 XML_CONFIG = "/etc/enigma2/autotimer.xml"
-CURRENT_CONFIG_VERSION = "2"
+CURRENT_CONFIG_VERSION = "3"
 
 def getValue(definitions, default, isList = True):
 	# Initialize Output
@@ -96,20 +96,27 @@ class AutoTimer:
 				# Increment uniqueTimerId
 				self.uniqueTimerId += 1
 
-				# Read out name
-				name = timer.getAttribute("name")
-				if name is None:
-					print '[AutoTimer] Erroneous config is missing attribute "name", skipping entry'
+				# Read out match
+				match = timer.getAttribute("match").encode("UTF-8")
+				if not match:
+					print '[AutoTimer] Erroneous config is missing attribute "match", skipping entry'
 					continue
 
+				# Read out name
+				name = timer.getAttribute("name").encode("UTF-8")
+				if not name:
+					print '[AutoTimer] Timer is missing attribute "name", defaulting to match'
+					name = match
+
+				# Read out enabled
 				enabled = timer.getAttribute("enabled") or "yes"
 				if enabled == "no":
 					enabled = False
 				elif enabled == "yes":
 					enabled = True
 				else:
-					print '[AutoTimer] Erroneous config contains invalid value for "enabled":', enabled,', skipping entry'
-					continue
+					print '[AutoTimer] Erroneous config contains invalid value for "enabled":', enabled,', disabling'
+					enabled = False
 
 				# Guess allowedtime
 				elements = timer.getElementsByTagName("timespan")
@@ -144,7 +151,7 @@ class AutoTimer:
 				Len = len(elements)
 				if Len:
 					value = elements[Len-1].getAttribute("both")
-					if value == '':
+					if not value:
 						before = int(elements[Len-1].getAttribute("before") or 0) * 60
 						after = int(elements[Len-1].getAttribute("after") or 0) * 60
 					else:
@@ -205,7 +212,8 @@ class AutoTimer:
 				# Finally append tuple
 				self.timers.append(AutoTimerComponent(
 						self.uniqueTimerId,
-						name.encode('UTF-8'),
+						name,
+						match,
 						enabled,
 						timespan = timetuple,
 						services = servicelist,
@@ -228,14 +236,17 @@ class AutoTimer:
 		self.uniqueTimerId += 1
 		return self.uniqueTimerId
 
-	def set(self, tuple):
+	def add(self, timer):
+		self.timers.append(timer)
+
+	def set(self, timer):
 		idx = 0
-		for timer in self.timers:
-			if timer.id == tuple.id:
-				self.timers[idx] = tuple
+		for stimer in self.timers:
+			if stimer.id == timer.id:
+				self.timers[idx] = timer
 				return
 			idx += 1
-		self.timers.append(tuple)
+		self.timers.append(timer)
 
 	def remove(self, uniqueId):
 		idx = 0
@@ -251,7 +262,7 @@ class AutoTimer:
 
 		# Iterate timers
 		for timer in self.timers:
-			list.extend([' <timer name="', timer.name, '" enabled="', timer.getEnabled(), '">\n'])
+			list.extend([' <timer name="', timer.name, '" match="', timer.match, '" enabled="', timer.getEnabled(), '">\n'])
 			if timer.hasTimespan():
 				list.extend(['  <timespan from="', timer.getTimespanBegin(), '" to="', timer.getTimespanEnd(), '" />\n'])
 			for serviceref in timer.getServices():
@@ -306,11 +317,19 @@ class AutoTimer:
 		if mtime != self.configMtime:
 			self.readXml(mtime)
 
+		# Save Recordings in a dict to speed things up a little
+		recorddict = {}
+		for timer in self.session.nav.RecordTimer.timer_list:
+			if not recorddict.has_key(str(timer.service_ref)):
+				recorddict[str(timer.service_ref)] = [timer.eit]
+			else:
+				recorddict[str(timer.service_ref)].append(timer.eit)
+
 		# Iterate Timer
 		for timer in self.getEnabledTimerList():
 			try:
 				# Search EPG
-				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.name, eEPGCache.NO_CASE_CHECK))
+				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK))
 
 				# Continue on empty result
 				if ret is None:
@@ -346,34 +365,27 @@ class AutoTimer:
 						continue
 
 					# Check for double Timers
-					unique = True
-					for rtimer in self.session.nav.RecordTimer.timer_list:
-						# Serviceref equals and eventId is the same
-						if str(rtimer.service_ref) == event[0] and rtimer.eit == event[1]:
-							print "[AutoTimer] Event already scheduled."
-							unique = False
-							skipped += 1
-							break
+					if event[1] in recorddict.get(event[0], []):
+						skipped += 1
+						continue
 
-					# If timer is "unique"
-					if unique:
-						print "[AutoTimer] Adding this event."
+					print "[AutoTimer] Adding this event."
  
- 						# Apply afterEvent
- 						kwargs = {}
- 						if timer.hasAfterEvent():
- 							if timer.hasAfterEventTimespan():
- 								if timer.checkAfterEventTimespan(localtime(end)):
- 									kwargs["afterEvent"] = timer.getAfterEvent()
- 							else:
+					# Apply afterEvent
+ 					kwargs = {}
+ 					if timer.hasAfterEvent():
+ 						if timer.hasAfterEventTimespan():
+ 							if timer.checkAfterEventTimespan(localtime(end)):
  								kwargs["afterEvent"] = timer.getAfterEvent()
+ 						else:
+ 							kwargs["afterEvent"] = timer.getAfterEvent()
  
-						# Apply custom offset
-						begin, end = timer.applyOffset(begin, end)
+					# Apply custom offset
+					begin, end = timer.applyOffset(begin, end)
 
-						newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], **kwargs)
-						self.session.nav.RecordTimer.record(newEntry)
-						new += 1
+					newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], **kwargs)
+					self.session.nav.RecordTimer.record(newEntry)
+					new += 1
 
 			except StandardError, se:
 				# Give some more useful information
