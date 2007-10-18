@@ -178,8 +178,8 @@ class AutoTimer:
 				# Read out exclude
 				elements = timer.getElementsByTagName("exclude")
 				if len(elements):
-					excludes = ([], [], [])
-					idx = {"title": 0, "shortdescription": 1, "description": 2}
+					excludes = ([], [], [], [])
+					idx = {"title": 0, "shortdescription": 1, "description": 2, "dayofweek": 3}
 					for exclude in elements:
 						where = exclude.getAttribute("where")
 						value = getValue(exclude, None, False)
@@ -273,6 +273,8 @@ class AutoTimer:
 				list.extend(['  <exclude where="shortdescription">', short, '</exclude>\n'])
 			for desc in timer.getExcludedDescription():
 				list.extend(['  <exclude where="description">', desc, '</exclude>\n'])
+			for day in timer.getExcludedDays():
+				list.extend(['  <exclude where="dayofweek>', day, '</exclude>\n'])
 			if timer.hasDuration():
 				list.extend(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n'])
 			list.append(' </timer>\n\n')
@@ -336,8 +338,11 @@ class AutoTimer:
 					if begin < time() + 60:
 						continue
 
+					# Convert begin time
+					timestamp = localtime(begin)
+
 					# Check Duration, Timespan and Excludes
-					if timer.checkDuration(begin-end) or timer.checkTimespan(begin) or timer.checkExcluded(name, description, evt.getExtendedDescription()):
+					if timer.checkDuration(begin-end) or timer.checkTimespan(timestamp) or timer.checkExcluded(name, description, evt.getExtendedDescription(), str(timestamp[6])):
 						continue
 
 					# Check for double Timers
@@ -358,7 +363,7 @@ class AutoTimer:
  						kwargs = {}
  						if timer.hasAfterEvent():
  							if timer.hasAfterEventTimespan():
- 								if timer.checkAfterEventTimespan(end):
+ 								if timer.checkAfterEventTimespan(localtime(end)):
  									kwargs["afterEvent"] = timer.getAfterEvent()
  							else:
  								kwargs["afterEvent"] = timer.getAfterEvent()

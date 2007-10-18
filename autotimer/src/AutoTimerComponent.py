@@ -1,6 +1,3 @@
-# Needed to check timespans
-from time import localtime
-
 class AutoTimerComponent(object):
 	def __init__(self, id, *args, **kwargs):
 		self.id = id
@@ -31,7 +28,7 @@ class AutoTimerComponent(object):
 	timespan = property(getTimespan, setTimespan)
 
 	def setExclude(self, exclude):
-		if exclude and (len(exclude[0]) or len(exclude[1]) or len(exclude[2])):
+		if exclude and (len(exclude[0]) or len(exclude[1]) or len(exclude[2]) or len(exclude[3])):
 			self._exclude = exclude
 		else:
 			self._exclude = None
@@ -73,15 +70,12 @@ class AutoTimerComponent(object):
 	def getTimespanEnd(self):
 		return '%02d:%02d' % (self.timespan[0][1][0], self.timespan[0][1][1])
 
-	def checkAnyTimespan(self, timestamp, span, haveDayspan):
+	def checkAnyTimespan(self, time, span, haveDayspan):
 		if span is None:
 			return False
 
 		# Extract these to improve readability
 		begin, end = span
-
-		# Calculate Span if needed
-		time = localtime(timestamp) # 3 is h, 4 is m
 
 		# Check if we span a day
 		if haveDayspan:
@@ -144,10 +138,13 @@ class AutoTimerComponent(object):
 			return []
 		return self.exclude[2]
 
-	def checkExcluded(self, title, short, extended):
+	def checkExcluded(self, title, short, extended, dayofweek):
 		if self.exclude is None:
 			return False
 
+		for exclude in self.excludes[3]:
+			if exclude == dayofweek:
+				return True
 		for exclude in self.excludes[0]:
 			if exclude in title:
 				return True

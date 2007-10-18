@@ -8,7 +8,7 @@ from Components.ActionMap import ActionMap
 from Components.Button import Button
 
 # Configuration
-from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigText
+from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigText, ConfigSelection
 
 class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 	skin = """<screen name="AutoExcludeEdit" title="Edit AutoTimer Excludes" position="75,150" size="565,245">
@@ -44,6 +44,12 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			getConfigListEntry(_("Filter in Description"), ConfigText(default = x, fixed_size = False))
 				for x in excludes[2]
 		])
+		self.lenDescs = len(self.list)
+		weekdays = {0: _("Monday"), 1: _("Tuesday"),  2: _("Wednesday"),  3: _("Thursday"),  4: _("Friday"),  5: _("Saturday"),  6: _("Friday")}
+		self.list.extend([
+			getConfigListEntry(_("Filter on Weekday"), ConfigSelection(choices = weekdays, default = x))
+				for x in excludes[3]
+		])
 
 		ConfigListScreen.__init__(self, self.list, session = session)
 
@@ -70,6 +76,8 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				self.lenTitles -= 1
 			elif idx < self.lenShorts:
 				self.lenShorts -= 1
+			elif idx < self.lenDescs:
+				self.lenDescs -= 1
 
 			list = self["config"].getList()
 			list.remove(self["config"].getCurrent())
@@ -83,7 +91,8 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			[
 				(_("Title"), 0),
 				(_("Shortdescription"), 1),
-				(_("Description"), 2)
+				(_("Description"), 2),
+				(_("Weekday"), 3)
 			]
 			
 		)
@@ -95,16 +104,21 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			if ret[1] == 0:
 				pos = self.lenTitles
 				self.lenTitles += 1
-				text = _("Filter in Title")
+				entry = getConfigListEntry(_("Filter in Title"), ConfigText(fixed_size = False))
 			elif ret[1] == 1:
 				pos = self.lenShorts
 				self.lenShorts += 1
-				text = _("Filter in Shortdescription")
+				entry = getConfigListEntry(_("Filter in Shortdescription"), ConfigText(fixed_size = False))
+			elif ret[1] == 2:
+				pos = self.lenDescs
+				self.lenDescs += 1
+				entry = getConfigListEntry(_("Filter in Description"), ConfigText(fixed_size = False))
 			else:
-				pos = len(list)
-				text = _("Filter in Description")
+				pos = len(self.list)
+				weekdays = {0: _("Monday"), 1: _("Tuesday"),  2: _("Wednesday"),  3: _("Thursday"),  4: _("Friday"),  5: _("Saturday"),  6: _("Friday")}
+				entry = getConfigListEntry(_("Filter on Weekday"), ConfigSelection(choices = weekdays))
 
-			list.insert(pos, getConfigListEntry(text, ConfigText(fixed_size = False)))
+			list.insert(pos, entry)
 			self["config"].setList(list)
 
 	def cancel(self):
@@ -116,24 +130,28 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 
 		# Warning, accessing a ConfigListEntry directly might be considered evil!
 
-		idx = 0
+		idx = -1
 		titles = []
 		shorts = []
 		desc = []
+		days = []
 		for item in list:
+			# Increment Index
+			idx += 1
+
 			# Skip empty entries
 			if item[1].value == "":
-				idx += 1
 				continue
-			if idx < self.lenTitles:
+			elif idx < self.lenTitles:
 				titles.append(item[1].value.encode("UTF-8"))
 			elif idx < self.lenShorts:
 				shorts.append(item[1].value.encode("UTF-8"))
-			else:
+			elif idx < self.lenDescs:
 				desc.append(item[1].value.encode("UTF-8"))
-			idx += 1
+			else:
+				days.append(item[1].value)
 
 		self.close((
 			restriction[1].value,
-			(titles, shorts, desc)
+			(titles, shorts, desc, days)
 		))

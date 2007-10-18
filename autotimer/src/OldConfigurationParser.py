@@ -72,8 +72,8 @@ def parseConfig_v1(configuration, list):
 		# Read out exclude
 		elements = timer.getElementsByTagName("exclude")
 		if len(elements):
-			excludes = ([], [], [])
-			idx = {"title": 0, "shortdescription": 1, "description": 2}
+			excludes = ([], [], [], [])
+			idx = {"title": 0, "shortdescription": 1, "description": 2, "dayofweek": 3}
 			for exclude in elements:
 				where = exclude.getAttribute("where")
 				value = getValue(exclude, None, False)
