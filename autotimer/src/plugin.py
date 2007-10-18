@@ -1,8 +1,6 @@
 #
 # Warning: This Plugin is WIP
 #
-# TODO: Add Configuration (See GraphMultiEPG for Handling Services)
-#
 
 # GUI (Screens)
 from Screens.MessageBox import MessageBox
@@ -18,6 +16,15 @@ from Plugins.Plugin import PluginDescriptor
 # ExpatError
 from xml.parsers.expat import ExpatError
 
+# Config
+from Components.config import config, ConfigSubsection, ConfigSubList, ConfigEnableDisable, ConfigInteger, ConfigText
+
+# Initialize Configuration
+config.plugins.autotimer = ConfigSubsection()
+config.plugins.autotimer.extendedconfig = ConfigEnableDisable(default = False)
+config.plugins.autotimer.autopoll = ConfigEnableDisable(default = False)
+config.plugins.autotimer.interval = ConfigInteger(default = 3, limits=(1, 24))
+
 autotimer = None
 
 # Autostart
@@ -25,7 +32,7 @@ def autostart(reason, **kwargs):
 	global autotimer
 
 	# Only launch when we also get a session
-	if reason == 0 and kwargs.has_key("session"):
+	if config.plugins.autotimer.autopoll.value and reason == 0 and kwargs.has_key("session"):
 		# Initialize AutoTimer
 		autotimer = AutoTimer(kwargs["session"])
 
@@ -68,8 +75,7 @@ def main(session, **kwargs):
 		return
 
 	# Do not run in background while editing, this might screw things up
-	if autopoller.shouldRun:
-		autopoller.stop()
+	autopoller.stop()
 
 	session.openWithCallback(
 		editCallback,
@@ -80,7 +86,7 @@ def main(session, **kwargs):
 def editCallback(session):
 	global autotimer
 
-	if autopoller.shouldRun:
+	if config.plugins.autotimer.autopoll.value:
 		autopoller.start(autotimer, initial = False)
 
 	# Don't do anything when editing was canceled

@@ -12,7 +12,7 @@ def parseConfig(configuration, list, version = None, uniqueTimerId = 0):
 
 def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 	# Iterate Timers
-	for timer in configuration.getElemensByTagName("timer"):
+	for timer in configuration.getElementsByTagName("timer"):
 		# Increment uniqueTimerId
 		uniqueTimerId += 1
 
@@ -127,7 +127,7 @@ def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 
 		# Finally append tuple
 		list.append(AutoTimerComponent(
-			self.uniqueTimerId,
+			uniqueTimerId,
 			name,
 			match,
 			enabled,

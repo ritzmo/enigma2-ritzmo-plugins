@@ -1,8 +1,8 @@
 # Timer
 from enigma import eTimer
 
-# Interval in s, to be configurable
-INTERVAL = 10800
+# Config
+from Components.config import config
 
 class AutoPoller:
 	def __init__(self):
@@ -13,13 +13,15 @@ class AutoPoller:
 		self.timer = eTimer()
 		self.timer.timeout.get().append(self.query)
 
+	def shouldRun(self):
+		return config.plugins.autotimer.autopoll.value
+
 	def start(self, autotimer, initial = True):
 		self.autotimer = autotimer
-		self.shouldRun = True
 		if initial:
 			delay = 2
 		else:
-			delay = INTERVAL
+			delay = config.plugins.autotimer.interval.value*3600
 		self.timer.startLongTimer(delay)
 
 	def stop(self):
@@ -34,6 +36,6 @@ class AutoPoller:
 			import traceback, sys
 			traceback.print_exc(file=sys.stdout)
 
-		self.timer.startLongTimer(INTERVAL)
+		self.timer.startLongTimer(config.plugins.autotimer.interval.value*3600)
 
 autopoller = AutoPoller()

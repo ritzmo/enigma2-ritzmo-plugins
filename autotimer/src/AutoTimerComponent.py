@@ -124,20 +124,22 @@ class AutoTimerComponent(object):
 			return False
 		return service not in self.services
 
-	def getExcludedTitle(self):
+	def getExcludedElement(self, id):
 		if self.exclude is None:
 			return []
-		return self.exclude[0]
+		return self.exclude[id]
+
+	def getExcludedTitle(self):
+		return self.getExcludedElement(1)
 
 	def getExcludedShort(self):
-		if self.exclude is None:
-			return []
-		return self.exclude[1]
+		return self.getExcludedElement(1)
 
 	def getExcludedDescription(self):
-		if self.exclude is None:
-			return []
-		return self.exclude[2]
+		return self.getExcludedElement(2)
+
+	def getExcludedDays(self):
+		return self.getExcludedElement(3)
 
 	def checkExcluded(self, title, short, extended, dayofweek):
 		if self.exclude is None:
