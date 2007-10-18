@@ -206,4 +206,19 @@ class AutoTimerComponent(object):
 		return self.enabled and "yes" or "no"
 
 	def __repr__(self):
-		return "<AutomaticTimer " + self.name + " (" + str(self.timespan) + ", " + str(self.services) + ", " + str(self.offset) + ", " + str(self.afterevent) + ", " + str(self.exclude) + ", " + str(self.maxduration) + ", " + str(self.enabled) + ")>"
+		return ''.join([
+			'<AutomaticTimer ',
+			self.name,
+			' (',
+			', '.join([
+					str(self.match),
+			 		str(self.timespan),
+			 		str(self.services),
+			 		str(self.offset),
+			 		str(self.afterevent),
+			 		str(self.exclude),
+			 		str(self.maxduration),
+			 		str(self.enabled)
+			 ]),
+			 ")>"
+		])

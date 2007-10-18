@@ -1,9 +1,13 @@
 <?xml version="1.0" ?>
 <!-- Beispieldatei -->
+
 <!-- Dieser Block enthaelt all unsere Timer -->
 <autotimer version="3">
- <!-- Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet -->
- <timer name="Dr. House RTL, ORF" match="Dr. House">
+
+ <!-- 
+    Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet
+ -->
+ <timer name="House aufnehmen" match="Dr. House">
   <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
   <timespan from="20:15" to="23:00" />
   <!-- Auf RTL -->
@@ -25,7 +29,7 @@
  -->
  <timer name="Alles mit ouse" match="ouse" enabled="no">
   <!-- Keine Zeitbeschraenkung -->
-  <!-- Nur auf Pro7 und ORF aufzeichnen -->
+  <!-- Nur auf Pro7 und ORF1 aufzeichnen -->
   <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
   <serviceref>1:0:1:32C9:45D:1:C00000:0:0:0:</serviceref>
   <!-- Offset: Vorher 2min, danach 3 -->
@@ -37,7 +41,8 @@
 
  <!--
     Ein dritter Timer:
-        - Alles mit "Malcolm" im Zizel aufzeichnen
+        - Alles mit "Malcolm" im Titel aufzeichnen
+        - Mittwochs nichts aufzeichnen
  -->
  <timer name="Sendungen mit Malcolm" match="Malcolm" enabled="yes">
   <!-- Keine Zeitbeschraenkung -->
@@ -45,6 +50,8 @@
   <!-- Kein Offset -->
   <!-- Wenn die Sendung zwischen 23:00 und 06:00 Uhr endet Box herunterfahren -->
   <afterevent from="23:00" to="06:00">shutdown</afterevent>
+  <!-- Sendunden am Mittwoch auslassen -->
+  <exclude where="dayofweek">2</exclude>
  </timer>
 
 </autotimer>
