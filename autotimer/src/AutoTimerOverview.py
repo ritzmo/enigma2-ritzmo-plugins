@@ -1,5 +1,6 @@
 # GUI (Screens)
 from Screens.Screen import Screen
+from Screens.MessageBox import MessageBox
 from AutoTimerEditor import AutoTimerEditor
 from AutoTimerConfiguration import AutoTimerConfiguration
 
@@ -86,16 +87,16 @@ class AutoTimerOverview(Screen):
 		# Remove selected Timer
 		cur = self["entries"].getCurrent()
 		if cur is not None:
-			self.openWithCallback(
+			self.session.openWithCallback(
 				self.removeCallback,
 				MessageBox,
-				_("Do you really want to delete %s?") % (cur.name),
+				_("Do you really want to delete %s?") % (cur[0].name),
 			)
 
 	def removeCallback(self, ret):
 		cur = self["entries"].getCurrent()
 		if ret and cur:
-			self.autotimer.remove(cur.id)
+			self.autotimer.remove(cur[0].id)
 			self.refresh()
 
 	def cancel(self):
