@@ -100,8 +100,11 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 		if idx:
 			if idx < self.lenTitles:
 				self.lenTitles -= 1
+				self.lenShorts -= 1
+				self.lenDescs -= 1
 			elif idx < self.lenShorts:
 				self.lenShorts -= 1
+				self.lenDescs -= 1
 			elif idx < self.lenDescs:
 				self.lenDescs -= 1
 
@@ -130,10 +133,13 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			if ret[1] == 0:
 				pos = self.lenTitles
 				self.lenTitles += 1
+				self.lenShorts += 1
+				self.lenDescs += 1
 				entry = getConfigListEntry(_("Filter in Title"), ConfigText(fixed_size = False))
 			elif ret[1] == 1:
 				pos = self.lenShorts
 				self.lenShorts += 1
+				self.lenDescs += 1
 				entry = getConfigListEntry(_("Filter in Shortdescription"), ConfigText(fixed_size = False))
 			elif ret[1] == 2:
 				pos = self.lenDescs
