@@ -20,6 +20,14 @@ class AutoTimerComponent(object):
 		else:
 			return (timespan, False)
 
+	def setMatch(self, match):
+		self._match = match.strip()
+
+	def getMatch(self):
+		return self._match
+
+	match = property(getMatch, setMatch)
+
 	def setTimespan(self, timespan):
 		self._timespan = self.calculateDayspan(timespan)
 

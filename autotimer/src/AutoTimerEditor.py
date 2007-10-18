@@ -275,7 +275,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.timer.match = self.match.value
 
 		# Name
-		self.timer.name = self.name.value or self.match.value
+		self.timer.name = self.name.value or self.timer.match
 
 		# Enabled
 		self.timer.enabled = self.enabled.value
