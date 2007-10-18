@@ -288,7 +288,7 @@ class AutoTimer:
 			for desc in timer.getExcludedDescription():
 				list.extend(['  <exclude where="description">', desc, '</exclude>\n'])
 			for day in timer.getExcludedDays():
-				list.extend(['  <exclude where="dayofweek>', day, '</exclude>\n'])
+				list.extend(['  <exclude where="dayofweek">', day, '</exclude>\n'])
 			if timer.hasDuration():
 				list.extend(['  <maxduration>', str(timer.getDuration()), '</maxduration>\n'])
 			list.append(' </timer>\n\n')

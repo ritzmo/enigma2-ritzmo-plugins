@@ -162,7 +162,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 
 		# Warning, accessing a ConfigListEntry directly might be considered evil!
 
-		idx = -1
+		idx = 0
 		titles = []
 		shorts = []
 		desc = []

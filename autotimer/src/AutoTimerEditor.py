@@ -116,11 +116,11 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		now = [x for x in localtime()]
 		if timer.hasTimespan():
 			default = True
-			now[3] = timer.timespan[0][0][0]
-			now[4] = timer.timespan[0][0][1]
+			now[3] = timer.timespan[0][0]
+			now[4] = timer.timespan[0][1]
 			begin = mktime(now)
-			now[3] = timer.timespan[0][1][0]
-			now[4] = timer.timespan[0][1][1]
+			now[3] = timer.timespan[1][0]
+			now[4] = timer.timespan[1][1]
 			end = mktime(now)
 		else:
 			default = False
@@ -160,11 +160,11 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		if timer.hasAfterEvent() and timer.hasAfterEventTimespan():
 			print timer.afterevent
 			default = True 
-			now[3] = timer.afterevent[1][0][0][0]
-			now[4] = timer.afterevent[1][0][0][1]
+			now[3] = timer.afterevent[1][0][0]
+			now[4] = timer.afterevent[1][0][1]
 			begin = mktime(now)
-			now[3] = timer.afterevent[1][0][1][0]
-			now[4] = timer.afterevent[1][0][1][1]
+			now[3] = timer.afterevent[1][1][0]
+			now[4] = timer.afterevent[1][1][1]
 			end = mktime(now)
 		else:
 			default = False

@@ -14,11 +14,11 @@ class AutoTimerComponent(object):
 		self.maxduration = maxduration
 		self.enabled = enabled
 
-	def calculateDayspan(self, timespan):
-		if timespan and (timespan[1][0] < timespan[0][0] or (timespan[1][0] == timespan[0][0] and timespan[1][1] <= timespan[0][1])):
-			return (timespan, True)
+	def calculateDayspan(self, begin, end):
+		if end[0] < begin[0] or (end[0] == begin[0] and end[1] <= begin[1]):
+			return (begin, end, True)
 		else:
-			return (timespan, False)
+			return (begin, end, False)
 
 	def setMatch(self, match):
 		self._match = match.strip()
@@ -29,7 +29,10 @@ class AutoTimerComponent(object):
 	match = property(getMatch, setMatch)
 
 	def setTimespan(self, timespan):
-		self._timespan = self.calculateDayspan(timespan)
+		if timespan is None:
+			self._timespan = (None,)
+		else:
+			self._timespan = self.calculateDayspan(*timespan)
 
 	def getTimespan(self):
 		return self._timespan
@@ -60,10 +63,13 @@ class AutoTimerComponent(object):
 
 	def setAfterEvent(self, afterevent):
 		if afterevent is None:
-			self._afterevent = None
+			self._afterevent = (None, (None,))
 		else:
 			afterevent, timespan = afterevent
-			self._afterevent = (afterevent, self.calculateDayspan(timespan))
+			if timespan is None:
+				self._afterevent = (afterevent, (None,))
+			else:
+				self._afterevent = (afterevent, self.calculateDayspan(*timespan))
 
 	def getCompleteAfterEvent(self):
 		return self._afterevent
@@ -74,17 +80,14 @@ class AutoTimerComponent(object):
 		return self.timespan[0] is not None
 
 	def getTimespanBegin(self):
-		return '%02d:%02d' % (self.timespan[0][0][0], self.timespan[0][0][1])
+		return '%02d:%02d' % (self.timespan[0][0], self.timespan[0][1])
 
 	def getTimespanEnd(self):
-		return '%02d:%02d' % (self.timespan[0][1][0], self.timespan[0][1][1])
+		return '%02d:%02d' % (self.timespan[1][0], self.timespan[1][1])
 
-	def checkAnyTimespan(self, time, span, haveDayspan):
-		if span is None:
+	def checkAnyTimespan(self, time, begin = None, end = None, haveDayspan = False):
+		if begin is None:
 			return False
-
-		# Extract these to improve readability
-		begin, end = span
 
 		# Check if we span a day
 		if haveDayspan:
@@ -153,16 +156,16 @@ class AutoTimerComponent(object):
 		if self.exclude is None:
 			return False
 
-		for exclude in self.excludes[3]:
+		for exclude in self.exclude[3]:
 			if exclude == dayofweek:
 				return True
-		for exclude in self.excludes[0]:
+		for exclude in self.exclude[0]:
 			if exclude in title:
 				return True
-		for exclude in self.excludes[1]:
+		for exclude in self.exclude[1]:
 			if exclude in short:
 				return True
-		for exclude in self.excludes[2]:
+		for exclude in self.exclude[2]:
 			if exclude in extended:
 				return True
 		return False
@@ -185,7 +188,7 @@ class AutoTimerComponent(object):
 		return self.offset[1]/60
 
 	def hasAfterEvent(self):
-		return self.afterevent is not None
+		return self.afterevent[0] is not None
 
 	def hasAfterEventTimespan(self):
 		return self.afterevent[1][0] is not None
@@ -197,10 +200,10 @@ class AutoTimerComponent(object):
 		return self.afterevent[0]
 
 	def getAfterEventBegin(self):
-		return '%02d:%02d' % (self.afterevent[1][0][0][0], self.afterevent[1][0][0][1])
+		return '%02d:%02d' % (self.afterevent[1][0][0], self.afterevent[1][0][1])
 
 	def getAfterEventEnd(self):
-		return '%02d:%02d' % (self.afterevent[1][0][1][0], self.afterevent[1][0][1][1])
+		return '%02d:%02d' % (self.afterevent[1][1][0], self.afterevent[1][1][1])
 
 	def getEnabled(self):
 		return self.enabled and "yes" or "no"
