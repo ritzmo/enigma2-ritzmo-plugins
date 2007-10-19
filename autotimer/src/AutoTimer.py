@@ -142,15 +142,11 @@ class AutoTimer:
 					timetuple = None
 
 				# Read out allowed services
-				elements = timer.getElementsByTagName("serviceref")
-				if len(elements):
-					servicelist = []
-					for service in elements:
-						value = getValue(service, None, False)
-						if value:
-							servicelist.append(value)
-				else:
-					servicelist = None
+				servicelist = []					
+				for service in timer.getElementsByTagName("serviceref"):
+					value = getValue(service, None, False)
+					if value:
+						servicelist.append(value)
 
 				# Read out offset
 				elements = timer.getElementsByTagName("offset")
@@ -172,6 +168,7 @@ class AutoTimer:
 				if Len:
 					idx = {"none": AFTEREVENT.NONE, "standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
 					value = getValue(elements[Len-1], None, False)
+
 					try:
 						value = idx[value]
 						start = elements[Len-1].getAttribute("from")
@@ -189,27 +186,24 @@ class AutoTimer:
 					afterevent = None
 
 				# Read out exclude
-				elements = timer.getElementsByTagName("exclude")
-				if len(elements):
-					excludes = ([], [], [], [])
-					idx = {"title": 0, "shortdescription": 1, "description": 2, "dayofweek": 3}
-					for exclude in elements:
-						where = exclude.getAttribute("where")
-						value = getValue(exclude, None, False)
-						if not (value and where):
-							continue
+				idx = {"title": 0, "shortdescription": 1, "description": 2, "dayofweek": 3}
+				excludes = ([], [], [], []) 
+				for exclude in timer.getElementsByTagName("exclude"):
+					where = exclude.getAttribute("where")
+					value = getValue(exclude, None, False)
+					if not (value and where):
+						continue
 
-						try:
-							excludes[idx[where]].append(value.encode("UTF-8"))
-						except KeyError, ke:
-							pass
-				else:
-					excludes = None
+					try:
+						excludes[idx[where]].append(value.encode("UTF-8"))
+					except KeyError, ke:
+						pass
 
 				# Read out max length
 				elements = timer.getElementsByTagName("maxduration")
-				if len(elements):
-					maxlen = getValue(elements, None)
+				Len = len(elements)
+				if Len:
+					maxlen = getValue(elements[Len-1], None, False)
 					if maxlen is not None:
 						maxlen = int(maxlen)*60
 				else:
