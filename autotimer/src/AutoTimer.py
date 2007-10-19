@@ -61,7 +61,7 @@ class AutoTimer:
 		self.timers = []
 
 		# Empty mtime
-		self.configMtime = 0
+		self.configMtime = -1
 
 	def readXml(self):
 		# Abort if no config found
@@ -70,8 +70,12 @@ class AutoTimer:
 
 		# Parse if mtime differs from whats saved
 		mtime = os_path.getmtime(XML_CONFIG)
-		if mtime != self.configMtime:
+		if mtime == self.configMtime:
+			print "[AutoTimer] No changes in configuration, won't parse"
 			return
+
+		# Save current mtime
+		self.configMtime = mtime
 
 		# Empty out timers and reset Ids
 		del self.timers[:]
@@ -301,7 +305,6 @@ class AutoTimer:
 
 			# FIXME: This should actually be placed inside a finally-block but python 2.4 does not support this - waiting for some images to upgrade
 			file.close()
-			self.configMtime = time()
 		except Exception, e:
 			print "[AutoTimer] Error Saving Timer List:", e
 
@@ -326,11 +329,6 @@ class AutoTimer:
 				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK)) or []
 
 				for serviceref, eit in ret:
-					# Format is (ServiceRef, EventId)
-					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L)
-					# Other information will be gathered from the Event
-					print "[AutoTimer] Checking Tuple:", event
-
 					# Check if Service is disallowed first as its the only property available here
 					if timer.checkServices(serviceref):
 						continue
@@ -358,7 +356,7 @@ class AutoTimer:
 						skipped += 1
 						continue
 
-					print "[AutoTimer] Adding this event."
+					print "[AutoTimer] Adding an event."
  
 					# Apply afterEvent
  					kwargs = {}
@@ -373,7 +371,7 @@ class AutoTimer:
 					# Apply custom offset
 					begin, end = timer.applyOffset(begin, end)
 
-					newEntry = RecordTimerEntry(ServiceReference(serivce), begin, end, name, description, eit, **kwargs)
+					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit, **kwargs)
 					self.session.nav.RecordTimer.record(newEntry)
 					new += 1
 
