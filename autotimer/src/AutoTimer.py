@@ -63,20 +63,19 @@ class AutoTimer:
 		# Empty mtime
 		self.configMtime = 0
 
-	def readXml(self, mtime = None):
-		# Empty out timers and reset Ids
-		del self.timers[:]
-		self.uniqueTimerId = 0
-
+	def readXml(self):
 		# Abort if no config found
 		if not os_path.exists(XML_CONFIG):
 			return
 
-		# Save mtime
-		if not mtime:
-			self.configMtime = os_path.getmtime(XML_CONFIG)
-		else:
-			self.configMtime = mtime
+		# Parse if mtime differs from whats saved
+		mtime = os_path.getmtime(XML_CONFIG)
+		if mtime != self.configMtime:
+			return
+
+		# Empty out timers and reset Ids
+		del self.timers[:]
+		self.uniqueTimerId = 0
 
 		# Parse Config
 		dom = minidom_parse(XML_CONFIG)
@@ -310,15 +309,7 @@ class AutoTimer:
 		new = 0
 		skipped = 0
 
-		# Get Configs mtime
-		try:
-			mtime = os_path.getmtime(XML_CONFIG)
-		except:
-			mtime = 0
-
-		# Reparse Xml when needed
-		if mtime != self.configMtime:
-			self.readXml(mtime)
+		self.readXml()
 
 		# Save Recordings in a dict to speed things up a little
 		recorddict = {}
@@ -331,25 +322,20 @@ class AutoTimer:
 		# Iterate Timer
 		for timer in self.getEnabledTimerList():
 			try:
-				# Search EPG
-				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK))
+				# Search EPG, default to empty list
+				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK)) or []
 
-				# Continue on empty result
-				if ret is None:
-					print "[AutoTimer] Got empty result"
-					continue
-
-				for event in ret:
+				for serviceref, eit in ret:
 					# Format is (ServiceRef, EventId)
 					# Example: ('1:0:1:445D:453:1:C00000:0:0:0:', 25971L)
 					# Other information will be gathered from the Event
 					print "[AutoTimer] Checking Tuple:", event
 
 					# Check if Service is disallowed first as its the only property available here
-					if timer.checkServices(event[0]):
+					if timer.checkServices(serviceref):
 						continue
 
-					evt = self.epgcache.lookupEventId(eServiceReference(event[0]), event[1])
+					evt = self.epgcache.lookupEventId(eServiceReference(serviceref), eit)
 					if not evt:
 						print "[AutoTimer] Could not create Event!"
 						continue
@@ -368,7 +354,7 @@ class AutoTimer:
 						continue
 
 					# Check for double Timers
-					if event[1] in recorddict.get(event[0], []):
+					if eit in recorddict.get(serviceref, []):
 						skipped += 1
 						continue
 
@@ -378,7 +364,8 @@ class AutoTimer:
  					kwargs = {}
  					if timer.hasAfterEvent():
  						if timer.hasAfterEventTimespan():
- 							if timer.checkAfterEventTimespan(localtime(end)):
+ 							# checkAfterEventTimespan returns False if IN Timespan
+ 							if not timer.checkAfterEventTimespan(localtime(end)):
  								kwargs["afterEvent"] = timer.getAfterEvent()
  						else:
  							kwargs["afterEvent"] = timer.getAfterEvent()
@@ -386,7 +373,7 @@ class AutoTimer:
 					# Apply custom offset
 					begin, end = timer.applyOffset(begin, end)
 
-					newEntry = RecordTimerEntry(ServiceReference(event[0]), begin, end, name, description, event[1], **kwargs)
+					newEntry = RecordTimerEntry(ServiceReference(serivce), begin, end, name, description, eit, **kwargs)
 					self.session.nav.RecordTimer.record(newEntry)
 					new += 1
 
