@@ -153,11 +153,11 @@ class AutoTimer:
 				Len = len(elements)
 				if Len:
 					value = elements[Len-1].getAttribute("both")
-					if not value:
+					if value:
+						before = after = int(value) * 60
+					else:
 						before = int(elements[Len-1].getAttribute("before") or 0) * 60
 						after = int(elements[Len-1].getAttribute("after") or 0) * 60
-					else:
-						before = after = int(value) * 60
 					offset = (before, after)
 				else:
 					offset = None
@@ -200,12 +200,10 @@ class AutoTimer:
 						pass
 
 				# Read out max length
-				elements = timer.getElementsByTagName("maxduration")
-				Len = len(elements)
-				if Len:
-					maxlen = getValue(elements[Len-1], None, False)
-					if maxlen is not None:
-						maxlen = int(maxlen)*60
+				# TODO: this item is unique, shouldn't it be an attribute then?
+				maxlen = getValue(timer.getElementsByTagName("maxduration"), None)
+				if maxlen is not None:
+					maxlen = int(maxlen)*60
 				else:
 					maxlen = None
 
