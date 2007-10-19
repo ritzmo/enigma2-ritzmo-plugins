@@ -17,8 +17,8 @@ from Plugins.Plugin import PluginDescriptor
 from xml.parsers.expat import ExpatError
 
 # Config
+from Components.config import config, ConfigSubsection, ConfigEnableDisable, ConfigInteger
 
-from Components.config import config, ConfigSubsection, ConfigSubList, ConfigEnableDisable, ConfigInteger, ConfigText
 # Initialize Configuration
 config.plugins.autotimer = ConfigSubsection()
 config.plugins.autotimer.autopoll = ConfigEnableDisable(default = False)

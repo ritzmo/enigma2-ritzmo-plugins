@@ -4,7 +4,7 @@ from os import path as os_path
 
 # Timer
 from ServiceReference import ServiceReference
-from RecordTimer import RecordTimerEntry, parseEvent, AFTEREVENT
+from RecordTimer import RecordTimerEntry, AFTEREVENT
 
 # Timespan
 from time import localtime, time
@@ -87,16 +87,16 @@ class AutoTimer:
 		dom = minidom_parse(XML_CONFIG)
 
 		# Get Config Element
-		for config in dom.getElementsByTagName("autotimer"):
+		for configuration in dom.getElementsByTagName("autotimer"):
 			# Parse old configuration files
-			if config.getAttribute("version") != CURRENT_CONFIG_VERSION:
+			if configuration.getAttribute("version") != CURRENT_CONFIG_VERSION:
 				from OldConfigurationParser import parseConfig
-				parseConfig(config, self.timers, config.getAttribute("version"), self.uniqueTimerId)
+				parseConfig(configuration, self.timers, configuration.getAttribute("version"), self.uniqueTimerId)
 				if not self.uniqueTimerId:
 					self.uniqueTimerId = len(self.timers)
 				continue
 			# Iterate Timers
-			for timer in config.getElementsByTagName("timer"):
+			for timer in configuration.getElementsByTagName("timer"):
 				# Timers are saved as tuple (name, allowedtime (from, to) or None, list of services or None, timeoffset in m (before, after) or None, afterevent)
 
 				# Increment uniqueTimerId
@@ -334,7 +334,11 @@ class AutoTimer:
 						print "[AutoTimer] Could not create Event!"
 						continue
 
-					(begin, end, name, description, _) = parseEvent(evt)
+					# Gather Information
+					name = evt.getEventName()
+					description = evt.getShortDescription()
+					begin = evt.getBeginTime()
+					end = begin + evt.getDuration()
 
 					# If event starts in less than 60 seconds skip it
 					if begin < time() + 60:
@@ -364,7 +368,11 @@ class AutoTimer:
  						else:
  							kwargs["afterEvent"] = timer.getAfterEvent()
  
-					# Apply custom offset
+  					# Apply E2 Offset
+  					begin -= config.recording.margin_before.value * 60
+					end += config.recording.margin_after.value * 60
+ 
+					# Apply custom Offset
 					begin, end = timer.applyOffset(begin, end)
 
 					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit, **kwargs)
