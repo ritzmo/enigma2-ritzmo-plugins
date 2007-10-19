@@ -13,6 +13,8 @@ from Components.Button import Button
 from Components.config import config, getConfigListEntry
 
 class AutoTimerConfiguration(Screen, ConfigListScreen):
+	"""Configuration of AutoTimer"""
+
 	skin = """<screen name="AutoTimerConfiguration" title="Configure AutoTimer" position="75,155" size="565,280">
 		<widget name="config" position="5,5" size="555,225" scrollbarMode="showOnDemand" />
 		<ePixmap position="0,235" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />

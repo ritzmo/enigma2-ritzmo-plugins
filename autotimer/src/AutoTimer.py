@@ -50,6 +50,8 @@ def getValue(definitions, default, isList = True):
 	return ret
 
 class AutoTimer:
+	"""Read and save xml configuration, query EPGCache"""
+
 	def __init__(self, session):
 		# Save session (somehow NavigationInstance.instance is None ?!)
 		self.session = session

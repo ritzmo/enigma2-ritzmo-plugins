@@ -20,6 +20,8 @@ from ServiceReference import ServiceReference
 from AutoTimerComponent import AutoTimerComponent
 
 class AutoTimerChannelEditor(Screen, ConfigListScreen):
+	"""Edit allowed Channels of a AutoTimer"""
+
 	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="565,245">
 		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
 		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />

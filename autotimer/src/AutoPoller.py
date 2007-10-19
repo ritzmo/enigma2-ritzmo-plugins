@@ -5,6 +5,8 @@ from enigma import eTimer
 from Components.config import config
 
 class AutoPoller:
+	"""Automatically Poll AutoTimer"""
+
 	def __init__(self):
 		# Keep track if we were launched before
 		self.shouldRun = False

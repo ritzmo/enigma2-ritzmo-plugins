@@ -1,4 +1,6 @@
 class AutoTimerComponent(object):
+	"""AutoTimer Component which also handles validity checks"""
+
 	def __init__(self, id, *args, **kwargs):
 		self.id = id
 		self.setValues(*args, **kwargs)

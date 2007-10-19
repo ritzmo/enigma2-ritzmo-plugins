@@ -1,7 +1,7 @@
 # GUI (Components)
 from Components.GUIComponent import GUIComponent
 from Components.MultiContent import MultiContentEntryText
-from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT#, RT_HALIGN_RIGHT
+from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT
 
 class AutoTimerList(GUIComponent):
 	"""Defines a simple Component to show Timer name"""
@@ -12,7 +12,6 @@ class AutoTimerList(GUIComponent):
 		self.list = entries
 		self.l = eListboxPythonMultiContent()
 		self.l.setFont(0, gFont("Regular", 22))
-		self.l.setFont(1, gFont("Regular", 18))
 		self.l.setBuildFunc(self.buildListboxEntry)
 		self.l.setList(self.list)
 
@@ -25,12 +24,13 @@ class AutoTimerList(GUIComponent):
 	def buildListboxEntry(self, timer):
 		res = [ None ]
 		width = self.l.getItemSize().width()
+
 		if timer.enabled:
 			# Append with default color
 			res.append(MultiContentEntryText(pos=(5, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name))
 		else:
 			# Append with grey as color
-			res.append(MultiContentEntryText(pos=(5, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name, color = int("#bcbbbc"[1:], 0x10)))
+			res.append(MultiContentEntryText(pos=(5, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = timer.name, color = 12368828))
 
 		return res
 

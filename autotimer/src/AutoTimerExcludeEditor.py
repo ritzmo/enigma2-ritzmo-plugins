@@ -14,6 +14,8 @@ from Components.Button import Button
 from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigText, ConfigSelection
 
 class AutoTimerExcludeEditor(Screen, ConfigListScreen):
+	"""Edit AutoTimer Excludes"""
+
 	skin = """<screen name="AutoExcludeEdit" title="Edit AutoTimer Excludes" position="75,150" size="565,245">
 		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
 		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />

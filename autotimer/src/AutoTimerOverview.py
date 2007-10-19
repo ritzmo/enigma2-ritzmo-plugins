@@ -13,8 +13,9 @@ from Components.Button import Button
 from AutoTimerComponent import AutoTimerComponent
 
 class AutoTimerOverview(Screen):
-	skin = """
-		<screen name="AutoTimerOverview" position="140,148" size="460,265" title="AutoTimer Overview">
+	"""Overview of AutoTimers"""
+
+	skin = """<screen name="AutoTimerOverview" position="140,148" size="460,265" title="AutoTimer Overview">
 			<widget name="entries" position="5,5" size="450,200" scrollbarMode="showOnDemand" />
 			<ePixmap position="0,220" zPosition="1" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
 			<ePixmap position="140,220" zPosition="1" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
