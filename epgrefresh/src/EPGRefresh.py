@@ -46,13 +46,13 @@ class EPGRefresh:
 
 		self.configMtime = mtime
 
-		del self.services[:]
+		self.services.clear()
 		file = open(CONFIG, 'r')
 		for line in file:
 			self.services.add(line)
 		file.close()
 
-	def saveConfigurtion(self):
+	def saveConfiguration(self):
 		file = open(CONFIG, 'w')
 		for serviceref in self.services:
 			file.write(serviceref)
@@ -65,6 +65,7 @@ class EPGRefresh:
 	def stop(self):
 		print "[EPGRefresh] Stopping Timer"
 		self.timer.stop()
+		self.timer_mode = 0
 
 	def checkTimespan(self, begin, end):
 		time = localtime()

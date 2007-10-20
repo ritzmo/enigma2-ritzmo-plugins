@@ -15,6 +15,8 @@ from Components.config import config, getConfigListEntry
 
 from EPGRefresh import epgrefresh
 
+from sets import Set
+
 class EPGRefreshConfiguration(Screen, ConfigListScreen):
 	"""Configuration of EPGRefresh"""
 
@@ -99,4 +101,4 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 		except Exception, e:
 			print "[EPGRefresh] Error occured while saving configuration:", e
 
-		ConfigListScren.keySave(self)
+		ConfigListScreen.keySave(self)
