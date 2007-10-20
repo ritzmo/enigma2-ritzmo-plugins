@@ -72,10 +72,16 @@ class EPGRefreshChannelEditor(Screen, ConfigListScreen):
 				pass
 
 	def getCurrentEntry(self):
-		return self["config"].getCurrent()[0]
+		cur = self["config"].getCurrent()
+		if cur:
+			return cur[0]
+		return ""
 
 	def getCurrentValue(self):
-		return str(self["config"].getCurrent()[1].getText())
+		cur = self["config"].getCurrent()
+		if cur:
+			return str(cur[1].getText())
+		return ""
 
 	def createSummary(self):
 		return SetupSummary
