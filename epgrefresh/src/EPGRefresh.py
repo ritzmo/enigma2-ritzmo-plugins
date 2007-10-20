@@ -85,6 +85,10 @@ class EPGRefresh:
 			print "FINISHED"
 			self.timer_mode = 1
 
+			# Zap back
+			from NavigationInstance import instance as nav
+			nav.playService(self.previousService)
+
 			# Run in 2h again.
 			# TODO: calculate s until next timespan begins 
 			self.timer.startLongTimer(7200)
@@ -100,13 +104,12 @@ class EPGRefresh:
 		# TODO: cache length?!
 		if len(self.services) > self.position:
 			from NavigationInstance import instance as nav
+
 			# Play next service
-			if nav.playService(self.services[self.position]):
-				# Start Timer
-				self.timer.startLongTimer(DURATION)
-			else:
-				# Skip service if play failed
-				self.nextService()
+			nav.playService(self.services[self.position])
+
+			# Start Timer
+			self.timer.startLongTimer(DURATION)
 		else:
 			# Destroy service
 			self.timer_mode = 4
