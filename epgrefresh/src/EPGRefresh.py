@@ -1,26 +1,29 @@
-# WIP Target
-#from FakeTarget import FakeTarget
-
-# Testing
-from Screens.PictureInPicture import PictureInPicture
+# Standby
+from Screens.Standby import inStandby
 
 from enigma import eTimer, eServiceReference
+
+from time import localtime
+
+# Used during development to override standby check
+FORCE_RUN_PLUGIN=True
 
 # Duration to reside on service in s (to be configurable)
 DURATION = 12
 
 class EPGRefresh:
 	"""WIP - Simple Class to refresh EPGData - WIP"""
+
 	def __init__(self):
 		# Initialize Timer
 		self.timer = eTimer()
-		self.timer.timeout.get().append(self.nextService)
+		self.timer.timeout.get().append(self.timeout)
 
-		# Initialize Fake Target
-		self.target = None
-
-		# Initialize
+		# Initialize 
+		self.previousService = None
 		self.position = -1
+		self.timer_mode = 0
+
 		# TODO: make this dynamic
 		self.services = [
 			eServiceReference(x)
@@ -32,19 +35,59 @@ class EPGRefresh:
 			  ]
 		]
 
-	def refresh(self, session = None):
-		if self.target is None:
-			if session is not None:
-				self.target = session.instantiateDialog(PictureInPicture)
-				self.target.show()
-			else:
-				return
-			
-		# Reset Position
-		self.position = -1
+	def refresh(self):
+		print "SCHEDULING TIMER TO FIRE IN 3s"
+		self.timer.startLongTimer(3)
 
-		# Start polling in 100ms
-		self.timer.start(100, True)
+	def timeout(self):
+		# Walk Services
+		if self.timer_mode == 3:
+			self.nextService()
+		# Pending for activation
+		elif self.timer_mode == 0:
+			now = localtime() # 3 is h, 4 is m
+
+			# Check if in timespan
+			if FORCE_RUN_PLUGIN or (now[3] > 20 or (now[3] == 20 and now[4] >= 15) and now[3] < 6 or (now[3] == 6 and now[4] <= 30)):
+				print "IN TIMESPAN"
+				self.timer_mode = 1
+				self.timeout()
+			else:
+				print "NOT IN TIMESPAN"
+				# Recheck in 1h
+				self.timer.startLongTimer(3600)
+		# Check if in Standby
+		elif self.timer_mode == 1:
+			# Do we realy want to check nav?
+			from NavigationInstance import instance as nav
+			if (inStandby and not nav.isRecording()) or FORCE_RUN_PLUGIN:
+				print "STANDBY AND NOT RECORDING"
+				self.timer_mode = 2
+				self.timeout()
+			else:
+				print "NOT STANDBY OR RECORDING"
+				# Recheck in 10min
+				self.timer.startLongtimer(600)
+		# Reset Values
+		elif self.timer_mode == 2:
+			print "INITIALIZING"
+			# Reset Position
+			self.position = -1
+
+			# Keep service
+			from NavigationInstance import instance as nav
+			self.previousService =  nav.getCurrentlyPlayingServiceReference()
+
+			self.timer_mode = 3
+			self.timeout()
+		# Play old service, restart timer
+		elif self.timer_mode == 4:
+			print "FINISHED"
+			self.timer_mode = 1
+
+			# Run in 2h again.
+			# TODO: calculate s until next timespan begins 
+			self.timer.startLongTimer(7200)
 
 	def nextService(self):
 		# Increment Position
@@ -56,8 +99,9 @@ class EPGRefresh:
 		# Check if more Services present
 		# TODO: cache length?!
 		if len(self.services) > self.position:
+			from NavigationInstance import instance as nav
 			# Play next service
-			if self.target.playService(self.services[self.position]):
+			if nav.playService(self.services[self.position]):
 				# Start Timer
 				self.timer.startLongTimer(DURATION)
 			else:
@@ -65,8 +109,7 @@ class EPGRefresh:
 				self.nextService()
 		else:
 			# Destroy service
-			self.target.hide()
-			#self.target.stop()
-			pass
+			self.timer_mode = 4
+			self.timeout()
 
 epgrefresh = EPGRefresh()
