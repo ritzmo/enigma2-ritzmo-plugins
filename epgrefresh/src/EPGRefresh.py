@@ -190,25 +190,15 @@ class EPGRefresh:
 
 					# See if instance is empty
 					if autotimer is None:
-						# Create a dummy instance
+						# Create an instance
 						from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
-						autotimer = AutoTimer(None)
+						autotimer = AutoTimer()
 
-						# Read in configuration
-						autotimer.readXml()
-
-						# Get enabled timers
-						list = autotimer.getEnabledTimerList()
-
-						# Remove dummy instance
-						autotimer = None
-					else:
-						# TODO: force parsing?
-						# Get enabled timers
-						list = autotimer.getEnabledTimerList()
+					# Read in configuration
+					autotimer.readXml()
 
 					# Fetch services
-					for timer in list:
+					for timer in autotimer.getEnabledTimerList():
 						self.scanServices = self.scanServices.union(Set(timer.getServices()))
 				except Exception, e:
 					print "[EPGRefresh] Could not inherit AutoTimer Services:", e

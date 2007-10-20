@@ -2,6 +2,9 @@
 from xml.dom.minidom import parse as minidom_parse
 from os import path as os_path
 
+# Navigation (RecordTimer)
+import NavigationInstance
+
 # Timer
 from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, AFTEREVENT
@@ -52,10 +55,7 @@ def getValue(definitions, default, isList = True):
 class AutoTimer:
 	"""Read and save xml configuration, query EPGCache"""
 
-	def __init__(self, session):
-		# Save session (somehow NavigationInstance.instance is None ?!)
-		self.session = session
-
+	def __init__(self):
 		# Keep EPGCache
 		self.epgcache = eEPGCache.getInstance()
 
@@ -303,6 +303,10 @@ class AutoTimer:
 			print "[AutoTimer] Error Saving Timer List:", e
 
 	def parseEPG(self):
+		if NavigationInstance.instance is None:
+			print "[AutoTimer] Navigation is not available, can't parse EPG"
+			return (0, 0)
+
 		new = 0
 		skipped = 0
 
@@ -310,7 +314,7 @@ class AutoTimer:
 
 		# Save Recordings in a dict to speed things up a little
 		recorddict = {}
-		for timer in self.session.nav.RecordTimer.timer_list:
+		for timer in NavigationInstance.instance.RecordTimer.timer_list:
 			if not recorddict.has_key(str(timer.service_ref)):
 				recorddict[str(timer.service_ref)] = [timer.eit]
 			else:
@@ -352,7 +356,7 @@ class AutoTimer:
 					# Check for double Timers
 					# We're not using isInTimer here as it would slow things down
 					# incredibly although it might be more stable... call below.
-					#if self.session.nav.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
+					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
 					if eit in recorddict.get(serviceref, []):
 						skipped += 1
 						continue
@@ -377,7 +381,7 @@ class AutoTimer:
 					begin, end = timer.applyOffset(begin, end)
 
 					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit, **kwargs)
-					self.session.nav.RecordTimer.record(newEntry)
+					NavigationInstance.instance.RecordTimer.record(newEntry)
 					new += 1
 
 			except StandardError, se:

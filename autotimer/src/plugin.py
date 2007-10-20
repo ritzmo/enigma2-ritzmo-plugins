@@ -30,10 +30,10 @@ autotimer = None
 def autostart(reason, **kwargs):
 	global autotimer
 
-	# Only launch when we also get a session
-	if config.plugins.autotimer.autopoll.value and reason == 0 and kwargs.has_key("session"):
+	# Startup
+	if config.plugins.autotimer.autopoll.value and reason == 0:
 		# Initialize AutoTimer
-		autotimer = AutoTimer(kwargs["session"])
+		autotimer = AutoTimer()
 
 		# Start Poller
 		autopoller.start(autotimer)
@@ -49,7 +49,7 @@ def autostart(reason, **kwargs):
 def main(session, **kwargs):
 	global autotimer
 	if autotimer is None:
-		autotimer = AutoTimer(session)
+		autotimer = AutoTimer()
 
 	try:
 		autotimer.readXml()
@@ -114,7 +114,7 @@ def editCallback(session):
 
 def Plugins(**kwargs):
 	return [
-		PluginDescriptor(where = [PluginDescriptor.WHERE_AUTOSTART, PluginDescriptor.WHERE_SESSIONSTART], fnc = autostart),
+		PluginDescriptor(where = PluginDescriptor.WHERE_AUTOSTART, fnc = autostart),
 		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main),
 		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main)
 	]
