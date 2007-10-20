@@ -160,7 +160,6 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 		# AfterEvent (Timespan)
 		if timer.hasAfterEvent() and timer.hasAfterEventTimespan():
-			print timer.afterevent
 			default = True 
 			now[3] = timer.afterevent[1][0][0]
 			now[4] = timer.afterevent[1][0][1]

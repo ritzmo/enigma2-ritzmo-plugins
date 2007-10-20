@@ -101,6 +101,10 @@ class AutoTimerOverview(Screen):
 			self.refresh()
 
 	def cancel(self):
+		# Invalidate config mtime to force re-read on next run
+		self.autotimer.configMtime = -1
+
+		# Close and indicated that we canceled by returning None
 		self.close(None)
 
 	def config(self):

@@ -350,6 +350,9 @@ class AutoTimer:
 						continue
 
 					# Check for double Timers
+					# We're not using isInTimer here as it would slow things down
+					# incredibly although it might be more stable... call below.
+					#if self.session.nav.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
 					if eit in recorddict.get(serviceref, []):
 						skipped += 1
 						continue

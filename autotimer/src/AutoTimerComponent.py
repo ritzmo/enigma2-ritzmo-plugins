@@ -143,7 +143,7 @@ class AutoTimerComponent(object):
 		return self.exclude[id]
 
 	def getExcludedTitle(self):
-		return self.getExcludedElement(1)
+		return self.getExcludedElement(0)
 
 	def getExcludedShort(self):
 		return self.getExcludedElement(1)

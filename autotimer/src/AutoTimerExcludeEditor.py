@@ -165,10 +165,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 		# Warning, accessing a ConfigListEntry directly might be considered evil!
 
 		idx = 0
-		titles = []
-		shorts = []
-		desc = []
-		days = []
+		excludes = ([], [], [], [])
 		for item in list:
 			# Increment Index
 			idx += 1
@@ -177,15 +174,15 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			if item[1].value == "":
 				continue
 			elif idx < self.lenTitles:
-				titles.append(item[1].value.encode("UTF-8"))
+				excludes[0].append(item[1].value.encode("UTF-8"))
 			elif idx < self.lenShorts:
-				shorts.append(item[1].value.encode("UTF-8"))
+				excludes[1].append(item[1].value.encode("UTF-8"))
 			elif idx < self.lenDescs:
-				desc.append(item[1].value.encode("UTF-8"))
+				excludes[2].append(item[1].value.encode("UTF-8"))
 			else:
-				days.append(item[1].value)
+				excludes[3].append(item[1].value)
 
 		self.close((
 			restriction[1].value,
-			(titles, shorts, desc, days)
+			excludes
 		))
