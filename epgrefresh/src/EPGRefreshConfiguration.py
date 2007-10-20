@@ -24,9 +24,11 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 		<widget name="config" position="5,5" size="555,225" scrollbarMode="showOnDemand" />
 		<ePixmap position="0,235" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
 		<ePixmap position="140,235" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,235" zPosition="4" size="140,40" pixmap="skin_default/key-yellow.png" transparent="1" alphatest="on" />
 		<ePixmap position="420,235" zPosition="4" size="140,40" pixmap="skin_default/key-blue.png" transparent="1" alphatest="on" />
 		<widget name="key_red" position="0,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 		<widget name="key_green" position="140,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 		<widget name="key_blue" position="420,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
@@ -53,6 +55,7 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button(_("OK"))
+		self["key_yellow"] = Button(_("Refresh now"))
 		self["key_blue"] = Button(_("Edit Channels"))
 
 		# Define Actions
@@ -60,12 +63,17 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 			{
 				"cancel": self.keyCancel,
 				"save": self.keySave,
+				"yellow": self.forceRefresh,
 				"blue": self.editChannels
 			}
 		)
 
 		# Trigger change
 		self.changed()
+
+	def forceRefresh(self):
+		self.save()
+		epgrefresh.refresh()
 
 	def editChannels(self):
 		self.session.openWithCallback(
@@ -95,10 +103,13 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 		return SetupSummary
 
 	def keySave(self):
+		self.save()
+
+		ConfigListScreen.keySave(self)
+
+	def save(self):
 		epgrefresh.services = Set(self.servicelist)
 		try:
 			epgrefresh.saveConfiguration()
 		except Exception, e:
 			print "[EPGRefresh] Error occured while saving configuration:", e
-
-		ConfigListScreen.keySave(self)

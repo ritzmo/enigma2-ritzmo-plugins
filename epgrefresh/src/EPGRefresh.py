@@ -59,7 +59,9 @@ class EPGRefresh:
 
 		# Add References
 		for line in file:
-			self.services.add(line)
+			line = line.strip()
+			if line:
+				self.services.add(line)
 
 		# Close file
 		file.close()
@@ -71,6 +73,7 @@ class EPGRefresh:
 		# Write references
 		for serviceref in self.services:
 			file.write(serviceref)
+			file.write('\n')
 
 		# Close file
 		file.close()
@@ -142,6 +145,7 @@ class EPGRefresh:
 				self.timeout()
 			else:
 				print "[EPGRefresh] Not in timespan, rescheduling"
+
 				# Recheck in 1h
 				self.timer.startLongTimer(3600)
 
@@ -218,27 +222,9 @@ class EPGRefresh:
 			from NavigationInstance import instance as nav
 			nav.playService(self.previousService)
 
-			# Calculate delay until in timespan again
-			# What we do is the following:
-			#  We calculate the last end time and add 24h
-			#  Then we change h/m to begin time
-			#  That way we should always get the next begin
-			begin = [x for x in localtime()]
-			begin[3] = config.plugins.epgrefresh.end.value[0]
-			begin[4] = config.plugins.epgrefresh.end.value[1]
-			begin = mktime(begin)+86400
-
-			begin = [x for x in localtime(begin)]
-			begin[3] = config.plugins.epgrefresh.begin.value[0]
-			begin[4] = config.plugins.epgrefresh.begin.value[1]
-			begin = mktime(begin)
-
-			# Calculate difference
-			delay = begin-time()
-
-			# Wait at least 3 seconds (ok, this should never happen :))
-			if delay < 3:
-				delay = 3
+			# Wait at least until out of timespan again
+			diff = abs(config.plugins.epgrefresh.begin.value[0]-config.plugins.epgrefresh.end.value[0])+1
+			delay = diff*3600
 
 			# debug, start timer
 			print '[EPGRefresh] Timer will fire again in %d seconds' % (delay) 
