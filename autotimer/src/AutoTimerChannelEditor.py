@@ -16,9 +16,6 @@ from Components.config import getConfigListEntry, ConfigEnableDisable, ConfigSel
 # Show ServiceName instead of ServiceReference
 from ServiceReference import ServiceReference
 
-# Plugin
-from AutoTimerComponent import AutoTimerComponent
-
 class AutoTimerChannelEditor(Screen, ConfigListScreen):
 	"""Edit allowed Channels of a AutoTimer"""
 
@@ -103,7 +100,7 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 	def finishedChannelSelection(self, *args):
 		if len(args):
 			list = self["config"].getList()
-			list.append(getConfigListEntry("Allowed Channel", ConfigSelection(choices = [(args[0].toString(), ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))])))
+			list.append(getConfigListEntry(_("Record on"), ConfigSelection(choices = [(args[0].toString(), ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))])))
 			self["config"].setList(list)
 
 	def cancel(self):

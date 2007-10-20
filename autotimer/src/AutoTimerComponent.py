@@ -53,10 +53,10 @@ class AutoTimerComponent(object):
 	exclude = property(getExclude, setExclude)
 
 	def setServices(self, services):
-		if services and len(services):
+		if services:
 			self._services = services
 		else:
-			self._services = None
+			self._services = []
 
 	def getServices(self):
 		return self._services
@@ -126,11 +126,6 @@ class AutoTimerComponent(object):
 		if self.maxduration is None:
 			return False
 		return length > self.maxduration
-
-	def getServices(self):
-		if self.services is None:
-			return []
-		return self.services
 
 	def checkServices(self, service):
 		if self.services is None:
