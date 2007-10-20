@@ -33,6 +33,9 @@ class EPGRefresh:
 		# Mtime of configuration files
 		self.configMtime = -1
 
+		# Read in Configuration
+		self.readConfiguration()
+
 	def readConfiguration(self):
 		if not path.exists(CONFIG):
 			return
@@ -55,43 +58,78 @@ class EPGRefresh:
 			file.write(serviceref)
 		file.close()
 
-	def refresh(self):
+	def start(self):
 		print "[EPGRefresh] Timer will fire for the first time in 3 seconds"
 		self.timer.startLongTimer(3)
+
+	def stop(self):
+		print "[EPGRefresh] Stopping Timer"
+		self.timer.stop()
+
+	def checkTimespan(self, begin, end):
+		time = localtime()
+
+		# Check if we span a day
+		if begin[0] > end[0] or (begin[0] == end[0] and begin[1] >= end[1]):
+			# Check if begin of event is later than our timespan starts
+			if time[3] > begin[0] or (time[3] == begin[0] and time[4] >= begin[1]):
+				# If so, event is in our timespan
+				return True
+			# Check if begin of event is earlier than our timespan end
+			if time[3] < end[0] or (time[3] == end[0] and time[4] <= end[1]):
+				# If so, event is in our timespan
+				return True
+			return False
+		else:
+			# Check if event begins earlier than our timespan starts 
+			if time[3] < begin[0] or (time[3] == begin[0] and time[4] <= begin[1]):
+				# Its out of our timespan then
+				return False
+			# Check if event begins later than our timespan ends
+			if time[3] > end[0] or (time[3] == end[0] and time[4] >= end[1]):
+				# Its out of our timespan then
+				return False
+			return True
 
 	def timeout(self):
 		# Walk Services
 		if self.timer_mode == 3:
 			self.nextService()
+
 		# Pending for activation
 		elif self.timer_mode == 0:
-			now = localtime() # 3 is h, 4 is m
-
 			# Check if in timespan
-			if FORCE_RUN_PLUGIN or (now[3] > 20 or (now[3] == 20 and now[4] >= 15) and now[3] < 6 or (now[3] == 6 and now[4] <= 30)):
+			if FORCE_RUN_PLUGIN or self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
 				self.timer_mode = 1
 				self.timeout()
 			else:
 				print "[EPGRefresh] Not in timespan, rescheduling"
 				# Recheck in 1h
 				self.timer.startLongTimer(3600)
+
 		# Check if in Standby
 		elif self.timer_mode == 1:
 			# Do we realy want to check nav?
 			from NavigationInstance import instance as nav
-			if (inStandby and not nav.isRecording()) or FORCE_RUN_PLUGIN:
+			if FORCE_RUN_PLUGIN or (inStandby and not nav.isRecording()):
 				self.timer_mode = 2
 				self.timeout()
 			else:
 				print "[EPGRefresh] Box still in use, rescheduling"
 				# Recheck in 10min
 				self.timer.startLongtimer(600)
+
 		# Reset Values
 		elif self.timer_mode == 2:
-			print "[EPGRefresh] About to start refreshing epg"
+			print "[EPGRefresh] About to start refreshing EPG"
 			# Keep service
 			from NavigationInstance import instance as nav
 			self.previousService =  nav.getCurrentlyPlayingServiceReference()
+
+			try:
+				self.readConfiguration()
+			except Exception, e:
+				print "[EPGRefresh] Error occured while reading in configuration:", e
 
 			self.scanServices = self.services.copy()
 			if config.plugins.epgrefresh.inherit_autotimer.value:
@@ -99,10 +137,15 @@ class EPGRefresh:
 					from Plugins.Extensions.AutoTimer.plugin import autotimer
 					if autotimer is None:
 						from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
-						autotimer = AutoTimer(session)
+						autotimer = AutoTimer(None)
 						autotimer.readXml()
+						list = autotimer.getEnabledTimerList()
+						autotimer = None
+					else:
+						# TODO: force parsing?
+						list = autotimer.getEnabledTimerList()
 					
-					for timer in autotimer.getEnabledTimerList():
+					for timer in list:
 						self.scanServices = self.scanServices.union(Set(timer.getServices()))
 				except Exception, e:
 					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
@@ -111,9 +154,10 @@ class EPGRefresh:
 
 			self.timer_mode = 3
 			self.timeout()
+
 		# Play old service, restart timer
 		elif self.timer_mode == 4:
-			print "[EPGRefresh] Done refreshing epg"
+			print "[EPGRefresh] Done refreshing EPG"
 			self.timer_mode = 1
 
 			# Zap back
@@ -123,6 +167,11 @@ class EPGRefresh:
 			# Run in 2h again.
 			# TODO: calculate s until next timespan begins 
 			self.timer.startLongTimer(7200)
+		# Corrupted ?!
+		else:
+			print "[EPGRefresh] Invalid status reached:", self.timer_mode
+			self.timer_move = 1
+			self.timeout()
 
 	def nextService(self):
 		# DEBUG
