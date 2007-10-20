@@ -1,5 +1,5 @@
-# Check if in Standby
-from Screens.Standby import inStandby
+# To check if in Standby
+import Screens.Standby
 
 # Timer, eServiceReference
 from enigma import eTimer, eServiceReference
@@ -149,7 +149,7 @@ class EPGRefresh:
 		elif self.timer_mode == 1:
 			# Do we realy want to check nav?
 			from NavigationInstance import instance as nav
-			if inStandby and not nav.isRecording():
+			if Screens.Standby.inStandby and not nav.RecordTimer.isRecording():
 				self.timer_mode = 2
 				self.timeout()
 			else:

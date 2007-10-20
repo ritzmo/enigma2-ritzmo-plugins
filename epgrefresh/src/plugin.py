@@ -18,8 +18,8 @@ now = [x for x in localtime()]
 now[3] = 20
 now[4] = 15
 begin = mktime(now)
-now[3] = 23
-now[4] = 15
+now[3] = 06
+now[4] = 30
 end = mktime(now)
 
 config.plugins.epgrefresh = ConfigSubsection()
