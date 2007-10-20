@@ -1,18 +1,20 @@
-# Standby
+# Check if in Standby
 from Screens.Standby import inStandby
 
+# Timer, eServiceReference
 from enigma import eTimer, eServiceReference
 
-from time import localtime
+# Check if in timespan, calculate timer durations
+from time import localtime, mktime, time
 
+# Path (check if file exists, getmtime)
 from os import path
 
+# We want a list of unique services
 from sets import Set
 
+# Configuration
 from Components.config import config
-
-# Used during development to override standby check
-FORCE_RUN_PLUGIN=True
 
 # Path to configuration
 CONFIG = "/etc/enigma2/epgrefresh.conf"
@@ -37,30 +39,64 @@ class EPGRefresh:
 		self.readConfiguration()
 
 	def readConfiguration(self):
+		# Check if file exists
 		if not path.exists(CONFIG):
 			return
 
+		# Check if file did not change
 		mtime = path.getmtime(CONFIG)
 		if mtime == self.configMtime:
 			return
 
+		# Keep mtime
 		self.configMtime = mtime
 
+		# Empty out list
 		self.services.clear()
+
+		# Open file
 		file = open(CONFIG, 'r')
+
+		# Add References
 		for line in file:
 			self.services.add(line)
+
+		# Close file
 		file.close()
 
 	def saveConfiguration(self):
+		# Open file
 		file = open(CONFIG, 'w')
+
+		# Write references
 		for serviceref in self.services:
 			file.write(serviceref)
+
+		# Close file
 		file.close()
 
+	def refresh(self):
+		print "[EPGRefresh] Forcing start of EPGRefresh"
+		self.timer_mode = 2
+		self.timeout()
+
 	def start(self):
-		print "[EPGRefresh] Timer will fire for the first time in 3 seconds"
-		self.timer.startLongTimer(3)
+		# Calculate unix timestamp of begin of timespan
+		begin = [x for x in localtime()]
+		begin[3] = config.plugins.epgrefresh.begin.value[0]
+		begin[4] = config.plugins.epgrefresh.begin.value[1]
+		begin = mktime(begin)
+
+		# Calculate difference
+		delay = begin-time()
+
+		# Wait at least 3 seconds
+		if delay < 3:
+			delay = 3
+
+		# debug, start timer
+		print '[EPGRefresh] Timer will fire for the first time in %d seconds' % (delay) 
+		self.timer.startLongTimer(int(delay))
 
 	def stop(self):
 		print "[EPGRefresh] Stopping Timer"
@@ -68,6 +104,7 @@ class EPGRefresh:
 		self.timer_mode = 0
 
 	def checkTimespan(self, begin, end):
+		# Get current time
 		time = localtime()
 
 		# Check if we span a day
@@ -100,7 +137,7 @@ class EPGRefresh:
 		# Pending for activation
 		elif self.timer_mode == 0:
 			# Check if in timespan
-			if FORCE_RUN_PLUGIN or self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
+			if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
 				self.timer_mode = 1
 				self.timeout()
 			else:
@@ -112,13 +149,22 @@ class EPGRefresh:
 		elif self.timer_mode == 1:
 			# Do we realy want to check nav?
 			from NavigationInstance import instance as nav
-			if FORCE_RUN_PLUGIN or (inStandby and not nav.isRecording()):
+			if inStandby and not nav.isRecording():
 				self.timer_mode = 2
 				self.timeout()
 			else:
-				print "[EPGRefresh] Box still in use, rescheduling"
-				# Recheck in 10min
-				self.timer.startLongtimer(600)
+				# See if we're still in timespan
+				if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
+					print "[EPGRefresh] Box still in use, rescheduling"	
+
+					# Recheck in 10min
+					self.timer.startLongTimer(600)
+				else:
+					print "[EPGRefresh] Gone out of timespan while waiting for box to be available, sorry!"
+
+					# Clean up
+					self.timer_mode = 4
+					self.timeout()
 
 		# Reset Values
 		elif self.timer_mode == 2:
@@ -127,30 +173,47 @@ class EPGRefresh:
 			from NavigationInstance import instance as nav
 			self.previousService =  nav.getCurrentlyPlayingServiceReference()
 
+			# Maybe read in configuration
 			try:
 				self.readConfiguration()
 			except Exception, e:
 				print "[EPGRefresh] Error occured while reading in configuration:", e
 
+			# Make a copy of services as we're going to modify the list
 			self.scanServices = self.services.copy()
+
+			# See if we are supposed to read in autotimer services
 			if config.plugins.epgrefresh.inherit_autotimer.value:
 				try:
+					# Import Instance
 					from Plugins.Extensions.AutoTimer.plugin import autotimer
+
+					# See if instance is empty
 					if autotimer is None:
+						# Create a dummy instance
 						from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
 						autotimer = AutoTimer(None)
+
+						# Read in configuration
 						autotimer.readXml()
+
+						# Get enabled timers
 						list = autotimer.getEnabledTimerList()
+
+						# Remove dummy instance
 						autotimer = None
 					else:
 						# TODO: force parsing?
+						# Get enabled timers
 						list = autotimer.getEnabledTimerList()
-					
+
+					# Fetch services
 					for timer in list:
 						self.scanServices = self.scanServices.union(Set(timer.getServices()))
 				except Exception, e:
 					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
 
+			# Debug
 			print "[EPGRefresh] Services we're going to scan:", self.scanServices
 
 			self.timer_mode = 3
@@ -158,20 +221,43 @@ class EPGRefresh:
 
 		# Play old service, restart timer
 		elif self.timer_mode == 4:
-			print "[EPGRefresh] Done refreshing EPG"
-			self.timer_mode = 1
+			# Reset mode
+			self.timer_mode = 0
 
 			# Zap back
 			from NavigationInstance import instance as nav
 			nav.playService(self.previousService)
 
-			# Run in 2h again.
-			# TODO: calculate s until next timespan begins 
-			self.timer.startLongTimer(7200)
+			# Calculate delay until in timespan again
+			# What we do is the following:
+			#  We calculate the last end time and add 24h
+			#  Then we change h/m to begin time
+			#  That way we should always get the next begin
+			begin = [x for x in localtime()]
+			begin[3] = config.plugins.epgrefresh.end.value[0]
+			begin[4] = config.plugins.epgrefresh.end.value[1]
+			begin = mktime(begin)+86400
+
+			begin = [x for x in localtime(begin)]
+			begin[3] = config.plugins.epgrefresh.begin.value[0]
+			begin[4] = config.plugins.epgrefresh.begin.value[1]
+			begin = mktime(begin)
+
+			# Calculate difference
+			delay = begin-time()
+
+			# Wait at least 3 seconds (ok, this should never happen :))
+			if delay < 3:
+				delay = 3
+
+			# debug, start timer
+			print '[EPGRefresh] Timer will fire again in %d seconds' % (delay) 
+			self.timer.startLongTimer(int(delay))
+
 		# Corrupted ?!
 		else:
 			print "[EPGRefresh] Invalid status reached:", self.timer_mode
-			self.timer_move = 1
+			self.timer_mode = 1
 			self.timeout()
 
 	def nextService(self):
@@ -180,17 +266,20 @@ class EPGRefresh:
 
 		# Check if more Services present
 		if len(self.scanServices):
+			# Get next reference
 			serviceref = self.scanServices.pop()
 
-			from NavigationInstance import instance as nav
-
 			# Play next service
+			from NavigationInstance import instance as nav
 			nav.playService(eServiceReference(str(serviceref)))
 
 			# Start Timer
 			self.timer.startLongTimer(config.plugins.epgrefresh.interval.value*60)
 		else:
-			# Destroy service
+			# Debug
+			print "[EPGRefresh] Done refreshing EPG"
+
+			# Clean up
 			self.timer_mode = 4
 			self.timeout()
 
