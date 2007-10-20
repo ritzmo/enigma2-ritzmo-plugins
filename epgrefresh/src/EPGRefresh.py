@@ -5,11 +5,17 @@ from enigma import eTimer, eServiceReference
 
 from time import localtime
 
+from os import path
+
+from sets import Set
+
+from Components.config import config
+
 # Used during development to override standby check
 FORCE_RUN_PLUGIN=True
 
-# Duration to reside on service in s (to be configurable)
-DURATION = 12
+# Path to configuration
+CONFIG = "/etc/enigma2/epgrefresh.conf"
 
 class EPGRefresh:
 	"""WIP - Simple Class to refresh EPGData - WIP"""
@@ -20,23 +26,37 @@ class EPGRefresh:
 		self.timer.timeout.get().append(self.timeout)
 
 		# Initialize 
+		self.services = Set()
 		self.previousService = None
-		self.position = -1
 		self.timer_mode = 0
 
-		# TODO: make this dynamic
-		self.services = [
-			eServiceReference(x)
-			  for x in [
-				  "1:0:1:6DCA:44D:1:C00000:0:0:0:",
-				  "1:0:1:6D66:437:1:C00000:0:0:0:",
-				  "1:0:1:445C:453:1:C00000:0:0:0:",
-				  "1:0:1:2EE3:441:1:C00000:0:0:0:"
-			  ]
-		]
+		# Mtime of configuration files
+		self.configMtime = -1
+
+	def readConfiguration(self):
+		if not path.exists(CONFIG):
+			return
+
+		mtime = path.getmtime(CONFIG)
+		if mtime == self.configMtime:
+			return
+
+		self.configMtime = mtime
+
+		del self.services[:]
+		file = open(CONFIG, 'r')
+		for line in file:
+			self.services.add(line)
+		file.close()
+
+	def saveConfigurtion(self):
+		file = open(CONFIG, 'w')
+		for serviceref in self.services:
+			file.write(serviceref)
+		file.close()
 
 	def refresh(self):
-		print "SCHEDULING TIMER TO FIRE IN 3s"
+		print "[EPGRefresh] Timer will fire for the first time in 3 seconds"
 		self.timer.startLongTimer(3)
 
 	def timeout(self):
@@ -49,11 +69,10 @@ class EPGRefresh:
 
 			# Check if in timespan
 			if FORCE_RUN_PLUGIN or (now[3] > 20 or (now[3] == 20 and now[4] >= 15) and now[3] < 6 or (now[3] == 6 and now[4] <= 30)):
-				print "IN TIMESPAN"
 				self.timer_mode = 1
 				self.timeout()
 			else:
-				print "NOT IN TIMESPAN"
+				print "[EPGRefresh] Not in timespan, rescheduling"
 				# Recheck in 1h
 				self.timer.startLongTimer(3600)
 		# Check if in Standby
@@ -61,28 +80,40 @@ class EPGRefresh:
 			# Do we realy want to check nav?
 			from NavigationInstance import instance as nav
 			if (inStandby and not nav.isRecording()) or FORCE_RUN_PLUGIN:
-				print "STANDBY AND NOT RECORDING"
 				self.timer_mode = 2
 				self.timeout()
 			else:
-				print "NOT STANDBY OR RECORDING"
+				print "[EPGRefresh] Box still in use, rescheduling"
 				# Recheck in 10min
 				self.timer.startLongtimer(600)
 		# Reset Values
 		elif self.timer_mode == 2:
-			print "INITIALIZING"
-			# Reset Position
-			self.position = -1
-
+			print "[EPGRefresh] About to start refreshing epg"
 			# Keep service
 			from NavigationInstance import instance as nav
 			self.previousService =  nav.getCurrentlyPlayingServiceReference()
+
+			self.scanServices = self.services.copy()
+			if config.plugins.epgrefresh.inherit_autotimer.value:
+				try:
+					from Plugins.Extensions.AutoTimer.plugin import autotimer
+					if autotimer is None:
+						from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
+						autotimer = AutoTimer(session)
+						autotimer.readXml()
+					
+					for timer in autotimer.getEnabledTimerList():
+						self.scanServices = self.scanServices.union(Set(timer.getServices()))
+				except Exception, e:
+					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
+
+			print "[EPGRefresh] Services we're going to scan:", self.scanServices
 
 			self.timer_mode = 3
 			self.timeout()
 		# Play old service, restart timer
 		elif self.timer_mode == 4:
-			print "FINISHED"
+			print "[EPGRefresh] Done refreshing epg"
 			self.timer_mode = 1
 
 			# Zap back
@@ -94,22 +125,20 @@ class EPGRefresh:
 			self.timer.startLongTimer(7200)
 
 	def nextService(self):
-		# Increment Position
-		self.position += 1
-
 		# DEBUG
-		print "TRYING TO POLL NEXT SERVICE", self.position
+		print "[EPGRefresh] Maybe zap to next service"
 
 		# Check if more Services present
-		# TODO: cache length?!
-		if len(self.services) > self.position:
+		if len(self.scanServices):
+			serviceref = self.scanServices.pop()
+
 			from NavigationInstance import instance as nav
 
 			# Play next service
-			nav.playService(self.services[self.position])
+			nav.playService(eServiceReference(str(serviceref)))
 
 			# Start Timer
-			self.timer.startLongTimer(DURATION)
+			self.timer.startLongTimer(config.plugins.epgrefresh.interval.value*60)
 		else:
 			# Destroy service
 			self.timer_mode = 4
