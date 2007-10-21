@@ -20,6 +20,9 @@ mountmanager/src/Makefile
 mediadownloader/Makefile
 mediadownloader/src/Makefile
 
+tictactoe/Makefile
+tictactoe/src/Makefile
+
 weatherforecast/Makefile
 weatherforecast/src/Makefile
 
