@@ -303,16 +303,16 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 		# AfterEvent
 		if self.afterevent.value == "default":
-			self.timer.afterevent = None
+			self.timer.afterevent = []
 		else:
 			afterevent = {"nothing": AFTEREVENT.NONE, "deepstandby": AFTEREVENT.DEEPSTANDBY, "standby": AFTEREVENT.STANDBY}[self.afterevent.value]
 			# AfterEvent Timespan
 			if self.afterevent_timespan.value:
 				start = self.afterevent_timespanbegin.value
 				end = self.afterevent_timespanend.value
-				self.timer.afterevent = (afterevent, (start, end))
+				self.timer.afterevent = [(afterevent, (start, end))]
 			else:
-				self.timer.afterevent = (afterevent, None)
+				self.timer.afterevent = [(afterevent, None)]
 
 		# Maxduration
 		if self.duration.value:
