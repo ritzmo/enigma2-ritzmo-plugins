@@ -159,13 +159,13 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.afterevent = ConfigSelection(choices = [("default", _("standard")), ("nothing", _("do nothing")), ("standby", _("go to standby")), ("deepstandby", _("go to deep standby"))], default = afterevent)
 
 		# AfterEvent (Timespan)
-		if timer.hasAfterEvent() and timer.hasAfterEventTimespan():
-			default = True 
-			now[3] = timer.afterevent[1][0][0]
-			now[4] = timer.afterevent[1][0][1]
+		if timer.hasAfterEvent() and timer.afterevent[1][0] is not None:
+			default = True
+			now[3] = timer.afterevent[1][0][0][0]
+			now[4] = timer.afterevent[1][0][0][1]
 			begin = mktime(now)
-			now[3] = timer.afterevent[1][1][0]
-			now[4] = timer.afterevent[1][1][1]
+			now[3] = timer.afterevent[1][1][1][0]
+			now[4] = timer.afterevent[1][1][1][1]
 			end = mktime(now)
 		else:
 			default = False

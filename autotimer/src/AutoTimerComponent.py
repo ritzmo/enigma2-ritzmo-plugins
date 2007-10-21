@@ -3,6 +3,7 @@ class AutoTimerComponent(object):
 
 	def __init__(self, id, *args, **kwargs):
 		self.id = id
+		self._afterevent = []
 		self.setValues(*args, **kwargs)
 
 	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None):
@@ -64,14 +65,16 @@ class AutoTimerComponent(object):
 	services = property(getServices, setServices)
 
 	def setAfterEvent(self, afterevent):
-		if afterevent is None:
-			self._afterevent = (None, (None,))
+		del self._afterevent[:]
+		if not len(afterevent):
+			self._afterevent.append((None, (None,)))
 		else:
-			afterevent, timespan = afterevent
-			if timespan is None:
-				self._afterevent = (afterevent, (None,))
-			else:
-				self._afterevent = (afterevent, self.calculateDayspan(*timespan))
+			for definition in afterevent:
+				action, timespan = definition
+				if timespan is None:
+					self._afterevent.append((action, (None,)))
+				else:
+					self._afterevent.append((action, self.calculateDayspan(*timespan)))
 
 	def getCompleteAfterEvent(self):
 		return self._afterevent
@@ -185,22 +188,25 @@ class AutoTimerComponent(object):
 		return self.offset[1]/60
 
 	def hasAfterEvent(self):
-		return self.afterevent[0] is not None
+		return len(self.afterevent)
 
 	def hasAfterEventTimespan(self):
-		return self.afterevent[1][0] is not None
+		for afterevent in self.afterevent:
+			if afterevent[1][0] is not None:
+				return True
+		return False
 
-	def checkAfterEventTimespan(self, end):
-		return self.checkAnyTimespan(end, *self.afterevent[1])
+	def getAfterEventTimespan(self, end):
+		for afterevent in self.afterevent:
+			if not self.checkAnyTimespan(end, *afterevent[1]):
+				return afterevent[0]
+		return None
 
 	def getAfterEvent(self):
-		return self.afterevent[0]
-
-	def getAfterEventBegin(self):
-		return '%02d:%02d' % (self.afterevent[1][0][0], self.afterevent[1][0][1])
-
-	def getAfterEventEnd(self):
-		return '%02d:%02d' % (self.afterevent[1][1][0], self.afterevent[1][1][1])
+		for afterevent in self.afterevent:
+			if afterevent[1][0] is None:
+				return afterevent[0]
+		return None
 
 	def getEnabled(self):
 		return self.enabled and "yes" or "no"

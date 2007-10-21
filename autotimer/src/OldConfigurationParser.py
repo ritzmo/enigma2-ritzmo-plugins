@@ -3,12 +3,141 @@ from AutoTimer import getValue
 from RecordTimer import AFTEREVENT
 
 def parseConfig(configuration, list, version = None, uniqueTimerId = 0):
-	if version == "2":
+	if version == "3":
+		print "[AutoTimer] Trying to parse config version 3"
+		parseConfig_v3(configuration, list, uniqueTimerId)
+	elif version == "2":
 		print "[AutoTimer] Trying to parse config version 2"
 		parseConfig_v2(configuration, list, uniqueTimerId)
 	else:
 		print "[AutoTimer] Trying to parse unversioned config file"
 		parseConfig_v1(configuration, list, uniqueTimerId)
+
+def parseConfig_v3(configuration, list, uniqueTimerId = 0):
+	# Iterate Timers
+	for timer in configuration.getElementsByTagName("timer"):
+		# Increment uniqueTimerId
+		uniqueTimerId += 1
+
+		# Read out match
+		match = timer.getAttribute("match").encode("UTF-8")
+		if not match:
+			print '[AutoTimer] Erroneous config is missing attribute "match", skipping entry'
+			continue
+
+		# Read out name
+		name = timer.getAttribute("name").encode("UTF-8")
+		if not name:
+			print '[AutoTimer] Timer is missing attribute "name", defaulting to match'
+			name = match
+
+		# Read out enabled
+		enabled = timer.getAttribute("enabled") or "yes"
+		if enabled == "no":
+			enabled = False
+		elif enabled == "yes":
+			enabled = True
+		else:
+			print '[AutoTimer] Erroneous config contains invalid value for "enabled":', enabled,', disabling'
+			enabled = False
+
+		# Guess allowedtime
+		elements = timer.getElementsByTagName("timespan")
+		Len = len(elements)
+		if Len:
+			# Read out last definition
+			start = elements[Len-1].getAttribute("from")
+			end = elements[Len-1].getAttribute("to")
+			if start and end:
+				start = [int(x) for x in start.split(':')]
+				end = [int(x) for x in end.split(':')]
+				timetuple = (start, end)
+			else:
+				print '[AutoTimer] Erroneous config contains invalid definition of "timespan", ignoring definition'
+				timetuple = None
+		else:
+			timetuple = None
+
+		# Read out allowed services
+		servicelist = []			
+		for service in timer.getElementsByTagName("serviceref"):
+			value = getValue(service, None, False)
+			if value:
+				servicelist.append(value)
+
+		# Read out offset
+		elements = timer.getElementsByTagName("offset")
+		Len = len(elements)
+		if Len:
+			value = elements[Len-1].getAttribute("both")
+			if value:
+				before = after = int(value) * 60
+			else:
+				before = int(elements[Len-1].getAttribute("before") or 0) * 60
+				after = int(elements[Len-1].getAttribute("after") or 0) * 60
+			offset = (before, after)
+		else:
+			offset = None
+
+		# Read out afterevent
+		elements = timer.getElementsByTagName("afterevent")
+		Len = len(elements)
+		if Len:
+			idx = {"none": AFTEREVENT.NONE, "standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
+			value = getValue(elements[Len-1], None, False)
+
+			try:
+				value = idx[value]
+				start = elements[Len-1].getAttribute("from")
+				end = elements[Len-1].getAttribute("to")
+				if start and end:
+					start = [int(x) for x in start.split(':')]
+					end = [int(x) for x in end.split(':')]
+					afterevent = [(value, (start, end))]
+				else:
+					afterevent = [(value, None)]
+			except KeyError, ke:
+				print '[AutoTimer] Erroneous config contains invalid value for "afterevent":', afterevent,', ignoring definition'
+				afterevent = []
+		else:
+			afterevent = []
+
+		# Read out exclude
+		idx = {"title": 0, "shortdescription": 1, "description": 2, "dayofweek": 3}
+		excludes = ([], [], [], []) 
+		for exclude in timer.getElementsByTagName("exclude"):
+			where = exclude.getAttribute("where")
+			value = getValue(exclude, None, False)
+			if not (value and where):
+				continue
+
+			try:
+				excludes[idx[where]].append(value.encode("UTF-8"))
+			except KeyError, ke:
+				pass
+
+		# Read out max length
+		# TODO: this item is unique, shouldn't it be an attribute then?
+		maxlen = getValue(timer.getElementsByTagName("maxduration"), None)
+		if maxlen is not None:
+			maxlen = int(maxlen)*60
+		else:
+			maxlen = None
+
+		# Finally append tuple
+		list.append(AutoTimerComponent(
+			uniqueTimerId,
+			name,
+			match,
+			enabled,
+			timespan = timetuple,
+			services = servicelist,
+			offset = offset,
+			afterevent = afterevent,
+			exclude = excludes,
+			maxduration = maxlen
+		))
+		
 
 def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 	# Iterate Timers
@@ -89,14 +218,14 @@ def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 				if start and end:
 					start = [int(x) for x in start.split(':')]
 					end = [int(x) for x in end.split(':')]
-					afterevent = (value, (start, end))
+					afterevent = [(value, (start, end))]
 				else:
-					afterevent = (value, None)
+					afterevent = [(value, None)]
 			except KeyError, ke:
 				print '[AutoTimer] Erroneous config contains invalid value for "afterevent":', afterevent,', ignoring definition'
-				afterevent = None
+				afterevent = []
 		else:
-			afterevent = None
+			afterevent = []
 
 		# Read out exclude
 		elements = timer.getElementsByTagName("exclude")
@@ -253,7 +382,7 @@ def parseConfig_v1(configuration, list, uniqueTimerId = 0):
 				timespan = timetuple,
 				services = servicelist,
 				offset = offset,
-				afterevent = afterevent,
+				afterevent = [afterevent],
 				exclude = excludes,
 				maxduration = maxlen
 		))
