@@ -39,7 +39,7 @@ class EPGRefreshChannelEditor(Screen, ConfigListScreen):
 		self.onChangedEntry = []
 
 		self.list = [
-			getConfigListEntry(_("Refreshing"), ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))]))
+			getConfigListEntry(_("Refreshing"), ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''))]))
 				for x in servicelist
 		]
 
