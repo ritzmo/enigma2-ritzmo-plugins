@@ -1,0 +1,10 @@
+Package: enigma2-plugin-extensions-tictactoe
+Version: 0.1-20071021-r0
+Description: TicTacToe implementation for the enigma2 gui
+Architecture: mipsel
+Section: extra
+Priority: optional
+Maintainer: Moritz Venn <moritz.venn@freaque.net>
+Homepage: http://www.ritzmo.de
+Depends: enigma2(>1.0cvs20070731)
+Source: http://www.ritzmo.de
