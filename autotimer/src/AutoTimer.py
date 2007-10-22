@@ -254,7 +254,7 @@ class AutoTimer:
 			for serviceref in timer.getServices():
 				list.extend(['  <serviceref>', serviceref, '</serviceref>'])
 				ref = ServiceReference(str(serviceref))
-				list.extend([' <!-- ', ref.getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"), ' -->\n'])
+				list.extend([' <!-- ', ref.getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''), ' -->\n'])
 
 			# Offset
 			if timer.hasOffset():
@@ -265,13 +265,14 @@ class AutoTimer:
 
 			# AfterEvent
 			if timer.hasAfterEvent():
-				idx = {AFTEREVENT.NONE: "none", AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}[timer.getAfterEvent()]
+				idx = {AFTEREVENT.NONE: "none", AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}
+				print timer.getCompleteAfterEvent()
 				for afterevent in timer.getCompleteAfterEvent():
-					list.append('  <afterevent')
 					action, timespan = afterevent
+					list.append('  <afterevent')
 					if timespan[0] is not None:
-						list.append('from="%02d:%02d" to="%02d:%02d"' % (timespan[0][0], timespan[0][1], timespan[1][0], timespan[1][1]))
-					list.extend(['>', afterevent, '</afterevent>\n'])
+						list.append(' from="%02d:%02d" to="%02d:%02d"' % (timespan[0][0], timespan[0][1], timespan[1][0], timespan[1][1]))
+					list.extend(['>', idx[action], '</afterevent>\n'])
 
 			# Excludes
 			for title in timer.getExcludedTitle():

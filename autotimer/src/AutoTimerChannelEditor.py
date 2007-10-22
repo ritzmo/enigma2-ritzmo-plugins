@@ -43,7 +43,7 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 		]
 
 		self.list.extend([
-			getConfigListEntry(_("Record on"), ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '').encode("UTF-8"))]))
+			getConfigListEntry(_("Record on"), ConfigSelection(choices = [(str(x), ServiceReference(str(x)).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''))]))
 				for x in servicelist
 		])
 

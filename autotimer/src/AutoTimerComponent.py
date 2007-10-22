@@ -66,9 +66,7 @@ class AutoTimerComponent(object):
 
 	def setAfterEvent(self, afterevent):
 		del self._afterevent[:]
-		if not len(afterevent):
-			self._afterevent.append((None, (None,)))
-		else:
+		if len(afterevent):
 			for definition in afterevent:
 				action, timespan = definition
 				if timespan is None:
