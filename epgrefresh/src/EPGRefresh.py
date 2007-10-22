@@ -31,6 +31,7 @@ class EPGRefresh:
 		self.services = Set()
 		self.previousService = None
 		self.timer_mode = 0
+		self.doAfterEvent = True
 
 		# Mtime of configuration files
 		self.configMtime = -1
@@ -81,6 +82,7 @@ class EPGRefresh:
 	def refresh(self):
 		print "[EPGRefresh] Forcing start of EPGRefresh"
 		self.timer_mode = 2
+		self.doAfterEvent = False
 		self.timeout()
 
 	def start(self):
@@ -215,11 +217,20 @@ class EPGRefresh:
 
 		# Play old service, restart timer
 		elif self.timer_mode == 4:
-			# Reset mode
+			# We need nav
+			from NavigationInstance import instance as nav
+
+			# shutdown if we're supposed to go to deepstandby and not recording
+			# TODO: improve this (we might no longer be in standby (general problem), recordings might not be running but about to start)
+			if self.doAfterEvent and config.plugins.epgrefresh.afterevent.value and not nav.RecordTimer.isRecording():
+				from enigma import quitMainloop
+				quitMainloop(1)
+
+			# Reset status
 			self.timer_mode = 0
+			self.doAfterEvent = True
 
 			# Zap back
-			from NavigationInstance import instance as nav
 			nav.playService(self.previousService)
 
 			# Wait at least until out of timespan again

@@ -28,6 +28,7 @@ config.plugins.epgrefresh.begin = ConfigClock(default = begin)
 config.plugins.epgrefresh.end = ConfigClock(default = end)
 config.plugins.epgrefresh.interval = ConfigInteger(default = 2, limits=(1, 10))
 config.plugins.epgrefresh.inherit_autotimer = ConfigEnableDisable(default = False)
+config.plugins.epgrefresh.afterevent = ConfigEnableDisable(default = False)
 
 # Autostart
 def autostart(reason, **kwargs):

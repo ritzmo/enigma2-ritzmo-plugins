@@ -48,6 +48,7 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 			getConfigListEntry(_("Refresh EPG after"), config.plugins.epgrefresh.begin),
 			getConfigListEntry(_("Refresh EPG before"), config.plugins.epgrefresh.end),
 			getConfigListEntry(_("Inherit Services from AutoTimer if available"), config.plugins.epgrefresh.inherit_autotimer),
+			getConfigListEntry(_("Shutdown after refresh"), config.plugins.epgrefresh.afterevent),
 		]
 
 		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)
