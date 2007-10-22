@@ -44,13 +44,8 @@ def getValue(definitions, default, isList = True):
 		if node.nodeType == node.TEXT_NODE:
 			ret = ret + node.data
 
-	# If output is still empty return default
-	ret = ret.strip()
-	if not len(ret):
-		return default
-
-	# Otherwise return output
-	return ret
+	# Return stripped output or (if empty) default
+	return ret.strip() or default
 
 class AutoTimer:
 	"""Read and save xml configuration, query EPGCache"""
@@ -373,7 +368,7 @@ class AutoTimer:
  						if afterEvent is None:
  							afterEvent = timer.getAfterEvent()
  						if afterEvent is not None:
- 							kwargs["afterEvent"] = timer.getAfterEvent()
+ 							kwargs["afterEvent"] = afterEvent
  
   					# Apply E2 Offset
   					begin -= config.recording.margin_before.value * 60
