@@ -134,6 +134,11 @@ class AutoTimer:
 				if maxlen:
 					maxlen = int(maxlen)*60
 
+				# Read out recording path (needs my Location-select patch)
+				destination = timer.getAttribute("destination") or None
+				if destination is not None:
+					destination = destination.encode("UTF-8")
+
 				# Read out allowed services
 				servicelist = []					
 				for service in timer.getElementsByTagName("serviceref"):
@@ -200,7 +205,8 @@ class AutoTimer:
 						offset = offset,
 						afterevent = afterevent,
 						exclude = excludes,
-						maxduration = maxlen
+						maxduration = maxlen,
+						destination = destination
 				))
 
 	def getTimerList(self):
@@ -242,12 +248,22 @@ class AutoTimer:
 
 		# Iterate timers
 		for timer in self.timers:
-			# Attributes
+			# Common attributes (match, enabled)
 			list.extend([' <timer name="', timer.name, '" match="', timer.match, '" enabled="', timer.getEnabled(), '"'])
+
+			# Timespan
 			if timer.hasTimespan():
 				list.extend([' from="', timer.getTimespanBegin(), '" to="', timer.getTimespanEnd(), '"'])
+
+			# Duration
 			if timer.hasDuration():
 				list.extend([' maxduration="', str(timer.getDuration()), '"'])
+
+			# Destination (needs my Location-select patch)
+			if timer.hasDestination():
+				list.extend([' destination="', str(timer.destination), '"'])
+
+			# Close still opened timer tag
 			list.append('>\n')
 
 			# Services
@@ -379,6 +395,12 @@ class AutoTimer:
 					begin, end = timer.applyOffset(begin, end)
 
 					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit, **kwargs)
+
+					# Set custom destination directory (needs my Location-select patch)
+					if timer.hasDestination():
+						# TODO: add warning when patch not installed?
+						newEntry.dirname = timer.destination
+ 
 					NavigationInstance.instance.RecordTimer.record(newEntry)
 					new += 1
 

@@ -6,7 +6,7 @@ class AutoTimerComponent(object):
 		self._afterevent = []
 		self.setValues(*args, **kwargs)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None, destination = None):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -16,6 +16,7 @@ class AutoTimerComponent(object):
 		self.exclude = exclude
 		self.maxduration = maxduration
 		self.enabled = enabled
+		self.destination = destination
 
 	def calculateDayspan(self, begin, end):
 		if end[0] < begin[0] or (end[0] == begin[0] and end[1] <= begin[1]):
@@ -209,6 +210,9 @@ class AutoTimerComponent(object):
 	def getEnabled(self):
 		return self.enabled and "yes" or "no"
 
+	def hasDestination(self):
+		return self.destination is not None
+
 	def __repr__(self):
 		return ''.join([
 			'<AutomaticTimer ',
@@ -222,7 +226,8 @@ class AutoTimerComponent(object):
 			 		str(self.afterevent),
 			 		str(self.exclude),
 			 		str(self.maxduration),
-			 		str(self.enabled)
+			 		str(self.enabled),
+			 		str(self.destination)
 			 ]),
 			 ")>"
 		])
