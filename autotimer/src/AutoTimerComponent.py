@@ -33,14 +33,6 @@ class AutoTimerComponent(object):
 		else:
 			return (begin, end, False)
 
-	def setMatch(self, match):
-		self._match = match.strip()
-
-	def getMatch(self):
-		return self._match
-
-	match = property(getMatch, setMatch)
-
 	def setTimespan(self, timespan):
 		if timespan is None:
 			self._timespan = (None,)

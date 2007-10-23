@@ -3,6 +3,7 @@ from Screens.Screen import Screen
 from Components.ConfigList import ConfigListScreen
 from AutoTimerChannelEditor import AutoTimerChannelEditor
 from AutoTimerExcludeEditor import AutoTimerExcludeEditor
+from Screens.MessageBox import MessageBox
 
 # GUI (Summary)
 from Screens.Setup import SetupSummary
@@ -82,7 +83,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self["actions"] = ActionMap(["SetupActions", "ColorActions"],
 			{
 				"cancel": self.cancel,
-				"save": self.save,
+				"save": self.maybeSave,
 				"yellow": self.editExcludes,
 				"blue": self.editChannels
 			}
@@ -270,6 +271,25 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 	def cancel(self):
 		self.close(None)
+
+	def maybeSave(self):
+		# Check if we have a trailing whitespace
+		if self.match.value[-1:] == " ":
+			self.session.openWithCallback(
+				self.saveCallback,
+				MessageBox,
+				_('You entered "%s" as Text to match.\nDo you want to remove trailing whitespaces?') % (self.match.value)
+			)
+		# Just save else
+		else:
+			self.save()
+
+	def saveCallback(self, ret):
+		if ret is not None:
+			if ret:
+				self.match.value = self.match.value.rstrip()
+			self.save()
+		# Don't to anything if MessageBox was canceled!
 
 	def save(self):
 		# Match
