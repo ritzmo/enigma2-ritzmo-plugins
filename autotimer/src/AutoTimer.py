@@ -8,6 +8,7 @@ import NavigationInstance
 # Timer
 from ServiceReference import ServiceReference
 from RecordTimer import RecordTimerEntry, AFTEREVENT
+from Components.TimerSanityCheck import TimerSanityCheck
 
 # Timespan
 from time import localtime, time
@@ -225,7 +226,7 @@ class AutoTimer:
 	def set(self, timer):
 		idx = 0
 		for stimer in self.timers:
-			if stimer.id == timer.id:
+			if stimer == timer:
 				self.timers[idx] = timer
 				return
 			idx += 1
@@ -327,9 +328,9 @@ class AutoTimer:
 		recorddict = {}
 		for timer in NavigationInstance.instance.RecordTimer.timer_list:
 			if not recorddict.has_key(str(timer.service_ref)):
-				recorddict[str(timer.service_ref)] = [timer.eit]
+				recorddict[str(timer.service_ref)] = [timer]
 			else:
-				recorddict[str(timer.service_ref)].append(timer.eit)
+				recorddict[str(timer.service_ref)].append(timer)
 
 		# Iterate Timer
 		for timer in self.getEnabledTimerList():
@@ -364,40 +365,69 @@ class AutoTimer:
 					if timer.checkDuration(begin-end) or timer.checkTimespan(timestamp) or timer.checkExcluded(name, description, evt.getExtendedDescription(), str(timestamp[6])):
 						continue
 
-					# Check for double Timers
-					# We're not using isInTimer here as it would slow things down
-					# incredibly although it might be more stable... call below.
-					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
-					if eit in recorddict.get(serviceref, []):
-						skipped += 1
-						continue
-
-					print "[AutoTimer] Adding an event."
- 
-					# Apply afterEvent
- 					kwargs = {}
- 					if timer.hasAfterEvent():
- 						afterEvent = timer.getAfterEventTimespan(localtime(end))
- 						if afterEvent is None:
- 							afterEvent = timer.getAfterEvent()
- 						if afterEvent is not None:
- 							kwargs["afterEvent"] = afterEvent
- 
-  					# Apply E2 Offset
+					# Apply E2 Offset
   					begin -= config.recording.margin_before.value * 60
 					end += config.recording.margin_after.value * 60
  
 					# Apply custom Offset
 					begin, end = timer.applyOffset(begin, end)
 
-					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit, **kwargs)
+					# Initialize newEntry
+					newEntry = None
+
+					# Check for double Timers
+					# We're not using isInTimer here as it would slow things down
+					# incredibly although it might be more stable... call below.
+					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
+					for rtimer in recorddict.get(serviceref, []):
+						if rtimer.eit == eit:
+							# TODO: add warning if timer was modified...
+							newEntry = rtimer
+							try:
+								if newEntry.isAutoTimer:
+									print "[AutoTimer] Modifying existing AutoTimer!"
+							except AttributeError, ae:
+								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
+							func = NavigationInstance.instance.RecordTimer.timeChanged
+
+							# Modify values saved in timer
+							newEntry.name = name
+							newEntry.description = description
+							newEntry.begin = int(begin)
+							newEntry.end = int(end)
+							break
+
+					# Event not yet in Timers
+					if newEntry is None:
+						print "[AutoTimer] Adding an event."
+						newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)
+						func = NavigationInstance.instance.RecordTimer.record
+
+						# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
+						newEntry.isAutoTimer = True
+
+					# Apply afterEvent
+ 					if timer.hasAfterEvent():
+ 						afterEvent = timer.getAfterEventTimespan(localtime(end))
+ 						if afterEvent is None:
+ 							afterEvent = timer.getAfterEvent()
+ 						if afterEvent is not None:
+ 							newEntry.afterEvent = afterEvent
 
 					# Set custom destination directory (needs my Location-select patch)
 					if timer.hasDestination():
 						# TODO: add warning when patch not installed?
 						newEntry.dirname = timer.destination
  
-					NavigationInstance.instance.RecordTimer.record(newEntry)
+ 					# Do a sanity check, although it does not do much right now
+ 					timersanitycheck = TimerSanityCheck(NavigationInstance.instance.RecordTimer.timer_list, newEntry)
+ 					if not timersanitycheck.check():
+ 						print "[Autotimer] Sanity check failed"
+ 					else:
+ 						print "[Autotimer] Sanity check passed"
+
+ 					# Either add to List or change time
+ 					func(newEntry)
 					new += 1
 
 			except StandardError, se:

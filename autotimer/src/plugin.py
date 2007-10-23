@@ -115,6 +115,6 @@ def editCallback(session):
 def Plugins(**kwargs):
 	return [
 		PluginDescriptor(where = PluginDescriptor.WHERE_AUTOSTART, fnc = autostart),
-		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main),
+		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_PLUGINMENU, icon = "plugin.png", fnc = main),
 		PluginDescriptor(name="AutoTimer", description = "Edit Timers and scan for new Events", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main)
 	]

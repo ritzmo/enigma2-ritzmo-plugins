@@ -6,6 +6,15 @@ class AutoTimerComponent(object):
 		self._afterevent = []
 		self.setValues(*args, **kwargs)
 
+	def __eq__(self, other):
+		try:
+			return self.id == other.id
+		except AttributeError:
+			return False
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = None, exclude = None, maxduration = None, destination = None):
 		self.name = name
 		self.match = match
