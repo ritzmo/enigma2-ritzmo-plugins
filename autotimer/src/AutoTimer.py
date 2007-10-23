@@ -139,26 +139,23 @@ class AutoTimer:
 				if destination is not None:
 					destination = destination.encode("UTF-8")
 
+				# Read out offset
+				offset = timer.getAttribute("offset") or None
+				if offset:
+					offset = offset.split(",")
+					if len(offset) == 1:
+						before = after = int(offset[0]) * 60
+					else:
+						before = int(offset[0]) * 60
+						after = int(offset[1]) * 60
+					offset = (before, after)
+
 				# Read out allowed services
 				servicelist = []					
 				for service in timer.getElementsByTagName("serviceref"):
 					value = getValue(service, None, False)
 					if value:
 						servicelist.append(value)
-
-				# Read out offset
-				elements = timer.getElementsByTagName("offset")
-				Len = len(elements)
-				if Len:
-					value = elements[Len-1].getAttribute("both")
-					if value:
-						before = after = int(value) * 60
-					else:
-						before = int(elements[Len-1].getAttribute("before") or 0) * 60
-						after = int(elements[Len-1].getAttribute("after") or 0) * 60
-					offset = (before, after)
-				else:
-					offset = None
 
 				# Read out afterevent
 				idx = {"none": AFTEREVENT.NONE, "standby": AFTEREVENT.STANDBY, "shutdown": AFTEREVENT.DEEPSTANDBY, "deepstandby": AFTEREVENT.DEEPSTANDBY}
@@ -263,6 +260,13 @@ class AutoTimer:
 			if timer.hasDestination():
 				list.extend([' destination="', str(timer.destination), '"'])
 
+			# Offset
+			if timer.hasOffset():
+				if timer.isOffsetEqual():
+					list.extend([' offset="', str(timer.getOffsetBegin()), '"'])
+				else:
+					list.extend([' offset="', str(timer.getOffsetBegin()), ',', str(timer.getOffsetEnd()), '"'])
+
 			# Close still opened timer tag
 			list.append('>\n')
 
@@ -272,17 +276,9 @@ class AutoTimer:
 				ref = ServiceReference(str(serviceref))
 				list.extend([' <!-- ', ref.getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''), ' -->\n'])
 
-			# Offset
-			if timer.hasOffset():
-				if timer.isOffsetEqual():
-					list.extend(['  <offset both="', str(timer.getOffsetBegin()), '" />\n'])
-				else:
-					list.extend(['  <offset before="', str(timer.getOffsetBegin()), '" after="', str(timer.getOffsetEnd()), '" />\n'])
-
 			# AfterEvent
 			if timer.hasAfterEvent():
 				idx = {AFTEREVENT.NONE: "none", AFTEREVENT.STANDBY: "standby", AFTEREVENT.DEEPSTANDBY: "shutdown"}
-				print timer.getCompleteAfterEvent()
 				for afterevent in timer.getCompleteAfterEvent():
 					action, timespan = afterevent
 					list.append('  <afterevent')
