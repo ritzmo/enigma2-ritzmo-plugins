@@ -186,13 +186,13 @@ class EPGRefresh:
 			except Exception, e:
 				print "[EPGRefresh] Error occured while reading in configuration:", e
 
-			# Make a copy of services as we're going to modify the list
-			self.scanServices = self.services.copy()
+			# Save Services in a dict <transponder data> => serviceref
+			scanServices = {}
 
-			# TODO: use max 1 service/transponder
-			# eg:
-			# SuperRTL: 1:0:1:2F08:441:1:C00000:0:0:0:
-			# 441:1:C00000:0:0:0: stays for all services of RTL
+			# TODO: does this really work?
+			for service in self.services:
+				if not scanServices.has_key(service[-19:]):
+					scanServices[service[-19:]] = service
 
 			# See if we are supposed to read in autotimer services
 			if config.plugins.epgrefresh.inherit_autotimer.value:
@@ -211,9 +211,14 @@ class EPGRefresh:
 
 					# Fetch services
 					for timer in autotimer.getEnabledTimerList():
-						self.scanServices = self.scanServices.union(Set(timer.getServices()))
+						for service in timer.getServices():
+							if not scanServices.has_key(service[-19:]):
+								scanServices[service[-19:]] = service
 				except Exception, e:
 					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
+
+			# Make a list of services
+			self.scanServices = scanServices.values()
 
 			# Debug
 			print "[EPGRefresh] Services we're going to scan:", self.scanServices

@@ -136,9 +136,7 @@ class AutoTimer:
 					maxlen = int(maxlen)*60
 
 				# Read out recording path (needs my Location-select patch)
-				destination = timer.getAttribute("destination") or None
-				if destination is not None:
-					destination = destination.encode("UTF-8")
+				destination = timer.getAttribute("destination").encode("UTF-8") or None
 
 				# Read out offset
 				offset = timer.getAttribute("offset") or None
@@ -397,6 +395,8 @@ class AutoTimer:
 							except AttributeError, ae:
 								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
 							func = NavigationInstance.instance.RecordTimer.timeChanged
+
+							# TODO: add check for repeated timers!
 
 							# Modify values saved in timer
 							newEntry.name = name
