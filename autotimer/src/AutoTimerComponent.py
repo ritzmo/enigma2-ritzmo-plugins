@@ -131,7 +131,7 @@ class AutoTimerComponent(object):
 		return length > self.maxduration
 
 	def checkServices(self, service):
-		if self.services is None:
+		if not len(self.services):
 			return False
 		return service not in self.services
 
