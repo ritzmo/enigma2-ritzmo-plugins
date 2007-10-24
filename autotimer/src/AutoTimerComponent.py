@@ -107,11 +107,11 @@ class AutoTimerComponent(object):
 			return True
 		else:
 			# Check if event begins earlier than our timespan starts 
-			if time[3] < begin[0] or (time[3] == begin[0] and time[4] <= begin[1]):
+			if time[3] < begin[0] or (time[3] == begin[0] and time[4] < begin[1]):
 				# Its out of our timespan then
 				return True
 			# Check if event begins later than our timespan ends
-			if time[3] > end[0] or (time[3] == end[0] and time[4] >= end[1]):
+			if time[3] > end[0] or (time[3] == end[0] and time[4] > end[1]):
 				# Its out of our timespan then
 				return True
 			return False
