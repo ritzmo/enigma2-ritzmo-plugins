@@ -396,7 +396,9 @@ class AutoTimer:
 								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
 							func = NavigationInstance.instance.RecordTimer.timeChanged
 
-							# TODO: add check for repeated timers!
+							# TODO: fix this repeated stuff
+							if newEntry.repeated:
+								break
 
 							# Modify values saved in timer
 							newEntry.name = name
@@ -415,6 +417,12 @@ class AutoTimer:
 
 						# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
 						newEntry.isAutoTimer = True
+					elif newEntry.repeated:
+						# TODO: fix this repeated stuff
+						print "[AutoTimer] Will not change repeated timer..."
+						modified -= 1
+						continue
+						
 
 					# Apply afterEvent
  					if timer.hasAfterEvent():
