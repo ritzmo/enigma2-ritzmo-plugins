@@ -7,7 +7,7 @@
  <!-- 
     Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet
  -->
- <timer name="House aufnehmen" match="Dr. House">
+ <timer name="House aufnehmen" match="Dr. House" enabled="no">
   <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
   <timespan from="20:15" to="23:00" />
   <!-- Auf RTL -->
@@ -25,7 +25,6 @@
  <!--
     Ein weiterer Timer:
         - Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes
-        - Timer ist inaktiv
  -->
  <timer name="Alles mit ouse" match="ouse" enabled="no">
   <!-- Keine Zeitbeschraenkung -->
@@ -44,7 +43,7 @@
         - Alles mit "Malcolm" im Titel aufzeichnen
         - Mittwochs nichts aufzeichnen
  -->
- <timer name="Sendungen mit Malcolm" match="Malcolm" enabled="yes">
+ <timer name="Sendungen mit Malcolm" match="Malcolm" enabled="no">
   <!-- Keine Zeitbeschraenkung -->
   <!-- Auf allen Sendern aufzeichnen -->
   <!-- Kein Offset -->

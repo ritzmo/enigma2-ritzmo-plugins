@@ -81,6 +81,7 @@ class EPGRefresh:
 
 	def refresh(self):
 		print "[EPGRefresh] Forcing start of EPGRefresh"
+		self.timer.stop()
 		self.timer_mode = 2
 		self.doAfterEvent = False
 		self.timeout()
@@ -187,6 +188,11 @@ class EPGRefresh:
 
 			# Make a copy of services as we're going to modify the list
 			self.scanServices = self.services.copy()
+
+			# TODO: use max 1 service/transponder
+			# eg:
+			# SuperRTL: 1:0:1:2F08:441:1:C00000:0:0:0:
+			# 441:1:C00000:0:0:0: stays for all services of RTL
 
 			# See if we are supposed to read in autotimer services
 			if config.plugins.epgrefresh.inherit_autotimer.value:

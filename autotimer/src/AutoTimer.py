@@ -145,10 +145,10 @@ class AutoTimer:
 				if offset:
 					offset = offset.split(",")
 					if len(offset) == 1:
-						before = after = int(offset[0]) * 60
+						before = after = int(offset[0] or 0) * 60
 					else:
-						before = int(offset[0]) * 60
-						after = int(offset[1]) * 60
+						before = int(offset[0] or 0) * 60
+						after = int(offset[1] or 0) * 60
 					offset = (before, after)
 
 				# Read out allowed services
@@ -314,13 +314,14 @@ class AutoTimer:
 		except Exception, e:
 			print "[AutoTimer] Error Saving Timer List:", e
 
-	def parseEPG(self):
+	def parseEPG(self, simulateOnly = False):
 		if NavigationInstance.instance is None:
 			print "[AutoTimer] Navigation is not available, can't parse EPG"
-			return (0, 0)
+			return (0, 0, [])
 
 		new = 0
-		skipped = 0
+		modified = 0
+		timers = []
 
 		self.readXml()
 
@@ -372,6 +373,11 @@ class AutoTimer:
 					# Apply custom Offset
 					begin, end = timer.applyOffset(begin, end)
 
+					# Append to timerlist and abort if simulating
+					timers.append((name, begin, end, serviceref, timer.name))
+					if simulateOnly:
+						continue
+
 					# Initialize newEntry
 					newEntry = None
 
@@ -381,6 +387,8 @@ class AutoTimer:
 					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
 					for rtimer in recorddict.get(serviceref, []):
 						if rtimer.eit == eit:
+							modified += 1
+
 							# TODO: add warning if timer was modified...
 							newEntry = rtimer
 							try:
@@ -399,6 +407,8 @@ class AutoTimer:
 
 					# Event not yet in Timers
 					if newEntry is None:
+						new += 1
+
 						print "[AutoTimer] Adding an event."
 						newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)
 						func = NavigationInstance.instance.RecordTimer.record
@@ -428,11 +438,10 @@ class AutoTimer:
 
  					# Either add to List or change time
  					func(newEntry)
-					new += 1
 
 			except StandardError, se:
 				# Give some more useful information
 				import traceback, sys
 				traceback.print_exc(file=sys.stdout)
 
-		return (new, skipped)
+		return (new, modified, timers)

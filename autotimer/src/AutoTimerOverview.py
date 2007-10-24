@@ -1,8 +1,10 @@
 # GUI (Screens)
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
+from Screens.ChoiceBox import ChoiceBox
 from AutoTimerEditor import AutoTimerEditor
 from AutoTimerConfiguration import AutoTimerConfiguration
+from AutoTimerPreview import AutoTimerPreview
 
 # GUI (Components)
 from AutoTimerList import AutoTimerList
@@ -48,7 +50,7 @@ class AutoTimerOverview(Screen):
 				"green": self.save,
 				"yellow": self.remove,
 				"blue": self.add,
-				"menu": self.config
+				"menu": self.menu
 			}
 		)
 
@@ -107,10 +109,28 @@ class AutoTimerOverview(Screen):
 		# Close and indicated that we canceled by returning None
 		self.close(None)
 
-	def config(self):
-		self.session.open(
-			AutoTimerConfiguration
+	def menu(self):
+		self.session.openWithCallback(
+			self.menuCallback,
+			ChoiceBox,
+			list = [
+				(_("Preview"), "preview"),
+				(_("Setup"), "setup"),
+			],
 		)
+
+	def menuCallback(self, ret):
+		if ret:
+			if ret[1] == "preview":
+				new, modified, timers = self.autotimer.parseEPG(simulateOnly = True)
+				self.session.open(
+					AutoTimerPreview,
+					timers
+				)
+			elif ret[1] == "setup":
+				self.session.open(
+					AutoTimerConfiguration
+				)
 
 	def save(self):
 		# Save Xml
