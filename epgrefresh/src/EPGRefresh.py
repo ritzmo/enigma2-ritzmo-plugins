@@ -190,9 +190,15 @@ class EPGRefresh:
 			scanServices = {}
 
 			# TODO: does this really work?
-			for service in self.services:
-				if not scanServices.has_key(service[-19:]):
-					scanServices[service[-19:]] = service
+			for serviceref in self.services:
+				service = eServiceReference(serviceref)
+				channelID = '%08x%04x%04x' % (
+					service.getUnsignedData(4), # NAMESPACE
+					service.getUnsignedData(2), # TSID
+					service.getUnsignedData(3), # ONID
+				)
+				if not scanServices.has_key(channelID):
+					scanServices[channelID] = service
 
 			# See if we are supposed to read in autotimer services
 			if config.plugins.epgrefresh.inherit_autotimer.value:
@@ -211,9 +217,15 @@ class EPGRefresh:
 
 					# Fetch services
 					for timer in autotimer.getEnabledTimerList():
-						for service in timer.getServices():
-							if not scanServices.has_key(service[-19:]):
-								scanServices[service[-19:]] = service
+						for serviceref in timer.getServices():
+							service = eServiceReference(str(serviceref))
+							channelID = '%08x%04x%04x' % (
+								service.getUnsignedData(4), # NAMESPACE
+								service.getUnsignedData(2), # TSID
+								service.getUnsignedData(3), # ONID
+							)
+							if not scanServices.has_key(channelID):
+								scanServices[channelID] = service
 				except Exception, e:
 					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
 
@@ -221,7 +233,7 @@ class EPGRefresh:
 			self.scanServices = scanServices.values()
 
 			# Debug
-			print "[EPGRefresh] Services we're going to scan:", self.scanServices
+			print "[EPGRefresh] Services we're going to scan:", ','.join([x.toString() for x in self.scanServices])
 
 			self.timer_mode = 3
 			self.timeout()
@@ -265,11 +277,11 @@ class EPGRefresh:
 		# Check if more Services present
 		if len(self.scanServices):
 			# Get next reference
-			serviceref = self.scanServices.pop()
+			service = self.scanServices.pop()
 
 			# Play next service
 			from NavigationInstance import instance as nav
-			nav.playService(eServiceReference(str(serviceref)))
+			nav.playService(service)
 
 			# Start Timer
 			self.timer.startLongTimer(config.plugins.epgrefresh.interval.value*60)
