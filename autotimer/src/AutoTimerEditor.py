@@ -393,7 +393,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				for x in excludes[2]
 		])
 		self.lenDescs = len(self.list)
-		weekdays = [("0", _("Monday")), ("1", _("Tuesday")),  ("2", _("Wednesday")),  ("3", _("Thursday")),  ("4", _("Friday")),  ("5", _("Saturday")),  ("6", _("Sunday"))]
+		weekdays = [("0", _("Monday")), ("1", _("Tuesday")),  ("2", _("Wednesday")),  ("3", _("Thursday")),  ("4", _("Friday")),  ("5", _("Saturday")),  ("6", _("Sunday")), ("weekend", _("Weekend"))]
 		self.list.extend([
 			getConfigListEntry(_("Filter on Weekday"), ConfigSelection(choices = weekdays, default = x))
 				for x in excludes[3]

@@ -46,7 +46,16 @@ class AutoTimerComponent(object):
 
 	def setExclude(self, exclude):
 		if exclude and (len(exclude[0]) or len(exclude[1]) or len(exclude[2]) or len(exclude[3])):
-			self._exclude = exclude
+			# Filter for virtual Weekdays
+			days = []
+			for x in exclude[3]:
+				if x == "weekend":
+					days.append(5)
+					days.append(6)
+				else:
+					days.append(x)
+
+			self._exclude = (exclude[0], exclude[1], exclude[2], days)
 		else:
 			self._exclude = None
 
@@ -150,7 +159,12 @@ class AutoTimerComponent(object):
 		return self.getExcludedElement(2)
 
 	def getExcludedDays(self):
-		return self.getExcludedElement(3)
+		list = self.getExcludedElement(3)
+		if "5" in list and "6" in list:
+			list.remove("5")
+			list.remove("6")
+			list.append("weekend")
+		return list
 
 	def checkExcluded(self, title, short, extended, dayofweek):
 		if self.exclude is None:
