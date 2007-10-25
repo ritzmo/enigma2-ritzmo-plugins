@@ -122,7 +122,7 @@ class AutoTimerOverview(Screen):
 	def menuCallback(self, ret):
 		if ret:
 			if ret[1] == "preview":
-				new, modified, timers = self.autotimer.parseEPG(simulateOnly = True)
+				total, new, modified, timers = self.autotimer.parseEPG(simulateOnly = True)
 				self.session.open(
 					AutoTimerPreview,
 					timers

@@ -17,12 +17,13 @@ from Plugins.Plugin import PluginDescriptor
 from xml.parsers.expat import ExpatError
 
 # Config
-from Components.config import config, ConfigSubsection, ConfigEnableDisable, ConfigInteger
+from Components.config import config, ConfigSubsection, ConfigEnableDisable, ConfigInteger, ConfigSelection
 
 # Initialize Configuration
 config.plugins.autotimer = ConfigSubsection()
 config.plugins.autotimer.autopoll = ConfigEnableDisable(default = False)
 config.plugins.autotimer.interval = ConfigInteger(default = 3, limits=(1, 24))
+config.plugins.autotimer.refresh = ConfigSelection(choices = [("none", _("None")), ("auto", _("Only AutoTimers created during this Session")), ("all", _("All non-repeating Timers"))], default = "none")
 
 autotimer = None
 
@@ -97,7 +98,7 @@ def editCallback(session):
 		ret = autotimer.parseEPG()
 		session.open(
 			MessageBox,
-			"Found a total of %d matching Events.\n%d were new and scheduled for recording." % (ret[0] + ret[1], ret[0]),
+			"Found a total of %d matching Events.\n%d Timer were added and %d modified.." % (ret[0], ret[1], ret[2]),
 			type = MessageBox.TYPE_INFO,
 			timeout = 10
 		)

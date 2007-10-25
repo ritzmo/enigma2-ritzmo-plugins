@@ -75,8 +75,22 @@ class AutoTimerPreviewList(GUIComponent):
 
 		return res
 
+	def invalidate(self):
+		self.l.invalidate()
+
 	def getCurrent(self):
 		return self.l.getCurrentSelection()
 
 	def setList(self, l):
 		return self.l.setList(l)
+
+	def moveToEntry(self, entry):
+		if entry is None:
+			return
+
+		idx = 0
+		for x in self.list:
+			if x == entry:
+				self.instance.moveSelectionTo(idx)
+				break
+			idx += 1

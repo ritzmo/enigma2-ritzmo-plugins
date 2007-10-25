@@ -315,8 +315,9 @@ class AutoTimer:
 	def parseEPG(self, simulateOnly = False):
 		if NavigationInstance.instance is None:
 			print "[AutoTimer] Navigation is not available, can't parse EPG"
-			return (0, 0, [])
+			return (0, 0, 0, [])
 
+		total = 0
 		new = 0
 		modified = 0
 		timers = []
@@ -371,13 +372,16 @@ class AutoTimer:
 					# Apply custom Offset
 					begin, end = timer.applyOffset(begin, end)
 
+					total += 1
+
 					# Append to timerlist and abort if simulating
 					timers.append((name, begin, end, serviceref, timer.name))
 					if simulateOnly:
 						continue
 
-					# Initialize newEntry
+					# Initialize
 					newEntry = None
+					skipEntry = False
 
 					# Check for double Timers
 					# We're not using isInTimer here as it would slow things down
@@ -389,16 +393,22 @@ class AutoTimer:
 
 							# TODO: add warning if timer was modified...
 							newEntry = rtimer
+
+							# Abort if we don't want to modify timers or timer is repeated
+							if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
+								skipEntry = True
+								break
+
 							try:
 								if newEntry.isAutoTimer:
 									print "[AutoTimer] Modifying existing AutoTimer!"
 							except AttributeError, ae:
+								if config.plugins.autotimer.refresh.value != "all":
+									skipEntry = True
+									break
 								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
-							func = NavigationInstance.instance.RecordTimer.timeChanged
 
-							# TODO: fix this repeated stuff
-							if newEntry.repeated:
-								break
+							func = NavigationInstance.instance.RecordTimer.timeChanged
 
 							# Modify values saved in timer
 							newEntry.name = name
@@ -417,11 +427,16 @@ class AutoTimer:
 
 						# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
 						newEntry.isAutoTimer = True
-					elif newEntry.repeated:
-						# TODO: fix this repeated stuff
-						print "[AutoTimer] Will not change repeated timer..."
-						modified -= 1
-						continue
+					else:
+						if skipEntry:
+							print "[AutoTimer] Won't modify this timer because of configuration"
+							modified -= 1
+							continue
+						elif newEntry.repeated:
+							# TODO: fix this repeated stuff
+							print "[AutoTimer] Will not change repeated timer..."
+							modified -= 1
+							continue
 						
 
 					# Apply afterEvent
@@ -452,4 +467,4 @@ class AutoTimer:
 				import traceback, sys
 				traceback.print_exc(file=sys.stdout)
 
-		return (new, modified, timers)
+		return (total, new, modified, timers)
