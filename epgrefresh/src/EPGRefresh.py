@@ -30,8 +30,8 @@ class EPGRefresh:
 		# Initialize 
 		self.services = Set()
 		self.previousService = None
-		self.timer_mode = 0
-		self.doAfterEvent = True
+		self.timer_mode = "wait"
+		self.forcedScan = False
 
 		# Mtime of configuration files
 		self.configMtime = -1
@@ -82,11 +82,15 @@ class EPGRefresh:
 	def refresh(self):
 		print "[EPGRefresh] Forcing start of EPGRefresh"
 		self.timer.stop()
-		self.timer_mode = 2
-		self.doAfterEvent = False
-		self.timeout()
+		self.timer_mode = "refresh"
+		self.forcedScan = True
+		self.prepareRefresh()
 
 	def start(self):
+		# Don't abort a running forced scan, it will set the timer itself
+		if self.forcedScan:
+			return
+
 		# Calculate unix timestamp of begin of timespan
 		begin = [x for x in localtime()]
 		begin[3] = config.plugins.epgrefresh.begin.value[0]
@@ -107,7 +111,7 @@ class EPGRefresh:
 	def stop(self):
 		print "[EPGRefresh] Stopping Timer"
 		self.timer.stop()
-		self.timer_mode = 0
+		self.timer_mode = "wait"
 
 	def checkTimespan(self, begin, end):
 		# Get current time
@@ -135,139 +139,135 @@ class EPGRefresh:
 				return False
 			return True
 
+	def prepareRefresh(self):
+		print "[EPGRefresh] About to start refreshing EPG"
+		# Keep service
+		from NavigationInstance import instance as nav
+		self.previousService =  nav.getCurrentlyPlayingServiceReference()
+
+		# Maybe read in configuration
+		try:
+			self.readConfiguration()
+		except Exception, e:
+			print "[EPGRefresh] Error occured while reading in configuration:", e
+
+		# Save Services in a dict <transponder data> => serviceref
+		scanServices = {}
+
+		# TODO: does this really work?
+		for serviceref in self.services:
+			service = eServiceReference(serviceref)
+			channelID = '%08x%04x%04x' % (
+				service.getUnsignedData(4), # NAMESPACE
+				service.getUnsignedData(2), # TSID
+				service.getUnsignedData(3), # ONID
+			)
+			if not scanServices.has_key(channelID):
+				scanServices[channelID] = service
+
+		# See if we are supposed to read in autotimer services
+		if config.plugins.epgrefresh.inherit_autotimer.value:
+			try:
+				# Import Instance
+				from Plugins.Extensions.AutoTimer.plugin import autotimer
+
+				# See if instance is empty
+				if autotimer is None:
+					# Create an instance
+					from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
+					autotimer = AutoTimer()
+
+				# Read in configuration
+				autotimer.readXml()
+
+				# Fetch services
+				for timer in autotimer.getEnabledTimerList():
+					for serviceref in timer.getServices():
+						service = eServiceReference(str(serviceref))
+						channelID = '%08x%04x%04x' % (
+							service.getUnsignedData(4), # NAMESPACE
+							service.getUnsignedData(2), # TSID
+							service.getUnsignedData(3), # ONID
+						)
+						if not scanServices.has_key(channelID):
+							scanServices[channelID] = service
+			except Exception, e:
+				print "[EPGRefresh] Could not inherit AutoTimer Services:", e
+
+		# Make a list of services
+		self.scanServices = scanServices.values()
+
+		# Debug
+		from ServiceReference import ServiceReference
+		print "[EPGRefresh] Services we're going to scan:", ', '.join([ServiceReference(x).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '') for x in self.scanServices])
+
+		self.timer_mode = "refresh"
+		self.timeout()
+
+	def cleanUp(self):
+		# We need nav
+		from NavigationInstance import instance as nav
+
+		# shutdown if we're supposed to go to deepstandby and not recording
+		# TODO: improve this (we might no longer be in standby (general problem), recordings might not be running but about to start)
+		if not self.forcedScan and config.plugins.epgrefresh.afterevent.value and not nav.RecordTimer.isRecording():
+			from enigma import quitMainloop
+			quitMainloop(1)
+
+		# Reset status
+		self.timer_mode = "wait"
+		self.forcedScan = False
+
+		# Zap back
+		nav.playService(self.previousService)
+
+		# Wait at least until out of timespan again
+		diff = abs(config.plugins.epgrefresh.begin.value[0]-config.plugins.epgrefresh.end.value[0])+1
+		delay = diff*3600
+
+		# debug, start timer
+		print '[EPGRefresh] Timer will fire again in %d seconds' % (delay) 
+		self.timer.startLongTimer(int(delay))
+
 	def timeout(self):
 		# Walk Services
-		if self.timer_mode == 3:
-			self.nextService()
+		if self.timer_mode == "refresh":
+			if self.forcedScan or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
+				self.nextService()
+			else:
+				# We don't follow our rules here - If the Box is still in Standby and not recording we won't reach this line 
+				if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
+					print "[EPGRefresh] Gone out of timespan while refreshing, sorry!"
+					self.cleanUp()
+				else:
+					print "[EPGRefresh] Box no longer in Standby or Recording started, rescheduling"
+
+					# Recheck in 10min
+					self.timer.startLongTimer(600)
 
 		# Pending for activation
-		elif self.timer_mode == 0:
+		elif self.timer_mode == "wait":
 			# Check if in timespan
 			if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
-				self.timer_mode = 1
-				self.timeout()
+				print "[EPGRefresh] In Timespan, will check if we're in Standby and have no Recordings running next"
+				# Do we realy want to check nav?
+				from NavigationInstance import instance as nav
+				if Screens.Standby.inStandby and not nav.RecordTimer.isRecording():
+					self.prepareRefresh()
+				else:
+					print "[EPGRefresh] Box still in use, rescheduling"	
+
+					# Recheck in 10min
+					self.timer.startLongTimer(600)
 			else:
 				print "[EPGRefresh] Not in timespan, rescheduling"
 
 				# Recheck in 1h
 				self.timer.startLongTimer(3600)
-
-		# Check if in Standby
-		elif self.timer_mode == 1:
-			# Do we realy want to check nav?
-			from NavigationInstance import instance as nav
-			if Screens.Standby.inStandby and not nav.RecordTimer.isRecording():
-				self.timer_mode = 2
-				self.timeout()
-			else:
-				# See if we're still in timespan
-				if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
-					print "[EPGRefresh] Box still in use, rescheduling"	
-
-					# Recheck in 10min
-					self.timer.startLongTimer(600)
-				else:
-					print "[EPGRefresh] Gone out of timespan while waiting for box to be available, sorry!"
-
-					# Clean up
-					self.timer_mode = 4
-					self.timeout()
-
-		# Reset Values
-		elif self.timer_mode == 2:
-			print "[EPGRefresh] About to start refreshing EPG"
-			# Keep service
-			from NavigationInstance import instance as nav
-			self.previousService =  nav.getCurrentlyPlayingServiceReference()
-
-			# Maybe read in configuration
-			try:
-				self.readConfiguration()
-			except Exception, e:
-				print "[EPGRefresh] Error occured while reading in configuration:", e
-
-			# Save Services in a dict <transponder data> => serviceref
-			scanServices = {}
-
-			# TODO: does this really work?
-			for serviceref in self.services:
-				service = eServiceReference(serviceref)
-				channelID = '%08x%04x%04x' % (
-					service.getUnsignedData(4), # NAMESPACE
-					service.getUnsignedData(2), # TSID
-					service.getUnsignedData(3), # ONID
-				)
-				if not scanServices.has_key(channelID):
-					scanServices[channelID] = service
-
-			# See if we are supposed to read in autotimer services
-			if config.plugins.epgrefresh.inherit_autotimer.value:
-				try:
-					# Import Instance
-					from Plugins.Extensions.AutoTimer.plugin import autotimer
-
-					# See if instance is empty
-					if autotimer is None:
-						# Create an instance
-						from Plugins.Extensions.AutoTimer.AutoTimer import AutoTimer
-						autotimer = AutoTimer()
-
-					# Read in configuration
-					autotimer.readXml()
-
-					# Fetch services
-					for timer in autotimer.getEnabledTimerList():
-						for serviceref in timer.getServices():
-							service = eServiceReference(str(serviceref))
-							channelID = '%08x%04x%04x' % (
-								service.getUnsignedData(4), # NAMESPACE
-								service.getUnsignedData(2), # TSID
-								service.getUnsignedData(3), # ONID
-							)
-							if not scanServices.has_key(channelID):
-								scanServices[channelID] = service
-				except Exception, e:
-					print "[EPGRefresh] Could not inherit AutoTimer Services:", e
-
-			# Make a list of services
-			self.scanServices = scanServices.values()
-
-			# Debug
-			print "[EPGRefresh] Services we're going to scan:", ','.join([x.toString() for x in self.scanServices])
-
-			self.timer_mode = 3
-			self.timeout()
-
-		# Play old service, restart timer
-		elif self.timer_mode == 4:
-			# We need nav
-			from NavigationInstance import instance as nav
-
-			# shutdown if we're supposed to go to deepstandby and not recording
-			# TODO: improve this (we might no longer be in standby (general problem), recordings might not be running but about to start)
-			if self.doAfterEvent and config.plugins.epgrefresh.afterevent.value and not nav.RecordTimer.isRecording():
-				from enigma import quitMainloop
-				quitMainloop(1)
-
-			# Reset status
-			self.timer_mode = 0
-			self.doAfterEvent = True
-
-			# Zap back
-			nav.playService(self.previousService)
-
-			# Wait at least until out of timespan again
-			diff = abs(config.plugins.epgrefresh.begin.value[0]-config.plugins.epgrefresh.end.value[0])+1
-			delay = diff*3600
-
-			# debug, start timer
-			print '[EPGRefresh] Timer will fire again in %d seconds' % (delay) 
-			self.timer.startLongTimer(int(delay))
-
 		# Corrupted ?!
 		else:
 			print "[EPGRefresh] Invalid status reached:", self.timer_mode
-			self.timer_mode = 1
+			self.timer_mode = "wait"
 			self.timeout()
 
 	def nextService(self):
@@ -290,7 +290,6 @@ class EPGRefresh:
 			print "[EPGRefresh] Done refreshing EPG"
 
 			# Clean up
-			self.timer_mode = 4
-			self.timeout()
+			self.cleanUp()
 
 epgrefresh = EPGRefresh()
