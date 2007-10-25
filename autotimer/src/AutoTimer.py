@@ -389,8 +389,6 @@ class AutoTimer:
 					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
 					for rtimer in recorddict.get(serviceref, []):
 						if rtimer.eit == eit:
-							modified += 1
-
 							# TODO: add warning if timer was modified...
 							newEntry = rtimer
 
@@ -409,6 +407,7 @@ class AutoTimer:
 								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
 
 							func = NavigationInstance.instance.RecordTimer.timeChanged
+							modified += 1
 
 							# Modify values saved in timer
 							newEntry.name = name
@@ -427,17 +426,9 @@ class AutoTimer:
 
 						# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
 						newEntry.isAutoTimer = True
-					else:
-						if skipEntry:
-							print "[AutoTimer] Won't modify this timer because of configuration"
-							modified -= 1
-							continue
-						elif newEntry.repeated:
-							# TODO: fix this repeated stuff
-							print "[AutoTimer] Will not change repeated timer..."
-							modified -= 1
-							continue
-						
+					elif skipEntry:
+						print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
+						continue
 
 					# Apply afterEvent
  					if timer.hasAfterEvent():
