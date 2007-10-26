@@ -2,19 +2,17 @@
 <!-- Beispieldatei -->
 
 <!-- Dieser Block enthaelt all unsere Timer -->
-<autotimer version="3">
+<autotimer version="4">
 
  <!-- 
-    Ein Beispieltimer, der alles mit "Dr. House" im Titel aufzeichnet
+    - Zeichne alles mit "Dr. House" im Titel auf
+    - Das zwischen 20:15 und 23:00 gesendet wird
+    - Mit 5 Minuten Vor-/Nachlaufzeit (zusaetzlich zum Enigma2-Standardwert)
  -->
- <timer name="House aufnehmen" match="Dr. House" enabled="no">
-  <!-- Das zwischen 20:15 und 23:00 gesendet wird -->
-  <timespan from="20:15" to="23:00" />
+ <timer name="House aufnehmen" match="Dr. House" enabled="no" from="20:15" to="23:00" offset="5">
   <!-- Auf RTL -->
   <serviceref>1:0:1:2EE3:441:1:C00000:0:0:0:</serviceref>
-  <!-- 5 Minuten Offset davor/danach -->
-  <offset both="5" />
-  <!-- Box in den Standby schicken -->
+  <!-- Box nach der Aufnahme in den Standby schicken -->
   <afterevent>standby</afterevent>
   <!-- Nicht Aufnehmen, wenn "Wiederholung" in der Beschreibung steht -->
   <exclude where="description">Wiederholung</exclude>
@@ -23,34 +21,31 @@
  </timer>
 
  <!--
-    Ein weiterer Timer:
-        - Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes
+    - Alles mit "ouse" im Titel aufzeichnen, z.B. Desperate H_ouse_wifes
+    - Keine Zeitbeschraenkung
+    - Mit 2 Minuten Vor- und 3 Minuten Nachlaufzeit
  -->
- <timer name="Alles mit ouse" match="ouse" enabled="no">
-  <!-- Keine Zeitbeschraenkung -->
+ <timer name="Alles mit ouse" match="ouse" enabled="no" offset="2,3">
   <!-- Nur auf Pro7 und ORF1 aufzeichnen -->
   <serviceref>1:0:1:445D:453:1:C00000:0:0:0:</serviceref>
   <serviceref>1:0:1:32C9:45D:1:C00000:0:0:0:</serviceref>
-  <!-- Offset: Vorher 2min, danach 3 -->
-  <offset before="2" after="3" />
   <!-- Kein Afterevent, benutze den Standardwert von Enigma2 -->
   <!-- Nicht Aufnahmen, wenn "Dr." im Titel steht -->
   <exclude where="title">Dr.</exclude>
  </timer>
 
  <!--
-    Ein dritter Timer:
-        - Alles mit "Malcolm" im Titel aufzeichnen
-        - Mittwochs nichts aufzeichnen
+    - Alles mit "Malcolm" im Titel aufzeichnen
+    - Weder Zeitbeschraenkung noch benutzerdefinierte Vor-/Nachlaufzeit
  -->
  <timer name="Sendungen mit Malcolm" match="Malcolm" enabled="no">
-  <!-- Keine Zeitbeschraenkung -->
   <!-- Auf allen Sendern aufzeichnen -->
-  <!-- Kein Offset -->
   <!-- Wenn die Sendung zwischen 23:00 und 06:00 Uhr endet Box herunterfahren -->
   <afterevent from="23:00" to="06:00">shutdown</afterevent>
   <!-- Sendunden am Mittwoch auslassen -->
   <exclude where="dayofweek">2</exclude>
+  <!-- Sendungen am Wochenende ebenfalls ausschliessen -->
+  <exclude where="dayofweek">weekend</exclude>
  </timer>
 
 </autotimer>
