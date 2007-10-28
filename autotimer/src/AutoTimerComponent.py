@@ -192,10 +192,7 @@ class AutoTimerComponent(object):
 				return True
 		return False
 
-	def checkFilter(self, title, short, extended, dayofweek):
-		if checkExcluded(title, short, extended, dayofweek):
-			return True
-
+	def checkIncluded(self, title, short, extended, dayofweek):
 		if len(self.include[3]):
 			list = [x for x in self.include[3]]
 			if "weekend" in list:
@@ -216,6 +213,12 @@ class AutoTimerComponent(object):
 				return True
 
 		return False
+
+	def checkFilter(self, title, short, extended, dayofweek):
+		if self.checkExcluded(title, short, extended, dayofweek):
+			return True
+
+		return self.checkIncluded(title, short, extended, dayofweek)
 
 	def hasOffset(self):
 		return self.offset is not None
@@ -260,6 +263,26 @@ class AutoTimerComponent(object):
 
 	def hasDestination(self):
 		return self.destination is not None
+
+	def hasCounter(self):
+		return self.maxcount is not None
+
+	def checkCounter(self, timestamp):
+		# 0-Count is considered an error and therefore ignored
+		if self.matchCount is None or self.matchCount == 0:
+			return False
+
+		# %m is Month, %U is week (sunday), %W is week (monday)
+		newLimit = strftime(self.matchFormatString, timestamp)
+
+		# TODO: implement better check (like >)
+		if newLimit != self.matchLimit:
+			self.matchLeft = self.matchCount
+			self.matchLimit = newLimit
+		if self.matchLeft > 0:
+			self.matchLeft -= 1
+			return False
+		return True
 
 	def __repr__(self):
 		return ''.join([
