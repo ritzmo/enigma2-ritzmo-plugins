@@ -149,6 +149,11 @@ class AutoTimer:
 						after = int(offset[1] or 0) * 60
 					offset = (before, after)
 
+				# Read out counter
+				counter = timer.getAttribute("counter") or None
+				counterLeft = timer.getAttribute("left") or 0
+				counterFormat = timer.getAttribute("counterFormat")
+
 				# Read out allowed services
 				servicelist = []					
 				for service in timer.getElementsByTagName("serviceref"):
@@ -216,7 +221,10 @@ class AutoTimer:
 						exclude = excludes,
 						include = includes,
 						maxduration = maxlen,
-						destination = destination
+						destination = destination,
+						matchCount = counter,
+						matchLeft = int(counterLeft),
+						matchFormatString = counterFormat
 				))
 
 	def getTimerList(self):
@@ -279,6 +287,12 @@ class AutoTimer:
 					list.extend([' offset="', str(timer.getOffsetBegin()), '"'])
 				else:
 					list.extend([' offset="', str(timer.getOffsetBegin()), ',', str(timer.getOffsetEnd()), '"'])
+
+			# Counter
+			if timer.hasCounter():
+				list.extend([' counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft) ,'"'])
+				if timer.hasCounterFormatString():
+					list.extend([' counterFormat="', str(timer.getCounterFormatString()), '"'])
 
 			# Close still opened timer tag
 			list.append('>\n')

@@ -1,3 +1,6 @@
+# Format Counter
+from time import strftime
+
 class AutoTimerComponent(object):
 	"""AutoTimer Component which also handles validity checks"""
 
@@ -15,7 +18,7 @@ class AutoTimerComponent(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchFormatString = ''):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -27,6 +30,9 @@ class AutoTimerComponent(object):
 		self.maxduration = maxduration
 		self.enabled = enabled
 		self.destination = destination
+		self.matchCount = matchCount and int(matchCount)
+		self.matchLeft = matchLeft
+		self.matchFormatString = matchFormatString
 
 	def calculateDayspan(self, begin, end):
 		if end[0] < begin[0] or (end[0] == begin[0] and end[1] <= begin[1]):
@@ -265,7 +271,19 @@ class AutoTimerComponent(object):
 		return self.destination is not None
 
 	def hasCounter(self):
-		return self.maxcount is not None
+		return self.matchCount is not None
+
+	def hasCounterFormatString(self):
+		return self.matchFormatString != ''
+
+	def getCounter(self):
+		return self.matchCount
+
+	def getCounterLeft(self):
+		return self.matchLeft
+
+	def getCounterFormatString(self):
+		return self.matchFormatString
 
 	def checkCounter(self, timestamp):
 		# 0-Count is considered an error and therefore ignored
