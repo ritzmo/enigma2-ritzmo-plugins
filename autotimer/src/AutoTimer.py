@@ -190,6 +190,19 @@ class AutoTimer:
 					except KeyError, ke:
 						pass
 
+				# Read out includes (use same idx)
+				includes = ([], [], [], []) 
+				for include in timer.getElementsByTagName("include"):
+					where = include.getAttribute("where")
+					value = getValue(include, None, False)
+					if not (value and where):
+						continue
+
+					try:
+						includes[idx[where]].append(value.encode("UTF-8"))
+					except KeyError, ke:
+						pass
+
 				# Finally append tuple
 				self.timers.append(AutoTimerComponent(
 						self.uniqueTimerId,
@@ -201,6 +214,7 @@ class AutoTimer:
 						offset = offset,
 						afterevent = afterevent,
 						exclude = excludes,
+						include = includes,
 						maxduration = maxlen,
 						destination = destination
 				))
@@ -295,6 +309,16 @@ class AutoTimer:
 			for day in timer.getExcludedDays():
 				list.extend(['  <exclude where="dayofweek">', day, '</exclude>\n'])
 
+			# Includes
+			for title in timer.getIncludedTitle():
+				list.extend(['  <include where="title">', title, '</include>\n'])
+			for short in timer.getIncludedShort():
+				list.extend(['  <include where="shortdescription">', short, '</include>\n'])
+			for desc in timer.getIncludedDescription():
+				list.extend(['  <include where="description">', desc, '</include>\n'])
+			for day in timer.getIncludedDays():
+				list.extend(['  <include where="dayofweek">', day, '</include>\n'])
+
 			# End of Timer
 			list.append(' </timer>\n\n')
 
@@ -362,7 +386,7 @@ class AutoTimer:
 					timestamp = localtime(begin)
 
 					# Check Duration, Timespan and Excludes
-					if timer.checkDuration(begin-end) or timer.checkTimespan(timestamp) or timer.checkExcluded(name, description, evt.getExtendedDescription(), str(timestamp[6])):
+					if timer.checkDuration(begin-end) or timer.checkTimespan(timestamp) or timer.checkFilters(name, description, evt.getExtendedDescription(), str(timestamp[6])):
 						continue
 
 					# Apply E2 Offset

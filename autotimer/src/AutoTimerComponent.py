@@ -15,7 +15,7 @@ class AutoTimerComponent(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -23,6 +23,7 @@ class AutoTimerComponent(object):
 		self.offset = offset
 		self.afterevent = afterevent
 		self.exclude = exclude
+		self.include = include
 		self.maxduration = maxduration
 		self.enabled = enabled
 		self.destination = destination
@@ -45,15 +46,26 @@ class AutoTimerComponent(object):
 	timespan = property(getTimespan, setTimespan)
 
 	def setExclude(self, exclude):
-		if exclude and (len(exclude[0]) or len(exclude[1]) or len(exclude[2]) or len(exclude[3])):
+		if exclude:
 			self._exclude = exclude
 		else:
-			self._exclude = None
+			self._exclude = ([], [], [], [])
 
 	def getExclude(self):
 		return self._exclude
 
 	exclude = property(getExclude, setExclude)
+
+	def setInclude(self, include):
+		if include:
+			self._include = include
+		else:
+			self._include = ([], [], [], [])
+
+	def getInclude(self):
+		return self._include
+
+	include = property(getInclude, setInclude)
 
 	def setServices(self, services):
 		if services:
@@ -135,30 +147,40 @@ class AutoTimerComponent(object):
 			return False
 		return service not in self.services
 
-	def getExcludedElement(self, id):
-		if self.exclude is None:
-			return []
-		return self.exclude[id]
-
 	def getExcludedTitle(self):
-		return self.getExcludedElement(0)
+		return self.exclude[0]
 
 	def getExcludedShort(self):
-		return self.getExcludedElement(1)
+		return self.exclude[1]
 
 	def getExcludedDescription(self):
-		return self.getExcludedElement(2)
+		return self.exclude[2]
 
 	def getExcludedDays(self):
-		return self.getExcludedElement(3)
+		return self.exclude[3]
+
+	def getIncludedTitle(self):
+		return self.include[0]
+
+	def getIncludedShort(self):
+		return self.include[1]
+
+	def getIncludedDescription(self):
+		return self.include[2]
+
+	def getIncludedDays(self):
+		return self.include[3]
 
 	def checkExcluded(self, title, short, extended, dayofweek):
-		if self.exclude is None:
-			return False
-
-		for exclude in self.exclude[3]:
-			if exclude == dayofweek or exclude == "weekend" and dayofweek in ["5", "6"]:
+		if len(self.exclude[3]):
+			list = [x for x in self.exclude[3]]
+			if "weekend" in list:
+				list.extend(["5", "6"])
+			if "weekday" in list:
+				list.extend(["0", "1", "2", "3", "4"])
+			if dayofweek in list:
 				return True
+
 		for exclude in self.exclude[0]:
 			if exclude in title:
 				return True
@@ -168,6 +190,31 @@ class AutoTimerComponent(object):
 		for exclude in self.exclude[2]:
 			if exclude in extended:
 				return True
+		return False
+
+	def checkFilter(self, title, short, extended, dayofweek):
+		if checkExcluded(title, short, extended, dayofweek):
+			return True
+
+		if len(self.include[3]):
+			list = [x for x in self.include[3]]
+			if "weekend" in list:
+				list.extend(["5", "6"])
+			if "weekday" in list:
+				list.extend(["0", "1", "2", "3", "4"])
+			if dayofweek not in list:
+				return True
+
+		for include in self.include[0]:
+			if include not in title:
+				return True
+		for include in self.include[1]:
+			if include not in short:
+				return True
+		for include in self.include[2]:
+			if include not in extended:
+				return True
+
 		return False
 
 	def hasOffset(self):
