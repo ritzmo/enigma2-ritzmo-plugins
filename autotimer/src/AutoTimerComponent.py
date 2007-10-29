@@ -18,7 +18,7 @@ class AutoTimerComponent(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchFormatString = ''):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchLimit = '', matchFormatString = ''):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -32,6 +32,7 @@ class AutoTimerComponent(object):
 		self.destination = destination
 		self.matchCount = matchCount and int(matchCount)
 		self.matchLeft = matchLeft
+		self.matchLimit = matchLimit
 		self.matchFormatString = matchFormatString
 
 	def calculateDayspan(self, begin, end):
@@ -281,6 +282,9 @@ class AutoTimerComponent(object):
 
 	def getCounterLeft(self):
 		return self.matchLeft
+
+	def getCounterLimit(self):
+		return self.matchLimit
 
 	def getCounterFormatString(self):
 		return self.matchFormatString

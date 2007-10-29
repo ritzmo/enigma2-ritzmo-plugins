@@ -152,6 +152,7 @@ class AutoTimer:
 				# Read out counter
 				counter = timer.getAttribute("counter") or None
 				counterLeft = timer.getAttribute("left") or 0
+				counterLimit = timer.getAttribute("lastActivation")
 				counterFormat = timer.getAttribute("counterFormat")
 
 				# Read out allowed services
@@ -224,6 +225,7 @@ class AutoTimer:
 						destination = destination,
 						matchCount = counter,
 						matchLeft = int(counterLeft),
+						matchLimit = counterLimit,
 						matchFormatString = counterFormat
 				))
 
@@ -292,6 +294,7 @@ class AutoTimer:
 			if timer.hasCounter():
 				list.extend([' counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft) ,'"'])
 				if timer.hasCounterFormatString():
+					list.extend([' lastActivation="', str(timer.getCounterLimit()), '"'])
 					list.extend([' counterFormat="', str(timer.getCounterFormatString()), '"'])
 
 			# Close still opened timer tag
