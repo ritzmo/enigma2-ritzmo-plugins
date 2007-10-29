@@ -210,7 +210,7 @@ class EPGRefresh:
 
 		# shutdown if we're supposed to go to deepstandby and not recording
 		# TODO: improve this (we might no longer be in standby (general problem), recordings might not be running but about to start)
-		if not self.forcedScan and config.plugins.epgrefresh.afterevent.value and not nav.RecordTimer.isRecording():
+		if not self.forcedScan and config.plugins.epgrefresh.afterevent.value and Screens.Standby.inStandby and not nav.RecordTimer.isRecording():
 			from enigma import quitMainloop
 			quitMainloop(1)
 
@@ -219,7 +219,8 @@ class EPGRefresh:
 		self.forcedScan = False
 
 		# Zap back
-		nav.playService(self.previousService)
+		if self.previousService is not None or Screens.Standby.inStandby:
+			nav.playService(self.previousService)
 
 		# Wait at least until out of timespan again
 		diff = abs(config.plugins.epgrefresh.begin.value[0]-config.plugins.epgrefresh.end.value[0])+1
@@ -232,7 +233,7 @@ class EPGRefresh:
 	def timeout(self):
 		# Walk Services
 		if self.timer_mode == "refresh":
-			if self.forcedScan or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
+			if self.forcedScan or config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
 				self.nextService()
 			else:
 				# We don't follow our rules here - If the Box is still in Standby and not recording we won't reach this line 
@@ -242,8 +243,8 @@ class EPGRefresh:
 				else:
 					print "[EPGRefresh] Box no longer in Standby or Recording started, rescheduling"
 
-					# Recheck in 10min
-					self.timer.startLongTimer(600)
+					# Recheck later
+					self.timer.startLongTimer(config.plugins.epgrefresh.delay_standby.value*60)
 
 		# Pending for activation
 		elif self.timer_mode == "wait":
@@ -252,18 +253,18 @@ class EPGRefresh:
 				print "[EPGRefresh] In Timespan, will check if we're in Standby and have no Recordings running next"
 				# Do we realy want to check nav?
 				from NavigationInstance import instance as nav
-				if Screens.Standby.inStandby and not nav.RecordTimer.isRecording():
+				if config.plugins.autotimer.force.value or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
 					self.prepareRefresh()
 				else:
 					print "[EPGRefresh] Box still in use, rescheduling"	
 
-					# Recheck in 10min
-					self.timer.startLongTimer(600)
+					# Recheck later
+					self.timer.startLongTimer(config.plugins.epgrefresh.delay_standby.value*60)
 			else:
 				print "[EPGRefresh] Not in timespan, rescheduling"
 
-				# Recheck in 1h
-				self.timer.startLongTimer(3600)
+				# Recheck later
+				self.timer.startLongTimer(config.plugins.epgrefresh.delay_timespan.value*60)
 		# Corrupted ?!
 		else:
 			print "[EPGRefresh] Invalid status reached:", self.timer_mode
