@@ -1,0 +1,10 @@
+Package: enigma2-plugin-extensions-historybrowser
+Version: 0.1-20071028-r0
+Description: Human-readable zaphistory
+Architecture: mipsel
+Section: extra
+Priority: optional
+Maintainer: Moritz Venn <moritz.venn@freaque.net>
+Homepage: http://www.ritzmo.de
+Depends: enigma2(>1.0cvs20070731)
+Source: http://www.ritzmo.de

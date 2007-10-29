@@ -13,6 +13,9 @@ autotimer/src/Makefile
 epgrefresh/Makefile
 epgrefresh/src/Makefile
 
+historybrowser/Makefile
+historybrowser/src/Makefile
+
 mountmanager/Makefile
 mountmanager/etc/Makefile
 mountmanager/src/Makefile
