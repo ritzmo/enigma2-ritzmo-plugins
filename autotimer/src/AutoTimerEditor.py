@@ -251,14 +251,14 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 	def editExcludes(self):
 		self.session.openWithCallback(
-			self.editExcludesCallback,
-			AutoTimerExcludeEditor,
+			self.editFilterCallback,
+			AutoTimerFilterEditor,
 			self.filterSet,
 			self.excludes,
 			self.includes
 		)
 
-	def editExcludesCallback(self, ret):
+	def editFilterCallback(self, ret):
 		if ret:
 			self.filterSet = ret[0]
 			self.excludes = ret[1]
@@ -348,19 +348,21 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		else:
 			self.timer.maxduration = None
 
-		# Excludes
-		if self.excludesSet:
+		# Ex-&Includes
+		if self.filterSet:
 			self.timer.exclude = self.excludes
+			self.timer.include = self.includes
 		else:
 			self.timer.exclude = None
+			self.timer.include = None
 
 		# Close
 		self.close(self.timer)
 
-class AutoTimerExcludeEditor(Screen, ConfigListScreen):
-	"""Edit AutoTimer Excludes"""
+class AutoTimerFilterEditor(Screen, ConfigListScreen):
+	"""Edit AutoTimer Filter"""
 
-	skin = """<screen name="AutoExcludeEdit" title="Edit AutoTimer Excludes" position="75,150" size="565,245">
+	skin = """<screen name="AutoFilterEditor" title="Edit AutoTimer Filters" position="75,150" size="565,245">
 		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
 		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
 		<ePixmap position="145,205" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
@@ -376,10 +378,10 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 		Screen.__init__(self, session)
 
 		# Summary
-		self.setup_title = "AutoTimer Excludes"
+		self.setup_title = "AutoTimer Filters"
 		self.onChangedEntry = []
 
-		self.typeSelection = ConfigSelection(choices = [("title", _("Filter in Title")), ("short", _("Filter in Shortdescription")), ("desc", _("Filter in Description")), ("day", _("Filter on Weekday"))])
+		self.typeSelection = ConfigSelection(choices = [("title", _("in Title")), ("short", _("in Shortdescription")), ("desc", _("in Description")), ("day", _("on Weekday"))])
 		self.typeSelection.addNotifier(self.refresh, initial_call = False)
 
 		self.enabled = ConfigEnableDisable(default = filterset)
@@ -432,8 +434,9 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 
 		# Warning, accessing a ConfigListEntry directly might be considered evil!
 
-		idx = 0
+		idx = -1
 		for item in self["config"].getList():
+			idx += 1
 			# Skip empty entries (and those which are no filters)
 			if item[1].value == "" or idx < 2:
 				continue
@@ -441,9 +444,6 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 				self.excludes[self.idx].append(item[1].value.encode("UTF-8"))
 			else:
 				self.includes[self.idx].append(item[1].value.encode("UTF-8"))
-
-			# Increment Index
-			idx += 1
 
 	def refresh(self, value):
 		self.saveCurrent()
@@ -454,7 +454,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 	def reloadList(self):
 		self.list = [
 			getConfigListEntry(_("Enable Filtering"), self.enabled),
-			getConfigListEntry(_("???"), self.typeSelection)
+			getConfigListEntry(_("Filter"), self.typeSelection)
 		]
 
 		if self.typeSelection.value == "title":
@@ -478,7 +478,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 
 	def remove(self):
 		idx = self["config"].getCurrentIndex()
-		if idx:
+		if idx and idx > 1:
 			if idx < self.lenExcludes:
 				self.lenExcludes -= 1
 
@@ -492,8 +492,8 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 			ChoiceBox,
 			_("Select type of Filter"),
 			[
-				(_("Include"), 0),
-				(_("Exclude"), 1),
+				(_("Exclude"), 0),
+				(_("Include"), 1),
 			]
 		)
 
@@ -532,7 +532,7 @@ class AutoTimerExcludeEditor(Screen, ConfigListScreen):
 class AutoTimerChannelEditor(Screen, ConfigListScreen):
 	"""Edit allowed Channels of a AutoTimer"""
 
-	skin = """<screen name="AutoChannelEdit" title="Edit AutoTimer Channels" position="75,150" size="565,245">
+	skin = """<screen name="AutoChannelEditor" title="Edit AutoTimer Channels" position="75,150" size="565,245">
 		<widget name="config" position="5,5" size="555,200" scrollbarMode="showOnDemand" />
 		<ePixmap position="5,205" zPosition="4" size="140,40" pixmap="skin_default/key-red.png" transparent="1" alphatest="on" />
 		<ePixmap position="145,205" zPosition="4" size="140,40" pixmap="skin_default/key-green.png" transparent="1" alphatest="on" />
