@@ -295,6 +295,10 @@ class AutoTimerComponent(object):
 			return False
 
 		# %m is Month, %U is week (sunday), %W is week (monday)
+		# TODO: using timers timestamp might screw our list up when we're
+		#       about to change months (read in timer last month -> add,
+		#       read in timer next month -> add and resetting every time).
+		#       using current day might also be tricky.
 		newLimit = strftime(self.matchFormatString, timestamp)
 
 		# TODO: implement better check (like >)
