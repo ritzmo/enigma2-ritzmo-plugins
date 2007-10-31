@@ -82,12 +82,12 @@ class AutoTimer:
 		# Save current mtime
 		self.configMtime = mtime
 
+		# Parse Config
+		dom = minidom_parse(XML_CONFIG)
+		
 		# Empty out timers and reset Ids
 		del self.timers[:]
 		self.uniqueTimerId = 0
-
-		# Parse Config
-		dom = minidom_parse(XML_CONFIG)
 
 		# Get Config Element
 		for configuration in dom.getElementsByTagName("autotimer"):
@@ -158,7 +158,7 @@ class AutoTimer:
 
 				# Read out counter
 				counter = timer.getAttribute("counter") or None
-				counterLeft = timer.getAttribute("left") or 0
+				counterLeft = timer.getAttribute("left") or counter or 0
 				counterLimit = timer.getAttribute("lastActivation")
 				counterFormat = timer.getAttribute("counterFormat")
 
@@ -299,7 +299,7 @@ class AutoTimer:
 
 			# Counter
 			if timer.hasCounter():
-				list.extend([' counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft) ,'"'])
+				list.extend([' counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft()) ,'"'])
 				if timer.hasCounterFormatString():
 					list.extend([' lastActivation="', str(timer.getCounterLimit()), '"'])
 					list.extend([' counterFormat="', str(timer.getCounterFormatString()), '"'])

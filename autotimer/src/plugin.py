@@ -44,6 +44,9 @@ def autostart(reason, **kwargs):
 		# Stop Poller
 		autopoller.stop()
 
+		# Save xml
+		autotimer.writeXml()
+
 		# Remove AutoTimer
 		autotimer = None
 
