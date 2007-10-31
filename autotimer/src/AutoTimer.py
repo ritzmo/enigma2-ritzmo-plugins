@@ -49,16 +49,11 @@ def getValue(definitions, default, isList = True):
 	return ret.strip() or default
 
 def getTimeDiff(timer, begin, end):
-	time_match = 0
 	if begin <= timer.begin <= end:
-		diff = end - timer.begin
-		if time_match < diff:
-			time_match = diff
+		return end - timer.begin
 	elif timer.begin <= begin <= timer.end:
-		diff = timer.end - begin
-		if time_match < diff:
-			time_match = diff
-	return time_match
+		return timer.end - begin
+	return 0
 
 class AutoTimer:
 	"""Read and save xml configuration, query EPGCache"""
@@ -438,9 +433,8 @@ class AutoTimer:
 					skipEntry = False
 
 					# Check for double Timers
-					# We're not using isInTimer here as it would slow things down
-					# incredibly although it might be more stable... call below.
-					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
+					# We first check eit and if user wants us to guess event based on time
+					# we try this as backup. The allowed diff should be configurable though.
 					for rtimer in recorddict.get(serviceref, []):
 						if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
 							# TODO: add warning if timer was modified...
