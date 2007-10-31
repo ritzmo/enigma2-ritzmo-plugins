@@ -321,6 +321,7 @@ class AutoTimerComponent(object):
 			 		str(self.maxduration),
 			 		str(self.enabled),
 			 		str(self.destination)
+			 		# TODO: add counter
 			 ]),
 			 ")>"
 		])

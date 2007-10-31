@@ -34,6 +34,7 @@ class AutoTimerConfiguration(Screen, ConfigListScreen):
 			getConfigListEntry(_("Poll automatically"), config.plugins.autotimer.autopoll),
 			getConfigListEntry(_("Poll Interval (in h)"), config.plugins.autotimer.interval),
 			getConfigListEntry(_("Modify existing Timers"), config.plugins.autotimer.refresh),
+			getConfigListEntry(_("Guess existing Timer based on Begin/End"), config.plugins.autotimer.try_guessing),
 		]
 
 		ConfigListScreen.__init__(self, self.list, session = session, on_change = self.changed)

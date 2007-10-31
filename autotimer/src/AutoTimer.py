@@ -48,6 +48,18 @@ def getValue(definitions, default, isList = True):
 	# Return stripped output or (if empty) default
 	return ret.strip() or default
 
+def getTimeDiff(timer, begin, end):
+	time_match = 0
+	if begin <= timer.begin <= end:
+		diff = end - timer.begin
+		if time_match < diff:
+			time_match = diff
+	elif timer.begin <= begin <= timer.end:
+		diff = timer.end - begin
+		if time_match < diff:
+			time_match = diff
+	return time_match
+
 class AutoTimer:
 	"""Read and save xml configuration, query EPGCache"""
 
@@ -393,7 +405,8 @@ class AutoTimer:
 					name = evt.getEventName()
 					description = evt.getShortDescription()
 					begin = evt.getBeginTime()
-					end = begin + evt.getDuration()
+					duration = evt.getDuration()
+					end = begin + duration
 
 					# If event starts in less than 60 seconds skip it
 					if begin < time() + 60:
@@ -403,7 +416,7 @@ class AutoTimer:
 					timestamp = localtime(begin)
 
 					# Check Duration, Timespan and Excludes
-					if timer.checkDuration(begin-end) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter(timestamp):
+					if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter(timestamp):
 						continue
 
 					# Apply E2 Offset
@@ -429,7 +442,7 @@ class AutoTimer:
 					# incredibly although it might be more stable... call below.
 					#if NavigationInstance.instance.RecordTimer.isInTimer(eit, begin, evt.getDuration(), serviceref):
 					for rtimer in recorddict.get(serviceref, []):
-						if rtimer.eit == eit:
+						if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
 							# TODO: add warning if timer was modified...
 							newEntry = rtimer
 
