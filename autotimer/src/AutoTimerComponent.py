@@ -272,7 +272,7 @@ class AutoTimerComponent(object):
 		return self.destination is not None
 
 	def hasCounter(self):
-		return self.matchCount is not None
+		return self.matchCount is not None and self.matchCount != 0
 
 	def hasCounterFormatString(self):
 		return self.matchFormatString != ''

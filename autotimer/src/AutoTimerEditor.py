@@ -74,6 +74,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.duration.addNotifier(self.reloadList, initial_call = False)
 		self.afterevent.addNotifier(self.reloadList, initial_call = False)
 		self.afterevent_timespan.addNotifier(self.reloadList, initial_call = False)
+		self.counter.addNotifier(self.reloadList, initial_call = False)
 
 		self.refresh()
 
@@ -199,6 +200,14 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.duration = ConfigEnableDisable(default = default)
 		self.durationlength = ConfigInteger(default = duration, limits = (0, 600))
 
+		# Counter
+		if timer.hasCounter():
+			default = timer.matchCount
+		else:
+			default = 0
+		self.counter = ConfigInteger(default = default)
+		self.counterLeft = ConfigInteger(default = timer.matchLeft)
+
 	def refresh(self):
 		# First four entries are always shown
 		self.list = [
@@ -244,6 +253,12 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 					getConfigListEntry(_("Begin of after Event Timespan"), self.afterevent_timespanbegin),
 					getConfigListEntry(_("End of after Event Timespan"), self.afterevent_timespanend)
 				])
+
+		self.list.append(getConfigListEntry(_("Record a maximum of x times"), self.counter))
+
+		# Only allow setting matchLeft when counting hits
+		if self.counter.value:
+			self.list.append(getConfigListEntry(_("Ammount of recordings left"), self.counterLeft))
 
 	def reloadList(self, value):
 		self.refresh()
@@ -355,6 +370,17 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		else:
 			self.timer.exclude = None
 			self.timer.include = None
+
+		# Counter
+		if self.counter.value:
+			self.timer.matchCount = self.counter.value
+			if self.counterLeft.value <= self.counter.value:
+				self.timer.matchLeft = self.counterLeft.value
+			else:
+				self.timer.matchLeft = self.counter.value
+		else:
+			self.timer.matchCount = 0
+			self.timer.matchLeft = 0
 
 		# Close
 		self.close(self.timer)
