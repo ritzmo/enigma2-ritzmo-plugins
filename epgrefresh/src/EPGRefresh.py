@@ -253,7 +253,7 @@ class EPGRefresh:
 				print "[EPGRefresh] In Timespan, will check if we're in Standby and have no Recordings running next"
 				# Do we realy want to check nav?
 				from NavigationInstance import instance as nav
-				if config.plugins.autotimer.force.value or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
+				if config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
 					self.prepareRefresh()
 				else:
 					print "[EPGRefresh] Box still in use, rescheduling"	

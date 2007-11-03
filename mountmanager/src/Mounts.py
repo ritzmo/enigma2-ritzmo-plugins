@@ -2,7 +2,7 @@
 from os import system
 
 # Mount and check for hung processes
-from enigma import eTimer, eConsoleContainer
+from enigma import eTimer, eConsoleAppContainer
 
 # Parse config
 from xml.dom.minidom import parse as minidom_parse
