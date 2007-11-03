@@ -1,8 +1,8 @@
-# Mainly mounting
-from os import system, fork, _exit, waitpid, WNOHANG, kill, path
+# Create non-existant mountpoint
+from os import system
 
-# To check for hung processes
-from enigma import eTimer
+# Mount and check for hung processes
+from enigma import eTimer, eConsoleContainer
 
 # Parse config
 from xml.dom.minidom import parse as minidom_parse
@@ -15,8 +15,16 @@ class Mounts():
 		# Read in XML when initing
 		self.reload()
 
-		# Initialize
-		self.timer = None
+		# Initialize Console
+		self.callback = None
+		self.run = 0
+		self.commands = commands
+		self.container = eConsoleAppContainer()
+		self.container.appClosed.get().append(self.runFinished)
+
+		# Initialize Timer
+		self.timer = eTimer()
+		self.timer.timeout.get().append(self.mountTimeout)
 
 	def getValue(self, definitions, default):
 		# Initialize Output
@@ -197,12 +205,12 @@ class Mounts():
 			if file is not None:
 				file.close()
 
-	def mount(self):
+	def mount(self, callback = None):
 		# We force umount before mounting
 		self.umount()
 
 		# Initialize
-		self.pids = []
+		commands = []
 
 		for mount in self.mounts:
 			# Continue if inactive
@@ -213,50 +221,56 @@ class Mounts():
 			if mount[4].startswith("/media/"):
 				system(''.join(["mkdir -p ", mount[4]]))
 
-			# Fork to not hang
-			pid = fork()
-			if pid == 0:
-				print "Mounting:", mount[4]
-
-				# Prepare Settings
-				if mount[0] == "nfs":
-					# Syntax: <ip>:<share>
-					host = ':'.join([mount[2], mount[3]])
-					options = ''
-					split_options = mount[5].split(',')
-					for option in split_options:
-						options += ' '.join([" -o", option])
-				else:
-					# Syntax: //<ip>/<share>
-					host = ''.join(["//", mount[2], "/", mount[3]])
-					options = ''.join(["-o ", "username=", mount[5], " -o ", "password=", mount[6]])
-
-				# Mount
-				system(' '.join(["mount -t", mount[0], options, host, mount[4]]))
-				_exit(0)
+			# Prepare Settings
+			if mount[0] == "nfs":
+				# Syntax: <ip>:<share>
+				host = ':'.join([mount[2], mount[3]])
+				options = ''
+				split_options = mount[5].split(',')
+				for option in split_options:
+					options += ' '.join([" -o", option])
 			else:
-				self.pids.append(pid)
+				# Syntax: //<ip>/<share>
+				host = ''.join(["//", mount[2], "/", mount[3]])
+				options = ''.join(["-o ", "username=", mount[5], " -o ", "password=", mount[6]])
 
-		# If we have processes running start a timer to take care of these
-		if len(self.pids):
-			self.timer = eTimer()
-			self.timer.timeout.get().append(self.pidTimerFire)
+			# Our ready-to-go mount command
+			cmd = ' '.join(["mount -t", mount[0], options, host, mount[4]]).encode("UTF-8")
+			commands.append((mount[4], cmd))
+
+		if len(commands):
+			self.run = 0
+			self.commands = commands
+			self.callback = callback
+			self.container.execute(commands[0][1])
+
+		# Return list of manual mount commands
+		return commands
+
+	def runFinished(self, retval):
+		self.timer.stop()
+		print "RETVAL WAS", retval
+		if self.callback is not None:
+			self.callback(self.commands[self.run][0], retval)
+
+		self.run += 1
+		if self.run < len(self.commands):
 			self.timer.startLongTimer(10)
+			self.container.execute(self.commands[self.run][1])
+		elif self.callback is not None:
+			self.callback()
 
-	def pidTimerFire(self):
-		# Walk through pids
-		for process in self.pids:
-			try:
-				# Check if process is still running
-				waitpid(process, WNOHANG)
-
-				# When we reach this line the process is still running
-				kill(process, 9)
-			except:
-				pass
-
-		# Stop Timer
-		self.timer.timeout.get().remove(self.pidTimerFire)
-		self.timer = None
+	def mountTimeout(self):
+		self.container.kill()
+		
+		if self.callback is not None:
+			self.callback(self.commands[self.run][0], "timeout")
+		
+		self.run += 1
+		if self.run < len(self.commands):
+			self.timer.startLongTimer(10)
+			self.container.execute(self.commands[self.run][1])
+		elif self.callback is not None:
+			self.callback()
 
 mounts = Mounts()

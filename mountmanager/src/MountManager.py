@@ -64,10 +64,11 @@ class MountManager(Screen):
 		mounts.save()
 
 		# Mount
-		# TODO: fetch output?
-		# Possible: Use eAppContainer (e.g. via Screens.Console), add possibility to use eAppContailer::kill
-		# This would force us to show manual mount commands. wanted?
-		mounts.mount()
+		commands = mounts.mount()
+
+		# TODO: mounts offers a callback to maintain a "live" list of mounting process
+		# TODO: use this
+
 		self.close()
 
 	def add(self):
