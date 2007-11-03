@@ -77,7 +77,7 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 
 	def forceRefresh(self):
 		self.save()
-		epgrefresh.refresh()
+		epgrefresh.refresh(self.session)
 
 	def editChannels(self):
 		self.session.openWithCallback(
@@ -106,14 +106,33 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 	def createSummary(self):
 		return SetupSummary
 
+	def cancelConfirm(self, result):
+		if not result:
+			return
+
+		for x in self["config"].list:
+			x[1].cancel()
+
+		self.close(self.session)
+
+	def keyCancel(self):
+		if self["config"].isChanged():
+			self.session.openWithCallback(
+				self.cancelConfirm,
+				MessageBox,
+				_("Really close without saving settings?")
+			)
+		else:
+			self.close(self.session)
+
 	def keySave(self):
-		self.save()
-
-		ConfigListScreen.keySave(self)
-
-	def save(self):
 		epgrefresh.services = Set(self.servicelist)
 		try:
 			epgrefresh.saveConfiguration()
 		except Exception, e:
 			print "[EPGRefresh] Error occured while saving configuration:", e
+		
+		for x in self["config"].list:
+			x[1].save()
+
+		self.close(self.session)

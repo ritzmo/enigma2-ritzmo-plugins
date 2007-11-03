@@ -35,8 +35,8 @@ config.plugins.epgrefresh.force = ConfigEnableDisable(default = False)
 
 # Autostart
 def autostart(reason, **kwargs):
-	if config.plugins.epgrefresh.enabled.value and reason == 0:
-		epgrefresh.start()
+	if config.plugins.epgrefresh.enabled.value and reason == 0 and kwargs.has_key("session"):
+		epgrefresh.start(kwargs["session"])
 	elif reason == 1:
 		epgrefresh.stop()
 
@@ -48,12 +48,12 @@ def main(session, **kwargs):
 		EPGRefreshConfiguration
 	)
 
-def doneConfiguring(**kwargs):
+def doneConfiguring(session, **kwargs):
 	if config.plugins.epgrefresh.enabled.value:
-		epgrefresh.start()
+		epgrefresh.start(session)
 
 def Plugins(**kwargs):
 	return [
-		PluginDescriptor(name="EPGRefresh", description = "Automated EPGRefresher", where = PluginDescriptor.WHERE_AUTOSTART, fnc = autostart),
+		PluginDescriptor(name="EPGRefresh", description = "Automated EPGRefresher", where = [PluginDescriptor.WHERE_AUTOSTART, PluginDescriptor.WHERE_SESSIONSTART], fnc = autostart),
 		PluginDescriptor(name="EPGRefresh", description = "Automated EPGRefresher", where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main)
 	]
