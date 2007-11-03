@@ -1,5 +1,5 @@
 # Create non-existant mountpoint
-from os import system
+from os import system, path
 
 # Mount and check for hung processes
 from enigma import eTimer, eConsoleAppContainer
@@ -18,7 +18,7 @@ class Mounts():
 		# Initialize Console
 		self.callback = None
 		self.run = 0
-		self.commands = commands
+		self.commands = []
 		self.container = eConsoleAppContainer()
 		self.container.appClosed.get().append(self.runFinished)
 
@@ -210,7 +210,7 @@ class Mounts():
 		self.umount()
 
 		# Initialize
-		commands = []
+		del self.commands[:]
 
 		for mount in self.mounts:
 			# Continue if inactive
@@ -236,16 +236,15 @@ class Mounts():
 
 			# Our ready-to-go mount command
 			cmd = ' '.join(["mount -t", mount[0], options, host, mount[4]]).encode("UTF-8")
-			commands.append((mount[4], cmd))
+			self.commands.append((mount[4], cmd))
 
-		if len(commands):
+		if len(self.commands):
 			self.run = 0
-			self.commands = commands
 			self.callback = callback
-			self.container.execute(commands[0][1])
+			self.container.execute(self.commands[0][1])
 
-		# Return list of manual mount commands
-		return commands
+		# Return list of tuple (mountpoint, manual mount command)
+		return self.commands
 
 	def runFinished(self, retval):
 		self.timer.stop()

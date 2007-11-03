@@ -233,11 +233,12 @@ class EPGRefresh:
 	def timeout(self):
 		# Walk Services
 		if self.timer_mode == "refresh":
+			from NavigationInstance import instance as nav
 			if self.forcedScan or config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and not nav.RecordTimer.isRecording()):
 				self.nextService()
 			else:
 				# We don't follow our rules here - If the Box is still in Standby and not recording we won't reach this line 
-				if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
+				if not self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
 					print "[EPGRefresh] Gone out of timespan while refreshing, sorry!"
 					self.cleanUp()
 				else:
