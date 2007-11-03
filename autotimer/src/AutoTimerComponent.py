@@ -296,9 +296,11 @@ class AutoTimerComponent(object):
 			return False
 
 		if self.matchLeft > 0:
-			self.matchLeft -= 1
 			return False
 		return True
+
+	def decrCounter(self):
+		self.matchLeft -= 1
 
 	def update(self, begin):
 		# Only update limit when we have new begin

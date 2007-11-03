@@ -473,6 +473,8 @@ class AutoTimer:
 					if newEntry is None:
 						new += 1
 
+						timer.decrCounter()
+
 						print "[AutoTimer] Adding an event."
 						newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)
 						func = NavigationInstance.instance.RecordTimer.record
