@@ -18,7 +18,7 @@ class AutoTimerComponent(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchLimit = '', matchFormatString = ''):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchLimit = '', matchFormatString = '', lastBegin = 0):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -34,6 +34,7 @@ class AutoTimerComponent(object):
 		self.matchLeft = matchLeft
 		self.matchLimit = matchLimit
 		self.matchFormatString = matchFormatString
+		self.lastBegin = lastBegin
 
 	def calculateDayspan(self, begin, end):
 		if end[0] < begin[0] or (end[0] == begin[0] and end[1] <= begin[1]):
@@ -294,21 +295,23 @@ class AutoTimerComponent(object):
 		if self.matchCount is None or self.matchCount == 0:
 			return False
 
-		# %m is Month, %U is week (sunday), %W is week (monday)
-		# TODO: using timers timestamp might screw our list up when we're
-		#       about to change months (read in timer last month -> add,
-		#       read in timer next month -> add and resetting every time).
-		#       using current day might also be tricky.
-		newLimit = strftime(self.matchFormatString, timestamp)
-
-		# TODO: implement better check (like >)
-		if newLimit != self.matchLimit:
-			self.matchLeft = self.matchCount
-			self.matchLimit = newLimit
 		if self.matchLeft > 0:
 			self.matchLeft -= 1
 			return False
 		return True
+
+	def update(self, begin):
+		# Only update limit when we have new begin
+		if begin > self.lastBegin:
+			self.lastBegin = begin
+
+			# Update Counter:
+			# %m is Month, %U is week (sunday), %W is week (monday)
+			newLimit = strftime(self.matchFormatString, timestamp)
+
+			if newLimit != self.matchLimit:
+				self.matchLeft = self.matchCount
+				self.matchLimit = newLimit
 
 	def __repr__(self):
 		return ''.join([

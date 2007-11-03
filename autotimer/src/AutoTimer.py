@@ -161,6 +161,7 @@ class AutoTimer:
 				counterLeft = timer.getAttribute("left") or counter or 0
 				counterLimit = timer.getAttribute("lastActivation")
 				counterFormat = timer.getAttribute("counterFormat")
+				lastBegin = timer.getAttribute("lastBegin") or 0
 
 				# Read out allowed services
 				servicelist = []					
@@ -233,7 +234,8 @@ class AutoTimer:
 						matchCount = counter,
 						matchLeft = int(counterLeft),
 						matchLimit = counterLimit,
-						matchFormatString = counterFormat
+						matchFormatString = counterFormat,
+						lastBegin = int(lastBegin)
 				))
 
 	def getTimerList(self):
@@ -299,7 +301,7 @@ class AutoTimer:
 
 			# Counter
 			if timer.hasCounter():
-				list.extend([' counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft()) ,'"'])
+				list.extend([' lastBegin="', str(timer.lastBegin), '" counter="', str(timer.getCounter()), '" left="', str(timer.getCounterLeft()) ,'"'])
 				if timer.hasCounterFormatString():
 					list.extend([' lastActivation="', str(timer.getCounterLimit()), '"'])
 					list.extend([' counterFormat="', str(timer.getCounterFormatString()), '"'])
@@ -409,6 +411,9 @@ class AutoTimer:
 
 					# Convert begin time
 					timestamp = localtime(begin)
+
+					# Update timer
+					timer.update(begin)
 
 					# Check Duration, Timespan and Excludes
 					if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter(timestamp):
