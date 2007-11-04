@@ -1,5 +1,5 @@
 Package: enigma2-plugin-extensions-autotimer
-Version: 0.2.1-20071026-r0
+Version: 0.2.2-20071104-r0
 Description: Automatically add Timers based on simple rules 
 Architecture: mipsel
 Section: extra

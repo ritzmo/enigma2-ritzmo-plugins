@@ -76,7 +76,8 @@ class EPGRefreshConfiguration(Screen, ConfigListScreen):
 		self.changed()
 
 	def forceRefresh(self):
-		self.save()
+		epgrefresh.services = Set(self.servicelist)
+		# TODO: maybe we need to save the configuration here...
 		epgrefresh.refresh(self.session)
 
 	def editChannels(self):
