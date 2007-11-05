@@ -413,10 +413,10 @@ class AutoTimer:
 					timestamp = localtime(begin)
 
 					# Update timer
-					timer.update(begin)
+					timer.update(begin, timestamp)
 
 					# Check Duration, Timespan and Excludes
-					if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter(timestamp):
+					if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter():
 						continue
 
 					# Apply E2 Offset

@@ -290,7 +290,7 @@ class AutoTimerComponent(object):
 	def getCounterFormatString(self):
 		return self.matchFormatString
 
-	def checkCounter(self, timestamp):
+	def checkCounter(self):
 		# 0-Count is considered an error and therefore ignored
 		if self.matchCount is None or self.matchCount == 0:
 			return False
@@ -302,7 +302,7 @@ class AutoTimerComponent(object):
 	def decrCounter(self):
 		self.matchLeft -= 1
 
-	def update(self, begin):
+	def update(self, begin, timestamp):
 		# Only update limit when we have new begin
 		if begin > self.lastBegin:
 			self.lastBegin = begin
