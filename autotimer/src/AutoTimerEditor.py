@@ -205,8 +205,8 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			default = timer.matchCount
 		else:
 			default = 0
-		self.counter = ConfigInteger(default = default)
-		self.counterLeft = ConfigInteger(default = timer.matchLeft)
+		self.counter = ConfigInteger(default = default, limits = (0, 50))
+		self.counterLeft = ConfigInteger(default = timer.matchLeft, limits = (0, 50))
 		self.counterFormatString = ConfigSelection([("", _("Never")), ("%m", _("Monthly")), ("%U", _("Weekly (Sunday)")), ("%W", _("Weekly (Monday)"))], default = timer.matchFormatString)
 
 	def refresh(self):
