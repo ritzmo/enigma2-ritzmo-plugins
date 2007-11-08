@@ -44,11 +44,12 @@ def autostart(reason, **kwargs):
 		# Stop Poller
 		autopoller.stop()
 
-		# Save xml
-		autotimer.writeXml()
+		if autotimer is not None:
+			# Save xml
+			autotimer.writeXml()
 
-		# Remove AutoTimer
-		autotimer = None
+			# Remove AutoTimer
+			autotimer = None
 
 # Mainfunction
 def main(session, **kwargs):
@@ -74,7 +75,7 @@ def main(session, **kwargs):
 			MessageBox,
 			"An unexpected error occured: %s" % (e),
 			type = MessageBox.TYPE_ERROR,
-			timeout = 10
+			timeout = 15
 		)
 		return
 
@@ -114,7 +115,7 @@ def editCallback(session):
 			MessageBox,
 			"An unexpected error occured: %s" % (e),
 			type = MessageBox.TYPE_ERROR,
-			timeout = 10
+			timeout = 15
 		)
 
 def Plugins(**kwargs):

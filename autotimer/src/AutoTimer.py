@@ -384,133 +384,130 @@ class AutoTimer:
 
 		# Iterate Timer
 		for timer in self.getEnabledTimerList():
-			try:
-				# Search EPG, default to empty list
-				ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK)) or []
+			# Search EPG, default to empty list
+			ret = self.epgcache.search(('RI', 100, eEPGCache.PARTIAL_TITLE_SEARCH, timer.match, eEPGCache.NO_CASE_CHECK)) or []
 
-				for serviceref, eit in ret:
-					# Check if Service is disallowed first as its the only property available here
-					if timer.checkServices(serviceref):
-						continue
+			for serviceref, eit in ret:
+				# Check if Service is disallowed first as its the only property available here
+				if timer.checkServices(serviceref):
+					continue
 
-					evt = self.epgcache.lookupEventId(eServiceReference(serviceref), eit)
-					if not evt:
-						print "[AutoTimer] Could not create Event!"
-						continue
+				evt = self.epgcache.lookupEventId(eServiceReference(serviceref), eit)
+				if not evt:
+					print "[AutoTimer] Could not create Event!"
+					continue
 
-					# Gather Information
-					name = evt.getEventName()
-					description = evt.getShortDescription()
-					begin = evt.getBeginTime()
-					duration = evt.getDuration()
-					end = begin + duration
+				# Gather Information
+				name = evt.getEventName()
+				description = evt.getShortDescription()
+				begin = evt.getBeginTime()
+				duration = evt.getDuration()
+				end = begin + duration
 
-					# If event starts in less than 60 seconds skip it
-					if begin < time() + 60:
-						continue
+				# If event starts in less than 60 seconds skip it
+				if begin < time() + 60:
+					continue
 
-					# Convert begin time
-					timestamp = localtime(begin)
+				# Convert begin time
+				timestamp = localtime(begin)
 
-					# Update timer
-					timer.update(begin, timestamp)
+				# Update timer
+				timer.update(begin, timestamp)
 
-					# Check Duration, Timespan and Excludes
-					if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])) or timer.checkCounter():
-						continue
+				# Check Duration, Timespan and Excludes
+				if timer.checkDuration(duration) or timer.checkTimespan(timestamp) or timer.checkFilter(name, description, evt.getExtendedDescription(), str(timestamp[6])):
+					continue
 
-					# Apply E2 Offset
-  					begin -= config.recording.margin_before.value * 60
-					end += config.recording.margin_after.value * 60
+				# Apply E2 Offset
+  				begin -= config.recording.margin_before.value * 60
+				end += config.recording.margin_after.value * 60
  
-					# Apply custom Offset
-					begin, end = timer.applyOffset(begin, end)
+				# Apply custom Offset
+				begin, end = timer.applyOffset(begin, end)
 
-					total += 1
+				total += 1
 
-					# Append to timerlist and abort if simulating
-					timers.append((name, begin, end, serviceref, timer.name))
-					if simulateOnly:
-						continue
+				# Append to timerlist and abort if simulating
+				timers.append((name, begin, end, serviceref, timer.name))
+				if simulateOnly:
+					continue
 
-					# Initialize
-					newEntry = None
-					skipEntry = False
+				# Initialize
+				newEntry = None
+				skipEntry = False
 
-					# Check for double Timers
-					# We first check eit and if user wants us to guess event based on time
-					# we try this as backup. The allowed diff should be configurable though.
-					for rtimer in recorddict.get(serviceref, []):
-						if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
-							# TODO: add warning if timer was modified...
-							newEntry = rtimer
+				# Check for double Timers
+				# We first check eit and if user wants us to guess event based on time
+				# we try this as backup. The allowed diff should be configurable though.
+				for rtimer in recorddict.get(serviceref, []):
+					if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
+						# TODO: add warning if timer was modified...
+						newEntry = rtimer
 
-							# Abort if we don't want to modify timers or timer is repeated
-							if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
-								skipEntry = True
-								break
-
-							try:
-								if newEntry.isAutoTimer:
-									print "[AutoTimer] Modifying existing AutoTimer!"
-							except AttributeError, ae:
-								if config.plugins.autotimer.refresh.value != "all":
-									skipEntry = True
-									break
-								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
-
-							func = NavigationInstance.instance.RecordTimer.timeChanged
-							modified += 1
-
-							# Modify values saved in timer
-							newEntry.name = name
-							newEntry.description = description
-							newEntry.begin = int(begin)
-							newEntry.end = int(end)
+						# Abort if we don't want to modify timers or timer is repeated
+						if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
+							skipEntry = True
 							break
 
-					# Event not yet in Timers
-					if newEntry is None:
-						new += 1
+						try:
+							if newEntry.isAutoTimer:
+								print "[AutoTimer] Modifying existing AutoTimer!"
+						except AttributeError, ae:
+							if config.plugins.autotimer.refresh.value != "all":
+								skipEntry = True
+								break
+							print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
 
-						timer.decrCounter()
+						func = NavigationInstance.instance.RecordTimer.timeChanged
+						modified += 1
 
-						print "[AutoTimer] Adding an event."
-						newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)
-						func = NavigationInstance.instance.RecordTimer.record
+						# Modify values saved in timer
+						newEntry.name = name
+						newEntry.description = description
+						newEntry.begin = int(begin)
+						newEntry.end = int(end)
+						break
 
-						# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
-						newEntry.isAutoTimer = True
-					elif skipEntry:
-						print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
+				# Event not yet in Timers
+				if newEntry is None:
+					if timer.checkCounter():
 						continue
 
-					# Apply afterEvent
- 					if timer.hasAfterEvent():
- 						afterEvent = timer.getAfterEventTimespan(localtime(end))
- 						if afterEvent is None:
- 							afterEvent = timer.getAfterEvent()
- 						if afterEvent is not None:
- 							newEntry.afterEvent = afterEvent
+					new += 1
 
-					# Set custom destination directory (needs my Location-select patch)
-					if timer.hasDestination():
-						# TODO: add warning when patch not installed?
-						newEntry.dirname = timer.destination
+					timer.decrCounter()
+
+					print "[AutoTimer] Adding an event."
+					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)
+					func = NavigationInstance.instance.RecordTimer.record
+
+					# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
+					newEntry.isAutoTimer = True
+				elif skipEntry:
+					print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
+					continue
+
+				# Apply afterEvent
+ 				if timer.hasAfterEvent():
+ 					afterEvent = timer.getAfterEventTimespan(localtime(end))
+ 					if afterEvent is None:
+ 						afterEvent = timer.getAfterEvent()
+ 					if afterEvent is not None:
+ 						newEntry.afterEvent = afterEvent
+
+				# Set custom destination directory (needs my Location-select patch)
+				if timer.hasDestination():
+					# TODO: add warning when patch not installed?
+					newEntry.dirname = timer.destination
  
- 					# Do a sanity check, although it does not do much right now
- 					timersanitycheck = TimerSanityCheck(NavigationInstance.instance.RecordTimer.timer_list, newEntry)
- 					if not timersanitycheck.check():
- 						print "[Autotimer] Sanity check failed"
- 					else:
- 						print "[Autotimer] Sanity check passed"
+ 				# Do a sanity check, although it does not do much right now
+ 				timersanitycheck = TimerSanityCheck(NavigationInstance.instance.RecordTimer.timer_list, newEntry)
+ 				if not timersanitycheck.check():
+ 					print "[Autotimer] Sanity check failed"
+ 				else:
+ 					print "[Autotimer] Sanity check passed"
 
- 					# Either add to List or change time
- 					func(newEntry)
-
-			except StandardError, se:
-				# Give some more useful information
-				import traceback, sys
-				traceback.print_exc(file=sys.stdout)
+ 				# Either add to List or change time
+ 				func(newEntry)
 
 		return (total, new, modified, timers)
