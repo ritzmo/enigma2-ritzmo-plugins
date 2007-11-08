@@ -441,7 +441,6 @@ class AutoTimer:
 				# we try this as backup. The allowed diff should be configurable though.
 				for rtimer in recorddict.get(serviceref, []):
 					if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
-						# TODO: add warning if timer was modified...
 						newEntry = rtimer
 
 						# Abort if we don't want to modify timers or timer is repeated
@@ -470,12 +469,10 @@ class AutoTimer:
 
 				# Event not yet in Timers
 				if newEntry is None:
-					if timer.checkCounter():
+					if timer.checkCounter(timestamp):
 						continue
 
 					new += 1
-
-					timer.decrCounter()
 
 					print "[AutoTimer] Adding an event."
 					newEntry = RecordTimerEntry(ServiceReference(serviceref), begin, end, name, description, eit)

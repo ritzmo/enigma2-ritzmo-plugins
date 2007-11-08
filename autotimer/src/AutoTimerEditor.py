@@ -207,6 +207,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			default = 0
 		self.counter = ConfigInteger(default = default)
 		self.counterLeft = ConfigInteger(default = timer.matchLeft)
+		self.counterFormatString = ConfigSelection([("", _("Never")), ("%m", _("Monthly")), ("%U", _("Weekly (Sunday)")), ("%W", _("Weekly (Monday)"))], default = timer.matchFormatString)
 
 	def refresh(self):
 		# First four entries are always shown
@@ -259,6 +260,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Only allow setting matchLeft when counting hits
 		if self.counter.value:
 			self.list.append(getConfigListEntry(_("Ammount of recordings left"), self.counterLeft))
+			self.list.append(getConfigListEntry(_("Reset Count"), self.counterFormatString))
 
 	def reloadList(self, value):
 		self.refresh()
@@ -378,9 +380,14 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 				self.timer.matchLeft = self.counterLeft.value
 			else:
 				self.timer.matchLeft = self.counter.value
+			if self.counterFormatString.value:
+				self.timer.matchFormatString = self.counterFormatString.value
+			else:
+				self.timer.matchFormatString = ''
 		else:
 			self.timer.matchCount = 0
 			self.timer.matchLeft = 0
+			self.timer.matchFormatString = ''
 
 		# Close
 		self.close(self.timer)

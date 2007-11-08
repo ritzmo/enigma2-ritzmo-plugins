@@ -290,17 +290,20 @@ class AutoTimerComponent(object):
 	def getCounterFormatString(self):
 		return self.matchFormatString
 
-	def checkCounter(self):
+	def checkCounter(self, timestamp):
 		# 0-Count is considered an error and therefore ignored
 		if self.matchCount is None or self.matchCount == 0:
 			return False
 
+		# Check if event is in current timespan (we can only manage one!)
+		limit = strftime(self.matchFormatString, timestamp)
+		if limit != self.matchLimit:
+			return True
+
 		if self.matchLeft > 0:
+			self.matchLeft -= 1
 			return False
 		return True
-
-	def decrCounter(self):
-		self.matchLeft -= 1
 
 	def update(self, begin, timestamp):
 		# Only update limit when we have new begin
@@ -329,8 +332,12 @@ class AutoTimerComponent(object):
 			 		str(self.exclude),
 			 		str(self.maxduration),
 			 		str(self.enabled),
-			 		str(self.destination)
-			 		# TODO: add counter
+			 		str(self.destination),
+			 		str(self.matchCount),
+			 		str(self.matchLeft),
+			 		str(self.matchLimit),
+			 		str(self.matchFormatString),
+			 		str(self.lastBegin)
 			 ]),
 			 ")>"
 		])
