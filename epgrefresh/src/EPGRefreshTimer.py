@@ -39,11 +39,11 @@ class EPGRefreshTimer(timer.Timer):
 		if entry.state != entry.StateEnded:
 			self.timeChanged(entry)
 
-			print "state: ", entry.state
-			print "in processed: ", entry in self.processed_timers
-			print "in running: ", entry in self.timer_list
-			# now the timer should be in the processed_timers list. remove it from there.
-			self.processed_timers.remove(entry)
+		print "state: ", entry.state
+		print "in processed: ", entry in self.processed_timers
+		print "in running: ", entry in self.timer_list
+		# now the timer should be in the processed_timers list. remove it from there.
+		self.processed_timers.remove(entry)
 
 
 	def addRefreshTimer(self, beginh, beginm, tocall):
