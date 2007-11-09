@@ -214,7 +214,7 @@ class EPGRefresh:
 				print "[EPGRefresh] Box no longer in Standby or Recording started, rescheduling"
 
 				# Recheck later
-				epgrefreshtimer.add(EPGRefreshTimerEntry(config.plugins.epgrefresh.delay_standby.value*60, self.refresh))
+				epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.refresh))
 
 	def wait(self):
 		# Check if in timespan
@@ -227,12 +227,12 @@ class EPGRefresh:
 				print "[EPGRefresh] Box still in use, rescheduling"	
 
 				# Recheck later
-				epgrefreshtimer.add(EPGRefreshTimerEntry(config.plugins.epgrefresh.delay_standby.value*60, self.wait))
+				epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.wait))
 		else:
 			print "[EPGRefresh] Not in timespan, rescheduling"
 
 			# Recheck later
-			epgrefreshtimer.add(EPGRefreshTimerEntry(config.plugins.epgrefresh.delay_standby.value*60, self.wait))
+			epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.wait))
 
 	def nextService(self):
 		# DEBUG
@@ -247,7 +247,7 @@ class EPGRefresh:
 			self.session.nav.playService(service)
 
 			# Start Timer
-			epgrefreshtimer.add(EPGRefreshTimerEntry(config.plugins.epgrefresh.interval.value*60, self.refresh))
+			epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.interval.value*60, self.refresh))
 		else:
 			# Debug
 			print "[EPGRefresh] Done refreshing EPG"
