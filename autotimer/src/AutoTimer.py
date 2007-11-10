@@ -62,11 +62,10 @@ class AutoTimer:
 		# Keep EPGCache
 		self.epgcache = eEPGCache.getInstance()
 
-		# Initialize Timers
+		# Initialize
 		self.timers = []
-
-		# Empty mtime
 		self.configMtime = -1
+		self.uniqueTimerId = 0
 
 	def readXml(self):
 		# Abort if no config found
