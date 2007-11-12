@@ -5,10 +5,10 @@ import Screens.Standby
 from enigma import eServiceReference
 
 # Timer
-from EPGRefreshTimer import epgrefreshtimer, EPGRefreshTimerEntry
+from EPGRefreshTimer import epgrefreshtimer, EPGRefreshTimerEntry, checkTimespan
 
-# Check if in timespan, calculate timer durations
-from time import localtime
+# To calculate next timer execution
+from time import time
 
 # Path (check if file exists, getmtime)
 from os import path
@@ -90,37 +90,11 @@ class EPGRefresh:
 		if session is not None:
 			self.session = session
 
-		epgrefreshtimer.addRefreshTimer(config.plugins.epgrefresh.begin.value[0], config.plugins.epgrefresh.begin.value[1], self.wait)
+		epgrefreshtimer.setRefreshTimer(self.createWaitTimer)
 
 	def stop(self):
 		print "[EPGRefresh] Stopping Timer"
 		epgrefreshtimer.clear()
-
-	def checkTimespan(self, begin, end):
-		# Get current time
-		time = localtime()
-
-		# Check if we span a day
-		if begin[0] > end[0] or (begin[0] == end[0] and begin[1] >= end[1]):
-			# Check if begin of event is later than our timespan starts
-			if time[3] > begin[0] or (time[3] == begin[0] and time[4] >= begin[1]):
-				# If so, event is in our timespan
-				return True
-			# Check if begin of event is earlier than our timespan end
-			if time[3] < end[0] or (time[3] == end[0] and time[4] <= end[1]):
-				# If so, event is in our timespan
-				return True
-			return False
-		else:
-			# Check if event begins earlier than our timespan starts 
-			if time[3] < begin[0] or (time[3] == begin[0] and time[4] <= begin[1]):
-				# Its out of our timespan then
-				return False
-			# Check if event begins later than our timespan ends
-			if time[3] > end[0] or (time[3] == end[0] and time[4] >= end[1]):
-				# Its out of our timespan then
-				return False
-			return True
 
 	def prepareRefresh(self):
 		print "[EPGRefresh] About to start refreshing EPG"
@@ -192,14 +166,12 @@ class EPGRefresh:
 				1
 			)
 
-		# otherwise reset ourself
-		else:
-			self.forcedScan = False
-			epgrefreshtimer.cleanup()
+		self.forcedScan = False
+		epgrefreshtimer.cleanup()
 
-			# Zap back
-			if self.previousService is not None or Screens.Standby.inStandby:
-				self.session.nav.playService(self.previousService)
+		# Zap back
+		if self.previousService is not None or Screens.Standby.inStandby:
+			self.session.nav.playService(self.previousService)
 
 	def refresh(self):
 		# Walk Services
@@ -207,32 +179,18 @@ class EPGRefresh:
 			self.nextService()
 		else:
 			# We don't follow our rules here - If the Box is still in Standby and not recording we won't reach this line 
-			if not self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
+			if not checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
 				print "[EPGRefresh] Gone out of timespan while refreshing, sorry!"
 				self.cleanUp()
 			else:
 				print "[EPGRefresh] Box no longer in Standby or Recording started, rescheduling"
 
 				# Recheck later
-				epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.refresh))
+				epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.refresh, nocheck = True))
 
-	def wait(self):
-		# Check if in timespan
-		if self.checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
-			print "[EPGRefresh] In Timespan, will check if we're in Standby and have no Recordings running next"
-			# Do we realy want to check nav?
-			if config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and not self.session.nav.RecordTimer.isRecording()):
-				self.prepareRefresh()
-			else:
-				print "[EPGRefresh] Box still in use, rescheduling"	
-
-				# Recheck later
-				epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.wait))
-		else:
-			print "[EPGRefresh] Not in timespan, rescheduling"
-
-			# Recheck later
-			epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.delay_standby.value*60, self.wait))
+	def createWaitTimer(self):
+		# Add wait timer to epgrefreshtimer
+		epgrefreshtimer.add(EPGRefreshTimerEntry(0, self.prepareRefresh))
 
 	def nextService(self):
 		# DEBUG
@@ -247,7 +205,7 @@ class EPGRefresh:
 			self.session.nav.playService(service)
 
 			# Start Timer
-			epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.interval.value*60, self.refresh))
+			epgrefreshtimer.add(EPGRefreshTimerEntry(time() + config.plugins.epgrefresh.interval.value*60, self.refresh, nocheck = True))
 		else:
 			# Debug
 			print "[EPGRefresh] Done refreshing EPG"

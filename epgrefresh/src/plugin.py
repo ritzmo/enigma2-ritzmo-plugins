@@ -2,18 +2,10 @@
 # Warning: This Plugin is WIP
 #
 
-# Plugin
-from EPGRefresh import epgrefresh
-from EPGRefreshConfiguration import EPGRefreshConfiguration
-
-# Plugin definition
-from Plugins.Plugin import PluginDescriptor
-
-from time import localtime, mktime
-
 # Config
 from Components.config import config, ConfigEnableDisable, ConfigInteger, ConfigSubsection, ConfigClock
 
+from time import localtime, mktime
 now = [x for x in localtime()]
 now[3] = 20
 now[4] = 15
@@ -32,6 +24,13 @@ config.plugins.epgrefresh.delay_standby = ConfigInteger(default = 10, limits=(1,
 config.plugins.epgrefresh.inherit_autotimer = ConfigEnableDisable(default = False)
 config.plugins.epgrefresh.afterevent = ConfigEnableDisable(default = False)
 config.plugins.epgrefresh.force = ConfigEnableDisable(default = False)
+
+# Plugin
+from EPGRefresh import epgrefresh
+from EPGRefreshConfiguration import EPGRefreshConfiguration
+
+# Plugin definition
+from Plugins.Plugin import PluginDescriptor
 
 # Autostart
 def autostart(reason, **kwargs):
