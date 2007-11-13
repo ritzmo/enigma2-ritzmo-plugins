@@ -78,7 +78,6 @@ class EPGRefreshTimerEntry(timer.TimerEntry):
 class EPGRefreshTimer(timer.Timer):
 	def __init__(self):
 		timer.Timer.__init__(self)
-		self.refreshTimer = None
 
 	def remove(self, entry):
 		print "[EPGRefresh] Timer removed " + str(entry)
@@ -99,32 +98,25 @@ class EPGRefreshTimer(timer.Timer):
 		# now the timer should be in the processed_timers list. remove it from there.
 		self.processed_timers.remove(entry)
 
-
 	def setRefreshTimer(self, tocall):
-		# TODO: timer disappears, this works around a bsod
-		if self.refreshTimer is not None:
-			self.refreshTimer = None
-			self.clear()
-
 		# Add refresh Timer
 		begin = [x for x in localtime()]
 		begin[3] = config.plugins.epgrefresh.begin.value[0]
 		begin[4] = config.plugins.epgrefresh.begin.value[1]
 		begin = mktime(begin)
 
-		if self.refreshTimer is None:
-			self.refreshTimer = EPGRefreshTimerEntry(begin, tocall, nocheck = True)
+		# Also call function when begin lies in the past (timer won't do so)
+		if begin < time():
+			tocall()
 
-			for x in range(0,7):
-				self.refreshTimer.setRepeated(x)
+		refreshTimer = EPGRefreshTimerEntry(begin, tocall, nocheck = True)
 
-			self.addTimerEntry(self.refreshTimer)
-		else:
-			self.refreshTimer.begin = begin
-			self.refreshTimer.end = begin
-			self.refreshTimer.function = tocall
+		for x in range(0,7):
+			refreshTimer.setRepeated(x)
 
-			self.timeChanged(self.refreshTimer)
+		# We can be sure that whenever this function is called the timer list
+		# was wiped, so just add a new timer
+		self.addTimerEntry(refreshTimer)
 
 	def add(self, entry):
 		entry.timeChanged()
@@ -135,6 +127,6 @@ class EPGRefreshTimer(timer.Timer):
 		self.timer_list = []
 
 	def isActive(self):
-		return self.refreshTimer is not None
+		return len(self.timer_list) > 0
 
 epgrefreshtimer = EPGRefreshTimer()

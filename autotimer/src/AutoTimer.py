@@ -55,6 +55,10 @@ def getTimeDiff(timer, begin, end):
 		return timer.end - begin
 	return 0
 
+class AutoTimerIgnoreTimerException(Exception):
+	def __repr__(self):
+		return str(type(self))
+
 class AutoTimer:
 	"""Read and save xml configuration, query EPGCache"""
 
@@ -433,38 +437,40 @@ class AutoTimer:
 
 				# Initialize
 				newEntry = None
-				skipEntry = False
 
 				# Check for double Timers
 				# We first check eit and if user wants us to guess event based on time
 				# we try this as backup. The allowed diff should be configurable though.
-				for rtimer in recorddict.get(serviceref, []):
-					if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
-						newEntry = rtimer
+				try:
+					for rtimer in recorddict.get(serviceref, []):
+						if rtimer.eit == eit or config.plugins.autotimer.try_guessing.value and getTimeDiff(rtimer, begin, end) > ((duration/10)*8):
+							newEntry = rtimer
 
-						# Abort if we don't want to modify timers or timer is repeated
-						if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
-							skipEntry = True
+							# Abort if we don't want to modify timers or timer is repeated
+							if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
+								raise AutoTimerIgnoreTimerException()
+
+							try:
+								if newEntry.isAutoTimer:
+									print "[AutoTimer] Modifying existing AutoTimer!"
+							except AttributeError, ae:
+								if config.plugins.autotimer.refresh.value != "all":
+									raise AutoTimerIgnoreTimerException()
+								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
+
+							func = NavigationInstance.instance.RecordTimer.timeChanged
+							modified += 1
+
+							# Modify values saved in timer
+							newEntry.name = name
+							newEntry.description = description
+							newEntry.begin = int(begin)
+							newEntry.end = int(end)
+
 							break
-
-						try:
-							if newEntry.isAutoTimer:
-								print "[AutoTimer] Modifying existing AutoTimer!"
-						except AttributeError, ae:
-							if config.plugins.autotimer.refresh.value != "all":
-								skipEntry = True
-								break
-							print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
-
-						func = NavigationInstance.instance.RecordTimer.timeChanged
-						modified += 1
-
-						# Modify values saved in timer
-						newEntry.name = name
-						newEntry.description = description
-						newEntry.begin = int(begin)
-						newEntry.end = int(end)
-						break
+				except AutoTimerIgnoreTimerException, etite:
+					print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
+					continue
 
 				# Event not yet in Timers
 				if newEntry is None:
@@ -479,9 +485,6 @@ class AutoTimer:
 
 					# Mark this entry as AutoTimer (only AutoTimers will have this Attribute set)
 					newEntry.isAutoTimer = True
-				elif skipEntry:
-					print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
-					continue
 
 				# Apply afterEvent
  				if timer.hasAfterEvent():
