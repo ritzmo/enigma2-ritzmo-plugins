@@ -1,6 +1,13 @@
+# To check if in Standby
+import Screens.Standby
+
+# Base Class
 import timer
+
+# To see if in Timespan and to determine begin of timespan
 from time import localtime, mktime, time
 
+# Config
 from Components.config import config
 
 def checkTimespan(begin, end):
