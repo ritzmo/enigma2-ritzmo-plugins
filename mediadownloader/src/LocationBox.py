@@ -35,7 +35,7 @@ class LocationBox(Screen, NumericalTextInput):
 			<widget name="key_green" position="400,300" zPosition="2" size="140,40" halign="center" valign="center" font="Regular;22" transparent="1" shadowColor="black" shadowOffset="-1,-1" />
 		</screen>"""
 
-	def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = "Select Location", minFree = None):
+	def __init__(self, session, text = "", filename = "", currDir = None, windowTitle = _("Select Location"), minFree = None):
 		# Init parents
 		Screen.__init__(self, session)
 		NumericalTextInput.__init__(self, handleTimeout = False)
@@ -169,7 +169,7 @@ class LocationBox(Screen, NumericalTextInput):
 				self.session.openWithCallback(
 					self.selectConfirmed,
 					MessageBox,
-					"There might not be enough Space on the selected Partition.\nDo you really want to continue?",
+					_("There might not be enough Space on the selected Partition.\nDo you really want to continue?"),
 					type = MessageBox.TYPE_YESNO
 				)
 			# No minimum free Space means we can safely close
@@ -183,7 +183,7 @@ class LocationBox(Screen, NumericalTextInput):
 			self.session.openWithCallback(
 				self.nameChanged,
 				InputBox,
-				title = "Please enter a new filename",
+				title = _("Please enter a new filename"),
 				text = self.filename
 			)
 
@@ -195,7 +195,7 @@ class LocationBox(Screen, NumericalTextInput):
 			else:
 				self.session.open(
 					MessageBox,
-					"An empty filename is illegal.",
+					_("An empty filename is illegal."),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
@@ -206,7 +206,7 @@ class LocationBox(Screen, NumericalTextInput):
 			self["target"].setText(''.join([self["filelist"].getCurrentDirectory(), self.filename]))
 		# Warning else
 		else:
-			self["target"].setText("Invalid Location")
+			self["target"].setText(_("Invalid Location"))
 
 	def keyNumberGlobal(self, number):
 		# Cancel Timeout

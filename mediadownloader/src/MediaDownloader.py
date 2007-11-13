@@ -34,7 +34,7 @@ class MediaDownloader(Screen):
 		self.callback = callback
 
 		# Inform user about whats currently done
-		self["wait"] = Label("Downloading...")
+		self["wait"] = Label(_("Downloading..."))
 		self["progress"] = VariableProgressSource()
 
 		# Set Limit if we know it already (Server might not tell it)
@@ -58,7 +58,7 @@ class MediaDownloader(Screen):
 			self.session.openWithCallback(
 				self.gotFilename,
 				LocationBox,
-				"Where to save?",
+				_("Where to save?"),
 				path.basename(self.file.path),
 				minFree = self.file.size
 			)
@@ -81,7 +81,7 @@ class MediaDownloader(Screen):
 		if res and not openFile(self.session, None, self.filename):
 			self.session.open(
 				MessageBox,
-				"No suitable Viewer found!",
+				_("No suitable Viewer found!"),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -98,7 +98,7 @@ class MediaDownloader(Screen):
 			self.session.openWithCallback(
 				self.openCallback,
 				MessageBox,
-				"Do you want to try to open the downloaded file?",
+				_("Do you want to try to open the downloaded file?"),
 				type = MessageBox.TYPE_YESNO
 			)
 		# Otherwise callback and close
@@ -112,7 +112,7 @@ class MediaDownloader(Screen):
 	def error(self):
 		self.session.open(
 			MessageBox,
-			'\n'.join(["Error while downloading File:", self.file.path]),
+			_("Error while downloading file %s") % (self.file.path),
 			type = MessageBox.TYPE_ERROR,
 			timeout = 3
 		)

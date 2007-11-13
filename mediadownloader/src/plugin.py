@@ -44,7 +44,7 @@ def filescan_open(items, session, **kwargs):
 		session.openWithCallback(
 			boundFunction(filescan_chosen, session),
 			ChoiceBox,
-			"Which file do you want to download?",
+			_("Which file do you want to download?"),
 			choices
 		)
 	elif Len:
