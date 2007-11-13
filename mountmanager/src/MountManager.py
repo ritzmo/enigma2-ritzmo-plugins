@@ -10,6 +10,49 @@ from MountList import MountList
 # Mounts
 from Mounts import mounts
 
+class MountProcess(Screen):
+	"""Displays process of mounting."""
+	
+	skin = """<screen position="100,100" size="550,360" title="Mounting in progress..." >
+			<widget name="list" position="0,0" size="550,360" />
+		</screen>"""
+
+	def __init__(self, session):
+		Screen.__init__(self, session)
+		self["list"] = SelectionList()
+		list = mounts.getExtendedList()
+		for listindex in range(len(list)):
+			if list[listindex][1] == "1":
+				self["list"].addSelection(list[listindex][0], list[listindex][0], listindex, False)
+		self.onLayoutFinish.append(self.startMount)
+
+	def startMount(self):
+		mounts.mount(self.updateList)
+
+	def updateList(self, mountpoint = None, retval = None):
+		if mountpoint is not None:
+			# TODO: make this pretty
+			for item in self["list"].list:
+				if item[0] == mountpoint:
+					if retval == "1":
+						item[3] = True
+						break
+			self["list"].setList(self["list"].list)
+		else:
+			self.origTitle = "Done mounting..."
+			self.timeout = 6
+			self.timer = eTimer()
+			self.timer.timeout.get().append(self.timerTick)
+			self.timerTick() # tick once before actually starting the timer
+			self.timer.start(1000)
+
+	def timerTick(self):
+		self.timeout -= 1
+		self.setTitle(self.origTitle + " (" + str(self.timeout) + ")")
+		if self.timeout == 0:
+			self.timer.stop()
+			self.close()
+
 class MountManager(Screen):
 	"""Main Screen of MountManager."""
 
@@ -63,13 +106,11 @@ class MountManager(Screen):
 		# Save XML
 		mounts.save()
 
-		# Mount
-		commands = mounts.mount()
-
-		# TODO: mounts offers a callback to maintain a "live" list of mounting process
-		# TODO: use this
-
-		self.close()
+		# Mount with process shown
+		self.session.openWithCallback(
+			self.close,
+			MountProcess
+		)
 
 	def add(self):
 		# Add a new Mount
