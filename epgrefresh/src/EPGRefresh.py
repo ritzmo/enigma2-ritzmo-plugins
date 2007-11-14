@@ -190,7 +190,7 @@ class EPGRefresh:
 
 	def createWaitTimer(self):
 		# Add wait timer to epgrefreshtimer
-		epgrefreshtimer.add(EPGRefreshTimerEntry(0, self.prepareRefresh))
+		epgrefreshtimer.add(EPGRefreshTimerEntry(time() + 3, self.prepareRefresh))
 
 	def nextService(self):
 		# DEBUG
