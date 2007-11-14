@@ -56,6 +56,12 @@ def getTimeDiff(timer, begin, end):
 	return 0
 
 class AutoTimerIgnoreTimerException(Exception):
+	def __init__(self, cause):
+		self.cause = cause
+
+	def __str__(self):
+		return "[AutoTimer] " + str(self.cause)
+
 	def __repr__(self):
 		return str(type(self))
 
@@ -448,14 +454,14 @@ class AutoTimer:
 
 							# Abort if we don't want to modify timers or timer is repeated
 							if config.plugins.autotimer.refresh.value == "none" or newEntry.repeated:
-								raise AutoTimerIgnoreTimerException()
+								raise AutoTimerIgnoreTimerException("Won't modify existing timer because either no modification allowed or repeated timer")
 
 							try:
 								if newEntry.isAutoTimer:
 									print "[AutoTimer] Modifying existing AutoTimer!"
 							except AttributeError, ae:
 								if config.plugins.autotimer.refresh.value != "all":
-									raise AutoTimerIgnoreTimerException()
+									raise AutoTimerIgnoreTimerException("Won't modify existing timer because it's no timer set by us")
 								print "[AutoTimer] Warning, we're messing with a timer which might not have been set by us"
 
 							func = NavigationInstance.instance.RecordTimer.timeChanged
@@ -469,7 +475,7 @@ class AutoTimer:
 
 							break
 				except AutoTimerIgnoreTimerException, etite:
-					print "[AutoTimer] Won't modify this timer because of configuration or it is repeated"
+					print etite
 					continue
 
 				# Event not yet in Timers
