@@ -83,21 +83,37 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Initialize Buttons
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button(_("OK"))
-		self["key_yellow"] = Button(_("Edit Excludes"))
- 		self["key_blue"] = Button(_("Edit Channels"))
+		self["key_yellow"] = Button()
+ 		self["key_blue"] = Button()
+
+		# Set Button texts
+		self.renameChannelButton()
+		self.renameFilterButton()
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions", "ColorActions"],
 			{
 				"cancel": self.cancel,
 				"save": self.maybeSave,
-				"yellow": self.editExcludes,
+				"yellow": self.editFilters,
 				"blue": self.editChannels
 			}
 		)
 
 		# Trigger change
 		self.changed()
+
+	def renameFilterButton(self):
+		if self.filterSet:
+			self["key_yellow"].setText(_("Edit Filters"))
+		else:
+			self["key_yellow"].setText(_("Add Filters"))
+
+	def renameChannelButton(self):
+		if self.serviceRestriction:
+			self["key_blue"].setText(_("Edit Channels"))
+		else:
+			self["key_blue"].setText(_("Add Channels"))
 
 	def changed(self):
 		for x in self.onChangedEntry:
@@ -266,7 +282,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		self.refresh()
 		self["config"].setList(self.list)
 
-	def editExcludes(self):
+	def editFilter(self):
 		self.session.openWithCallback(
 			self.editFilterCallback,
 			AutoTimerFilterEditor,
@@ -280,6 +296,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			self.filterSet = ret[0]
 			self.excludes = ret[1]
 			self.includes = ret[2]
+			self.renameFilterButton()
 
 	def editChannels(self):
 		self.session.openWithCallback(
@@ -292,7 +309,8 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 	def editChannelsCallback(self, ret):
 		if ret:
 			self.serviceRestriction = ret[0]
-			self.services = ret[1] 
+			self.services = ret[1]
+			self.renameChannelButton()
 
 	def cancel(self):
 		self.close(None)
