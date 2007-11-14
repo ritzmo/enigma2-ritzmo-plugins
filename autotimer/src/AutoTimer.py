@@ -16,7 +16,7 @@ from time import localtime, time
 # EPGCache & Event
 from enigma import eEPGCache, eServiceReference
 
-# Enigma2 Config (Timermargin)
+# Enigma2 Config
 from Components.config import config
 
 # AutoTimer Component

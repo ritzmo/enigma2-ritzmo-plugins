@@ -39,7 +39,7 @@ class MountProcess(Screen):
 						break
 			self["list"].setList(self["list"].list)
 		else:
-			self.origTitle = "Done mounting..."
+			self.origTitle = _("Done mounting...")
 			self.timeout = 6
 			self.timer = eTimer()
 			self.timer.timeout.get().append(self.timerTick)
