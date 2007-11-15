@@ -166,8 +166,8 @@ class AutoTimer:
 					offset = (before, after)
 
 				# Read out counter
-				counter = timer.getAttribute("counter") or None
-				counterLeft = timer.getAttribute("left") or counter or 0
+				counter = int(timer.getAttribute("counter") or '0')
+				counterLeft = timer.getAttribute("left") or counter
 				counterLimit = timer.getAttribute("lastActivation")
 				counterFormat = timer.getAttribute("counterFormat")
 				lastBegin = timer.getAttribute("lastBegin") or 0
@@ -246,7 +246,7 @@ class AutoTimer:
 						maxduration = maxlen,
 						destination = destination,
 						matchCount = counter,
-						matchLeft = int(counterLeft),
+						matchLeft = counterLeft,
 						matchLimit = counterLimit,
 						matchFormatString = counterFormat,
 						lastBegin = int(lastBegin)

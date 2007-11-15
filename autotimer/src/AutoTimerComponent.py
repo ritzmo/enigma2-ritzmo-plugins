@@ -18,7 +18,7 @@ class AutoTimerComponent(object):
 	def __ne__(self, other):
 		return not self.__eq__(other)
 
-	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = None, matchLeft = 0, matchLimit = '', matchFormatString = '', lastBegin = 0):
+	def setValues(self, name, match, enabled, timespan = None, services = None, offset = None, afterevent = [], exclude = None, maxduration = None, destination = None, include = None, matchCount = 0, matchLeft = 0, matchLimit = '', matchFormatString = '', lastBegin = 0):
 		self.name = name
 		self.match = match
 		self.timespan = timespan
@@ -30,7 +30,7 @@ class AutoTimerComponent(object):
 		self.maxduration = maxduration
 		self.enabled = enabled
 		self.destination = destination
-		self.matchCount = matchCount and int(matchCount)
+		self.matchCount = matchCount
 		self.matchLeft = matchLeft
 		self.matchLimit = matchLimit
 		self.matchFormatString = matchFormatString
@@ -273,7 +273,7 @@ class AutoTimerComponent(object):
 		return self.destination is not None
 
 	def hasCounter(self):
-		return self.matchCount is not None and self.matchCount != 0
+		return self.matchCount != 0
 
 	def hasCounterFormatString(self):
 		return self.matchFormatString != ''
@@ -291,8 +291,8 @@ class AutoTimerComponent(object):
 		return self.matchFormatString
 
 	def checkCounter(self, timestamp):
-		# 0-Count is considered an error and therefore ignored
-		if self.matchCount is None or self.matchCount == 0:
+		# 0-Count is considered "unset"
+		if self.matchCount == 0:
 			return False
 
 		# Check if event is in current timespan (we can only manage one!)
