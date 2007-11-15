@@ -34,6 +34,8 @@ class AutoTimerOverview(Screen):
 		# Save autotimer
 		self.autotimer = autotimer
 
+		self.changed = False
+
 		# Button Labels
 		self["key_green"] = Button(_("Save"))
 		self["key_yellow"] = Button(_("Delete"))
@@ -56,7 +58,7 @@ class AutoTimerOverview(Screen):
 
 	def add(self):
 		self.session.openWithCallback(
-			self.addCallback,
+			self.editCallback,
 			AutoTimerEditor,
 			# TODO: implement setting a default?
 			AutoTimerComponent(
@@ -67,8 +69,9 @@ class AutoTimerOverview(Screen):
 			)
 		)
 
-	def addCallback(self, ret):
+	def editCallback(self, ret):
 		if ret:
+			self.changed = True
 			self.autotimer.add(ret)
 			self.refresh()
 
@@ -81,7 +84,7 @@ class AutoTimerOverview(Screen):
 		current = self["entries"].getCurrent()
 		if current is not None:
 			self.session.openWithCallback(
-				self.refresh,
+				self.editCallback,
 				AutoTimerEditor,
 				current[0]
 			)
@@ -103,11 +106,18 @@ class AutoTimerOverview(Screen):
 			self.refresh()
 
 	def cancel(self):
-		# Invalidate config mtime to force re-read on next run
-		self.autotimer.configMtime = -1
+		if self.changed:
+			self.session.openWithCallback(self.cancelConfirm, MessageBox, _("Really close without saving settings?"))
+		else:
+			self.close(None)
 
-		# Close and indicated that we canceled by returning None
-		self.close(None)
+	def cancelConfirm(self, ret):
+		if ret:
+			# Invalidate config mtime to force re-read on next run
+			self.autotimer.configMtime = -1
+
+			# Close and indicated that we canceled by returning None
+			self.close(None)
 
 	def menu(self):
 		self.session.openWithCallback(

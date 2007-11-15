@@ -313,7 +313,14 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			self.renameChannelButton()
 
 	def cancel(self):
-		self.close(None)
+		if self["config"].isChanged():
+			self.session.openWithCallback(self.cancelConfirm, MessageBox, _("Really close without saving settings?"))
+		else:
+			self.close(None)
+
+	def cancelConfirm(self, ret):
+		if ret:
+			self.close(None)
 
 	def maybeSave(self):
 		# Check if we have a trailing whitespace
@@ -569,7 +576,14 @@ class AutoTimerFilterEditor(Screen, ConfigListScreen):
 			self["config"].setList(list)
 
 	def cancel(self):
-		self.close(None)
+		if self["config"].isChanged():
+			self.session.openWithCallback(self.cancelConfirm, MessageBox, _("Really close without saving settings?"))
+		else:
+			self.close(None)
+
+	def cancelConfirm(self, ret):
+		if ret:
+			self.close(None)
 
 	def save(self):
 		self.saveCurrent()
@@ -668,7 +682,14 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 			self["config"].setList(list)
 
 	def cancel(self):
-		self.close(None)
+		if self["config"].isChanged():
+			self.session.openWithCallback(self.cancelConfirm, MessageBox, _("Really close without saving settings?"))
+		else:
+			self.close(None)
+
+	def cancelConfirm(self, ret):
+		if ret:
+			self.close(None)
 
 	def save(self):
 		list = self["config"].getList()
