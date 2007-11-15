@@ -177,6 +177,11 @@ class AutoTimer:
 				for service in timer.getElementsByTagName("serviceref"):
 					value = getValue(service, None, False)
 					if value:
+						# strip all after last :
+						pos = value.rfind(':')
+						if pos != -1:
+							value = value[:pos]
+
 						servicelist.append(value)
 
 				# Read out afterevent

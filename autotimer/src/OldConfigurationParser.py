@@ -63,6 +63,11 @@ def parseConfig_v3(configuration, list, uniqueTimerId = 0):
 		for service in timer.getElementsByTagName("serviceref"):
 			value = getValue(service, None, False)
 			if value:
+				# strip all after last :
+				pos = value.rfind(':')
+				if pos != -1:
+					value = value[:pos]
+
 				servicelist.append(value)
 
 		# Read out offset
@@ -187,6 +192,11 @@ def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 			for service in elements:
 				value = getValue(service, None, False)
 				if value:
+					# strip all after last :
+					pos = value.rfind(':')
+					if pos != -1:
+						value = value[:pos]
+
 					servicelist.append(value)
 		else:
 			servicelist = None
@@ -310,6 +320,11 @@ def parseConfig_v1(configuration, list, uniqueTimerId = 0):
 			for service in elements:
 				value = getValue(service, None, False)
 				if value:
+					# strip all after last :
+					pos = value.rfind(':')
+					if pos != -1:
+						value = value[:pos]
+
 					servicelist.append(value)
 		else:
 			servicelist = None

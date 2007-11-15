@@ -678,7 +678,14 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 	def finishedChannelSelection(self, *args):
 		if len(args):
 			list = self["config"].getList()
-			list.append(getConfigListEntry(_("Record on"), ConfigSelection(choices = [(args[0].toString(), ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''))])))
+			sname = args[0].toString()
+
+			# strip all after last :
+			pos = sname.rfind(':')
+			if pos != -1:
+				sname = sname[:pos]
+
+			list.append(getConfigListEntry(_("Record on"), ConfigSelection(choices = [(sname, ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''))])))
 			self["config"].setList(list)
 
 	def cancel(self):
