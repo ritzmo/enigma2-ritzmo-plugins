@@ -6,13 +6,6 @@ AM_PATH_PYTHON()
 AC_OUTPUT([
 Makefile
 
-autotimer/Makefile
-autotimer/etc/Makefile
-autotimer/src/Makefile
-
-epgrefresh/Makefile
-epgrefresh/src/Makefile
-
 historybrowser/Makefile
 historybrowser/src/Makefile
 
@@ -29,6 +22,4 @@ tictactoe/src/Makefile
 weatherforecast/Makefile
 weatherforecast/src/Makefile
 
-werbezapper/Makefile
-werbezapper/src/Makefile
 ])
