@@ -5,10 +5,14 @@ from MountEdit import MountEdit
 # GUI (Components)
 from Components.Button import Button
 from Components.ActionMap import ActionMap
+from Components.SelectionList import SelectionList, SelectionEntryComponent
 from MountList import MountList
 
 # Mounts
 from Mounts import mounts
+
+# Timer
+from enigma import eTimer
 
 class MountProcess(Screen):
 	"""Displays process of mounting."""
@@ -19,24 +23,37 @@ class MountProcess(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		self["list"] = SelectionList()
-		list = mounts.getExtendedList()
-		for listindex in range(len(list)):
-			if list[listindex][1] == "1":
-				self["list"].addSelection(list[listindex][0], list[listindex][0], listindex, False)
-		self.onLayoutFinish.append(self.startMount)
+
+		list = []
+		mountlist = mounts.getExtendedList()
+		for listindex in range(len(mountlist)):
+			if mountlist[listindex][1] == "1":
+				list.append(SelectionEntryComponent(
+						mountlist[listindex][0].encode("UTF-8"),
+						mountlist[listindex][0],
+						listindex,
+						False
+				))
+
+		self["list"] = SelectionList(list)
+
+		if len(list):
+			self.onLayoutFinish.append(self.startMount)
+		else:
+			self.onLayoutFinish.append(self.close)
 
 	def startMount(self):
 		mounts.mount(self.updateList)
 
-	def updateList(self, mountpoint = None, retval = None):
+	def updateList(self, mountpoint = None, retval = False):
 		if mountpoint is not None:
-			# TODO: make this pretty
+			idx = 0
 			for item in self["list"].list:
-				if item[0] == mountpoint:
-					if retval == "1":
-						item[3] = True
-						break
+				if item[0][1] == mountpoint:
+					self["list"].list[idx] = SelectionEntryComponent(item[0][0], item[0][1], item[0][2], retval)
+					break
+				idx += 1
+
 			self["list"].setList(self["list"].list)
 		else:
 			self.origTitle = _("Done mounting...")

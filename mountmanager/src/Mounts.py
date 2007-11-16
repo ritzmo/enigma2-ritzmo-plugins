@@ -18,9 +18,11 @@ class Mounts():
 		# Initialize Console
 		self.callback = None
 		self.run = 0
+		self.commandSucceeded = True
 		self.commands = []
 		self.container = eConsoleAppContainer()
 		self.container.appClosed.get().append(self.runFinished)
+		self.container.dataAvail.get().append(self.dataAvail)
 
 		# Initialize Timer
 		self.timer = eTimer()
@@ -239,22 +241,29 @@ class Mounts():
 			self.commands.append((mount[4], cmd))
 
 		if len(self.commands):
-			self.run = 0
 			self.callback = callback
-			self.container.execute(self.commands[0][1])
+			self.run = -1
+			self.nextCommand()
 
 		# Return list of tuple (mountpoint, manual mount command)
 		return self.commands
 
+	def dataAvail(self, str):
+		# Assume mount failed when mount outputs something
+		self.mountSucceeded = False
+
 	def runFinished(self, retval):
 		self.timer.stop()
-		print "RETVAL WAS", retval
 		if self.callback is not None:
-			self.callback(self.commands[self.run][0], retval)
+			self.callback(self.commands[self.run][0], self.mountSucceeded)
 
+		self.nextCommand()
+
+	def nextCommand(self):
 		self.run += 1
 		if self.run < len(self.commands):
 			self.timer.startLongTimer(10)
+			self.mountSucceeded = True
 			self.container.execute(self.commands[self.run][1])
 		elif self.callback is not None:
 			self.callback()
@@ -263,13 +272,8 @@ class Mounts():
 		self.container.kill()
 		
 		if self.callback is not None:
-			self.callback(self.commands[self.run][0], "timeout")
+			self.callback(self.commands[self.run][0], False)
 		
-		self.run += 1
-		if self.run < len(self.commands):
-			self.timer.startLongTimer(10)
-			self.container.execute(self.commands[self.run][1])
-		elif self.callback is not None:
-			self.callback()
+		self.nextCommand()
 
 mounts = Mounts()
