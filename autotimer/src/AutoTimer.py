@@ -172,6 +172,9 @@ class AutoTimer:
 				counterFormat = timer.getAttribute("counterFormat")
 				lastBegin = timer.getAttribute("lastBegin") or 0
 
+				# Read out justplay
+				justplay = int(timer.getAttribute("justplay") or '0')
+
 				# Read out allowed services
 				servicelist = []					
 				for service in timer.getElementsByTagName("serviceref"):
@@ -249,7 +252,8 @@ class AutoTimer:
 						matchLeft = counterLeft,
 						matchLimit = counterLimit,
 						matchFormatString = counterFormat,
-						lastBegin = int(lastBegin)
+						lastBegin = int(lastBegin),
+						justplay = justplay
 				))
 
 	def getTimerList(self):
@@ -319,6 +323,10 @@ class AutoTimer:
 				if timer.hasCounterFormatString():
 					list.extend([' lastActivation="', str(timer.getCounterLimit()), '"'])
 					list.extend([' counterFormat="', str(timer.getCounterFormatString()), '"'])
+
+			# Only display justplay if true
+			if timer.justplay:
+				list.extend([' justplay="', str(timer.getJustplay()), '"'])
 
 			# Close still opened timer tag
 			list.append('>\n')
@@ -509,6 +517,9 @@ class AutoTimer:
 				if timer.hasDestination():
 					# TODO: add warning when patch not installed?
 					newEntry.dirname = timer.destination
+ 
+ 				# Make this timer a zap-timer if wanted
+ 				newEntry.justplay = timer.justplay
  
  				# Do a sanity check, although it does not do much right now
  				timersanitycheck = TimerSanityCheck(NavigationInstance.instance.RecordTimer.timer_list, newEntry)

@@ -138,6 +138,9 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 		# Match
 		self.match = ConfigText(default = timer.match, fixed_size = False)
 
+		# Justplay
+		self.justplay = ConfigSelection(choices = [("zap", _("zap")), ("record", _("record"))], default = {0: "record", 1: "zap"}[int(timer.justplay)])
+
 		# Timespan
 		now = [x for x in localtime()]
 		if timer.hasTimespan():
@@ -231,6 +234,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			getConfigListEntry(_("Enabled"), self.enabled),
 			getConfigListEntry(_("Description"), self.name),
 			getConfigListEntry(_("Match Title"), self.match),
+			getConfigListEntry(_("Timer Type"), self.justplay),
 			getConfigListEntry(_("Only match during Timespan"), self.timespan)
 		]
 
@@ -350,6 +354,9 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 
 		# Enabled
 		self.timer.enabled = self.enabled.value
+
+		# Justplay
+		self.timer.justplay = self.justplay.value == "zap"
 
 		# Timespan
 		if self.timespan.value:
