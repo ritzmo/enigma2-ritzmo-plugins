@@ -66,7 +66,7 @@ def parseConfig_v3(configuration, list, uniqueTimerId = 0):
 				# strip all after last :
 				pos = value.rfind(':')
 				if pos != -1:
-					value = value[:pos]
+					value = value[:pos+1]
 
 				servicelist.append(value)
 
@@ -195,7 +195,7 @@ def parseConfig_v2(configuration, list, uniqueTimerId = 0):
 					# strip all after last :
 					pos = value.rfind(':')
 					if pos != -1:
-						value = value[:pos]
+						value = value[:pos+1]
 
 					servicelist.append(value)
 		else:
@@ -323,7 +323,7 @@ def parseConfig_v1(configuration, list, uniqueTimerId = 0):
 					# strip all after last :
 					pos = value.rfind(':')
 					if pos != -1:
-						value = value[:pos]
+						value = value[:pos+1]
 
 					servicelist.append(value)
 		else:

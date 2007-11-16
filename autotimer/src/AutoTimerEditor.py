@@ -95,7 +95,7 @@ class AutoTimerEditor(Screen, ConfigListScreen):
 			{
 				"cancel": self.cancel,
 				"save": self.maybeSave,
-				"yellow": self.editFilters,
+				"yellow": self.editFilter,
 				"blue": self.editChannels
 			}
 		)
@@ -683,7 +683,7 @@ class AutoTimerChannelEditor(Screen, ConfigListScreen):
 			# strip all after last :
 			pos = sname.rfind(':')
 			if pos != -1:
-				sname = sname[:pos]
+				sname = sname[:pos+1]
 
 			list.append(getConfigListEntry(_("Record on"), ConfigSelection(choices = [(sname, ServiceReference(args[0]).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', ''))])))
 			self["config"].setList(list)

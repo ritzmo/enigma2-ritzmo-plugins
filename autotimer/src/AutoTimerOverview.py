@@ -5,6 +5,7 @@ from Screens.ChoiceBox import ChoiceBox
 from AutoTimerEditor import AutoTimerEditor
 from AutoTimerConfiguration import AutoTimerConfiguration
 from AutoTimerPreview import AutoTimerPreview
+from AutoTimerImporter import AutoTimerImportSelector
 
 # GUI (Components)
 from AutoTimerList import AutoTimerList
@@ -58,7 +59,7 @@ class AutoTimerOverview(Screen):
 
 	def add(self):
 		self.session.openWithCallback(
-			self.editCallback,
+			self.addCallback,
 			AutoTimerEditor,
 			# TODO: implement setting a default?
 			AutoTimerComponent(
@@ -70,6 +71,11 @@ class AutoTimerOverview(Screen):
 		)
 
 	def editCallback(self, ret):
+		if ret:
+			self.changed = True
+			self.refresh()
+
+	def addCallback(self, ret):
 		if ret:
 			self.changed = True
 			self.autotimer.add(ret)
@@ -125,6 +131,7 @@ class AutoTimerOverview(Screen):
 			ChoiceBox,
 			list = [
 				(_("Preview"), "preview"),
+				(_("Import"), "import"),
 				(_("Setup"), "setup"),
 			],
 		)
@@ -136,6 +143,17 @@ class AutoTimerOverview(Screen):
 				self.session.open(
 					AutoTimerPreview,
 					timers
+				)
+			elif ret[1] == "import":
+				self.session.openWithCallback(
+					self.addCallback,
+					AutoTimerImportSelector,
+					AutoTimerComponent(
+						self.autotimer.getUniqueId(),	# Id
+						"",								# Name
+						"",								# Match
+						True							# Enabled				
+					)
 				)
 			elif ret[1] == "setup":
 				self.session.open(
