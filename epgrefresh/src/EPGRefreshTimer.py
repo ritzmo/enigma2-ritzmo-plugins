@@ -61,7 +61,8 @@ class EPGRefreshTimerEntry(timer.TimerEntry):
 			if checkTimespan(config.plugins.epgrefresh.begin.value, config.plugins.epgrefresh.end.value):
 				print "[EPGRefresh] In Timespan, will check if we're in Standby and have no Recordings running next"
 				# Do we realy want to check nav?
-				if config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and not self.session.nav.RecordTimer.isRecording()):
+				from NavigationInstance import instance
+				if config.plugins.epgrefresh.force.value or (Screens.Standby.inStandby and instance is not None and not instance.RecordTimer.isRecording()):
 					self.function()
 					return True
 				else:
