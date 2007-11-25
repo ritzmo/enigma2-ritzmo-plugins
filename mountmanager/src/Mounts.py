@@ -73,7 +73,7 @@ class Mounts():
 								self.getValue(mount.getElementsByTagName("ip"), "192.168.0.0"),
 								self.getValue(mount.getElementsByTagName("share"), "/exports/"),
 								self.getValue(mount.getElementsByTagName("dir"), "/media/net"),
-								self.getValue(mount.getElementsByTagName("options"), "rw, nolock")
+								self.getValue(mount.getElementsByTagName("options"), "rw,nolock")
 							)
 						)
 					except Exception, e:
@@ -227,10 +227,7 @@ class Mounts():
 			if mount[0] == "nfs":
 				# Syntax: <ip>:<share>
 				host = ':'.join([mount[2], mount[3]])
-				options = ''
-				split_options = mount[5].split(',')
-				for option in split_options:
-					options += ' '.join([" -o", option])
+				options = ''.join(['-o ', mount[5]])
 			else:
 				# Syntax: //<ip>/<share>
 				host = ''.join(["//", mount[2], "/", mount[3]])
