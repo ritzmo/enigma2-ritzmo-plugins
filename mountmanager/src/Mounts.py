@@ -227,11 +227,11 @@ class Mounts():
 			if mount[0] == "nfs":
 				# Syntax: <ip>:<share>
 				host = ':'.join([mount[2], mount[3]])
-				options = ''.join(['-o ', mount[5]])
+				options = ''.join(['-o "', mount[5], '"'])
 			else:
 				# Syntax: //<ip>/<share>
 				host = ''.join(["//", mount[2], "/", mount[3]])
-				options = ''.join(["-o ", "username=", mount[5], " -o ", "password=", mount[6]])
+				options = ''.join(['-o ', 'username="', mount[5], '","password="', mount[6], '"'])
 
 			# Our ready-to-go mount command
 			cmd = ' '.join(["mount -t", mount[0], options, host, mount[4]]).encode("UTF-8")
