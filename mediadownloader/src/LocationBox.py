@@ -1,3 +1,7 @@
+#
+# Generic Screen to select a path/filename combination
+#
+
 # Needed for minFree
 from os import statvfs
 
@@ -13,7 +17,7 @@ from Tools.BoundFunction import boundFunction
 from Tools.NumericalTextInput import NumericalTextInput
 
 # GUI (Components)
-from Components.ActionMap import NumberActionMap, ActionMap
+from Components.ActionMap import NumberActionMap
 from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.Button import Button
@@ -75,22 +79,22 @@ class LocationBox(Screen, NumericalTextInput):
 		self["target"] = Label()
 
 		# Custom Action Handler
-		class LocationBoxActionMap(ActionMap):
+		class LocationBoxActionMap(NumberActionMap):
 			def __init__(self, box, contexts = [ ], actions = { }, prio=0):																													   
-				ActionMap.__init__(self, contexts, actions, prio)
+				NumberActionMap.__init__(self, contexts, actions, prio)
 				self.box = box
 
-				def action(self, contexts, action):
-					# Reset Quickselect
-					self.box.timeout(force = True)
-					print "LocationBoxActionMap.action", action
+			def action(self, contexts, action):
+				# Reset Quickselect
+				self.box.timeout(force = True)
 
-					return ActionMap.action(self, contexts, action)
+				return NumberActionMap.action(self, contexts, action)
 
-		self["actions"] = LocationBoxActionMap(self, ["OkCancelActions", "DirectionsActions", "ColorActions"],
+		# Actions that will reset quickselect
+		self["actions"] = LocationBoxActionMap(self, ["WizardActions", "ColorActions"],
 		{
 			"ok": self.ok,
-			"cancel": self.cancel,
+			"back": self.cancel,
 			"green": self.select,
 			"yellow": self.changeName,
 			"left": self.left,
@@ -98,7 +102,8 @@ class LocationBox(Screen, NumericalTextInput):
 			"up": self.up,
 			"down": self.down,
 		}, -2)
-		
+
+		# Actions used by quickselect
 		self["NumberActions"] = NumberActionMap(["NumberActions"],
 		{
 			"1": self.keyNumberGlobal,
