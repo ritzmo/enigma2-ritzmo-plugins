@@ -25,7 +25,7 @@ class MountProcess(Screen):
 		Screen.__init__(self, session)
 
 		self.timer = eTimer()
-		self.timer.timeout.get().append(self.timerTick)
+		self.timer.callback.append(self.timerTick)
 		self.timeout = 6
 
 		list = []
@@ -57,8 +57,9 @@ class MountProcess(Screen):
 
 	def cancel(self):
 		mounts.callback = None
+		self.timer.callback.remove(self.timerTick)
 		self.timer.stop()
-		self.timer = None
+		#self.timer = None
 		self.close()
 
 	def updateList(self, mountpoint = None, retval = False):
@@ -80,6 +81,7 @@ class MountProcess(Screen):
 		self.timeout -= 1
 		self.setTitle(self.origTitle + " (" + str(self.timeout) + ")")
 		if self.timeout == 0:
+			self.timer.callback.remove(self.timerTick)
 			self.timer.stop()
 			self.cancel()
 

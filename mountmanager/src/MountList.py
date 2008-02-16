@@ -1,30 +1,23 @@
 # GUI (Components)
-from Components.GUIComponent import GUIComponent
+from Components.MenuList import MenuList
 from Components.MultiContent import MultiContentEntryText
-from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT
+from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, \
+	RT_HALIGN_RIGHT
 
-class MountList(GUIComponent):
+class MountList(MenuList):
 	"""Defines a simple Component to show Mountpoint & status"""
-	
+
 	def __init__(self, entries):
-		GUIComponent.__init__(self)
+		MenuList.__init__(self, entries, False, eListboxPythonMultiContent)
 
 		# Cache these
 		self.active = _("enabled")
 		self.inactive = _("disabled")
 
-		self.list = entries
-		self.l = eListboxPythonMultiContent()
 		self.l.setFont(0, gFont("Regular", 22))
 		self.l.setFont(1, gFont("Regular", 18))
 		self.l.setBuildFunc(self.buildListboxEntry)
-		self.l.setList(self.list)
-
-	GUI_WIDGET = eListbox
-
-	def postWidgetCreate(self, instance):
-		instance.setContent(self.l)
-		instance.setItemHeight(50)
+		self.l.setItemHeight(50)
 
 	def buildListboxEntry(self, mountpoint, active):
 		res = [ None ]
@@ -40,6 +33,3 @@ class MountList(GUIComponent):
 		res.append(MultiContentEntryText(pos=(0, 25), size=(width, 20), font=1, flags = RT_HALIGN_RIGHT, text = act))
 
 		return res
-
-	def getCurrent(self):
-		return self.l.getCurrentSelection()
