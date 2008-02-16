@@ -1,34 +1,24 @@
 # GUI (Screens)
 from Screens.Screen import Screen
 
-# Plugin
-from Plugins.Plugin import PluginDescriptor
-
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Button import Button
-from Components.GUIComponent import GUIComponent
+from Components.MenuList import MenuList
 from Components.MultiContent import MultiContentEntryText
-from enigma import eListboxPythonMultiContent, eListbox, gFont, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, RT_VALIGN_CENTER
+from enigma import eListboxPythonMultiContent, gFont, RT_HALIGN_LEFT, \
+	RT_HALIGN_RIGHT, RT_VALIGN_CENTER
 
 from ServiceReference import ServiceReference
 
-class SimpleServiceList(GUIComponent):
+class SimpleServiceList(MenuList):
 	"""---"""
 	
 	def __init__(self, entries):
-		GUIComponent.__init__(self)
+		MenuList.__init__(self, entries, False, content = eListboxPythonMultiContent)
 
-		self.list = entries
-		self.l = eListboxPythonMultiContent()
 		self.l.setFont(0, gFont("Regular", 22))
 		self.l.setBuildFunc(self.buildListboxEntry)
-		self.l.setList(self.list)
-
-	GUI_WIDGET = eListbox
-
-	def postWidgetCreate(self, instance):
-		instance.setContent(self.l)
 		instance.setItemHeight(25)
 
 	def buildListboxEntry(self, bouquetref, serviceref):
@@ -40,12 +30,6 @@ class SimpleServiceList(GUIComponent):
 		res.append(MultiContentEntryText(pos=(0, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = text))
 
 		return res
-
-	def getCurrent(self):
-		return self.l.getCurrentSelection()
-
-	def setList(self, l):
-		return self.l.setList(l)
 
 class HistoryBrowser(Screen):
 	"""..."""
@@ -100,4 +84,5 @@ def main(session, servicelist, **kwargs):
 	)
 
 def Plugins(**kwargs):
+	from Plugins.Plugin import PluginDescriptor
  	return [PluginDescriptor(name="History browser", description="???", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc=main)]
