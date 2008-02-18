@@ -2,9 +2,6 @@
 # Generic Screen to select a path/filename combination
 #
 
-# Needed for minFree
-from os import statvfs
-
 # GUI (Screens)
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
@@ -49,7 +46,7 @@ class LocationBox(Screen, NumericalTextInput):
 
 		# Quickselect Timer
 		self.qs_timer = eTimer()
-		self.qs_timer.timeout.get().append(self.timeout)
+		self.qs_timer.callback.append(self.timeout)
 		self.qs_timer_type = 0
 
 		# Initialize Quickselect
@@ -124,6 +121,12 @@ class LocationBox(Screen, NumericalTextInput):
 			self.updateTarget,
 			self.showHideRename
 		])
+ 
+		# Make sure we remove our callback
+		self.onClose.append(self.disableTimer)
+
+	def disableTimer(self):
+		self.qs_timer.callback.remove(self.timeout)
 
 	def showHideRename(self):
 		# Don't allow renaming when filename is empty
@@ -163,6 +166,8 @@ class LocationBox(Screen, NumericalTextInput):
 			if self.minFree is not None:
 				# Try to read fs stats
 				try:
+					from os import statvfs
+
 					s = statvfs(self["filelist"].getCurrentDirectory())
 					if (s.f_bavail * s.f_bsize) / 1000000 > self.minFree:
 						# Automatically confirm if we have enough free disk Space available
