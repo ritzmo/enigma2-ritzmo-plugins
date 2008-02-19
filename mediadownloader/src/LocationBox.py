@@ -149,7 +149,6 @@ class LocationBox(Screen, NumericalTextInput):
 	def ok(self):
 		if self["filelist"].canDescent():
 			self["filelist"].descent()
-			self["filelist"].instance.moveSelectionTo(0)
 			self.updateTarget()
 
 	def cancel(self):
