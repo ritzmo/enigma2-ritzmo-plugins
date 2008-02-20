@@ -200,7 +200,7 @@ class Mounts():
 
 				# If Mountpoint is about to be mounted by us, umount
 				if x[1] in mountpoints:
-					system("umount 2>/dev/null " + x[1])
+					system("umount -f 2>/dev/null " + x[1])
 		except:
 			print "[MountManager] Error umounting"
 		finally:

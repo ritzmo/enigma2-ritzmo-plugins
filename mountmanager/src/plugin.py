@@ -1,10 +1,12 @@
 # Autostart
 def autostart(reason, **kwargs):
+	from Mounts import mounts
+
 	# Automount on start
 	if reason == 0:
-		from Mounts import mounts
 		mounts.mount()
-	# We could umount on shutdown, but this is done by the system anyway
+	else:
+		mounts.umount()
 
 # Mainfunction
 def main(session, **kwargs):
