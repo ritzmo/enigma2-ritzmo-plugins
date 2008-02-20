@@ -17,9 +17,9 @@ class Mounts():
 
 		# Initialize Console
 		self.callback = None
-		self.run = 0
+		self.run = -1
 		self.commandSucceeded = True
-		self.commands = []
+		self.commands = [(None, "modprobe cifs")]
 		self.container = eConsoleAppContainer()
 		self.container.appClosed.get().append(self.runFinished)
 		self.container.dataAvail.get().append(self.dataAvail)
@@ -27,6 +27,9 @@ class Mounts():
 		# Initialize Timer
 		self.timer = eTimer()
 		self.timer.timeout.get().append(self.mountTimeout)
+
+		# Try to load cifs module (non-critical)
+		self.nextCommand()
 
 	def getValue(self, definitions, default):
 		# Initialize Output
@@ -247,12 +250,12 @@ class Mounts():
 
 	def dataAvail(self, str):
 		# Assume mount failed when mount outputs something
-		self.mountSucceeded = False
+		self.commandSucceeded = False
 
 	def runFinished(self, retval):
 		self.timer.stop()
 		if self.callback is not None:
-			self.callback(self.commands[self.run][0], self.mountSucceeded)
+			self.callback(self.commands[self.run][0], self.commandSucceeded)
 
 		self.nextCommand()
 
@@ -260,7 +263,7 @@ class Mounts():
 		self.run += 1
 		if self.run < len(self.commands):
 			self.timer.startLongTimer(10)
-			self.mountSucceeded = True
+			self.commandSucceeded = True
 			self.container.execute(self.commands[self.run][1])
 		elif self.callback is not None:
 			self.callback()
