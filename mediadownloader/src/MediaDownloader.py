@@ -1,19 +1,13 @@
 # GUI (Screens)
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
-from Screens.ChoiceBox import ChoiceBox
-from LocationBox import LocationBox
 
 # GUI (Components)
 from Components.ActionMap import ActionMap
 from Components.Label import Label
 
 # Download
-from HTTPProgressDownloader import download
 from VariableProgressSource import VariableProgressSource
-
-# Scanner-Interface
-from Components.Scanner import openFile
 
 class MediaDownloader(Screen):
 	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
@@ -54,6 +48,7 @@ class MediaDownloader(Screen):
 		else:
 			# TODO: determine basename without os.path?
 			from os import path
+			from Screens.LocationBox import LocationBox
 
 			self.session.openWithCallback(
 				self.gotFilename,
@@ -73,10 +68,14 @@ class MediaDownloader(Screen):
 			self.close()
 
 	def fetchFile(self):
+		from HTTPProgressDownloader import download
+
 		# Fetch file
 		download(self.file.path, self.filename, self["progress"].writeValues).addCallback(self.gotFile).addErrback(self.error)
 
 	def openCallback(self, res):
+		from Components.Scanner import openFile
+
 		# Try to open file if res was True
 		if res and not openFile(self.session, None, self.filename):
 			self.session.open(

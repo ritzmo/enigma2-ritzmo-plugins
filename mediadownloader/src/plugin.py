@@ -1,36 +1,32 @@
 #
-# To be used as easy-to-use Downloading Application by other Plugins
+# To be used as simple Downloading Application by other Plugins
 #
-
-# GUI (Screens)
-from Screens.ChoiceBox import ChoiceBox
-from MediaDownloader import MediaDownloader
-
-# Generic
-from Tools.BoundFunction import boundFunction
-
-# Scanner-Interface
-from Components.Scanner import Scanner, ScanPath
-
-# Plugin definition
-from Plugins.Plugin import PluginDescriptor
 
 # Download a single File
 def download_file(session, url, to = None, askOpen = False, callback = None, **kwargs):
 	"""Provides a simple downloader Application"""
+
+	from Components.Scanner import ScanFile
 	file = ScanFile(url, autodetect = False)
+
+	from MediaDownloader import MediaDownloader
 	session.open(MediaDownloader, file, askOpen, to, callbck)
 
 # Item chosen
 def filescan_chosen(session, item):
 	if item:
+		from MediaDownloader import MediaDownloader
 		session.open(MediaDownloader, item[1], askOpen = True)
 
 # Open as FileScanner
 def filescan_open(items, session, **kwargs):
 	"""Download a file from a given List"""
+
 	Len = len(items)
 	if Len > 1:
+		from Screens.ChoiceBox import ChoiceBox
+		from Tools.BoundFunction import boundFunction
+
 		# Create human-readable filenames
 		choices = [
 			(
@@ -48,10 +44,14 @@ def filescan_open(items, session, **kwargs):
 			choices
 		)
 	elif Len:
+		from MediaDownloader import MediaDownloader
+
 		session.open(MediaDownloader, items[0], askOpen = True)
 
 # Return Scanner provided by this Plugin
 def filescan(**kwargs):
+	from Components.Scanner import Scanner, ScanPath
+
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
 		def checkFile(self, file):
@@ -71,4 +71,8 @@ def filescan(**kwargs):
 	]
 
 def Plugins(**kwargs):
-	return [PluginDescriptor(name="MediaDownloader", where = PluginDescriptor.WHERE_FILESCAN, fnc = filescan)]
+	from Plugins.Plugin import PluginDescriptor
+
+	return [
+		PluginDescriptor(name="MediaDownloader", where = PluginDescriptor.WHERE_FILESCAN, fnc = filescan)
+	]
