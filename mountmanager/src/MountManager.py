@@ -81,7 +81,6 @@ class MountProcess(Screen):
 		self.timeout -= 1
 		self.setTitle(self.origTitle + " (" + str(self.timeout) + ")")
 		if self.timeout == 0:
-			self.timer.callback.remove(self.timerTick)
 			self.timer.stop()
 			self.cancel()
 

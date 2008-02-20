@@ -230,7 +230,7 @@ class Mounts():
 			if mount[0] == "nfs":
 				# Syntax: <ip>:<share>
 				host = ':'.join([mount[2], mount[3]])
-				options = ''.join(['-o "', mount[5], '"'])
+				options = ''.join(['-o ', mount[5]])
 			else:
 				# Syntax: //<ip>/<share>
 				host = ''.join(["//", mount[2], "/", mount[3]])
