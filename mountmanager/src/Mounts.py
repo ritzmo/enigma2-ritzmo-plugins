@@ -1,5 +1,5 @@
 # Create non-existant mountpoint
-from os import system, path
+from os import system, makedirs, path
 
 # Mount and check for hung processes
 from enigma import eTimer, eConsoleAppContainer
@@ -190,6 +190,19 @@ class Mounts():
 			if file is not None:
 				file.close()
 
+	def singleUmount(self, dir):
+		found = False
+		for mount in self.mounts:
+			if mount[4] == dir:
+				found = True
+				break
+
+		if found is True:
+			try:
+				system("umount -f 2>/dev/null " + dir)
+			except:
+				print "[MountManager] Umount of", dir, "failed!"
+
 	def umount(self):
 		# Only use active mountpoints
 		mountpoints = [x[4] for x in self.mounts if x[1] == "1"]
@@ -224,7 +237,10 @@ class Mounts():
 
 			# Make directory if subdir of /media
 			if mount[4].startswith("/media/"):
-				system(''.join(["mkdir -p ", mount[4]]))
+				try:
+					makedirs(mount[4])
+				except:
+					pass
 
 			# Prepare Settings
 			if mount[0] == "nfs":
@@ -270,7 +286,7 @@ class Mounts():
 
 	def mountTimeout(self):
 		self.container.kill()
-		
+
 		if self.callback is not None:
 			self.callback(self.commands[self.run][0], False)
 		

@@ -121,11 +121,13 @@ class MountEdit(Screen, ConfigListScreen):
 			])
 
 	def ok(self):
+		if (self.mountpoint is not None and self.dir.value != self.mountpoint) \
+			or not self.active.value:
+
+			self.mounts.singleUmount(self.mountpoint)
+
 		# Translate back "active"
-		if self.active.value:
-			active = "1"
-		else:
-			active = "0"
+		active = self.active.value and "1" or "0"
 
 		# Create NFS-Tuple
 		if self.type.value == "nfs":
