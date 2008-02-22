@@ -106,7 +106,7 @@ class MediaDownloader(Screen):
 			if self.callback is not None:
 				self.callback(self.filename)
 
-				self.close()
+			self.close()
 
 	def error(self):
 		self.session.open(

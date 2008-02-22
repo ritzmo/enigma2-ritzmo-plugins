@@ -10,7 +10,7 @@ def download_file(session, url, to = None, askOpen = False, callback = None, **k
 	file = ScanFile(url, autodetect = False)
 
 	from MediaDownloader import MediaDownloader
-	session.open(MediaDownloader, file, askOpen, to, callbck)
+	session.open(MediaDownloader, file, askOpen, to, callback)
 
 # Item chosen
 def filescan_chosen(session, item):

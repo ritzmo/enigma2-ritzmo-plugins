@@ -1,5 +1,8 @@
-from twisted.web.client import HTTPDownloader, _parse
+from twisted.web.client import HTTPDownloader
 from twisted.internet import reactor
+
+from urlparse import urlparse, urlunparse
+from base64 import encodestring
 
 class HTTPProgressDownloader(HTTPDownloader): 
 	"""Download to a file and keep track of progress."""
@@ -31,6 +34,33 @@ class HTTPProgressDownloader(HTTPDownloader):
 
 		return HTTPDownloader.pagePart(self, data)
 
+def _parse(url, defaultPort=None):
+	url = url.strip()
+	parsed = urlparse(url)
+	scheme = parsed[0]
+	path = urlunparse(('','')+parsed[2:])
+	if defaultPort is None:
+		if scheme == 'https':
+			defaultPort = 443
+		else:
+			defaultPort = 80
+	host, port = parsed[1], defaultPort
+	if '@' in host:
+		username, host = host.split('@')
+		if ':' in username:
+			username, password = username.split(':')
+		else:
+			password = ""
+	else:
+		username = ""
+		password = ""
+	if ':' in host:
+		host, port = host.split(':')
+		port = int(port)
+	if path == "":
+		path = "/"
+	return scheme, host, port, path, username, password
+
 def download(url, file, writeProgress=None, contextFactory=None, *args, **kwargs):
 	"""Download a web page to a file but provide current-/total-length.
 
@@ -39,7 +69,22 @@ def download(url, file, writeProgress=None, contextFactory=None, *args, **kwargs
 
 	See HTTPDownloader to see what extra args can be passed.
 	"""
-	scheme, host, port, path = _parse(url)
+
+	scheme, host, port, path, username, password = _parse(url)	
+
+	if username and password:
+		# twisted will crash if we don't rewrite this ;-)
+		url = scheme + '://' + host + ':' + str(port) + path
+
+		basicAuth = encodestring("%s:%s" % (username, password))
+		authHeader = "Basic " + basicAuth.strip()
+		AuthHeaders = {"Authorization": authHeader}
+
+		if kwargs.has_key("headers"):
+			kwargs["headers"].update(AuthHeaders)
+		else:
+			kwargs["headers"] = AuthHeaders
+
 	factory = HTTPProgressDownloader(url, file, writeProgress, *args, **kwargs)
 	if scheme == 'https':
 		from twisted.internet import ssl
