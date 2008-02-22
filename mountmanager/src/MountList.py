@@ -11,8 +11,10 @@ class MountList(MenuList):
 		MenuList.__init__(self, entries, False, eListboxPythonMultiContent)
 
 		# Cache these
-		self.active = _("enabled")
-		self.inactive = _("disabled")
+		self.actTranslation = {
+			"1":	_("enabled"),
+			"0":	_("disabled")
+		}
 
 		self.l.setFont(0, gFont("Regular", 22))
 		self.l.setFont(1, gFont("Regular", 18))
@@ -22,14 +24,8 @@ class MountList(MenuList):
 	def buildListboxEntry(self, mountpoint, active):
 		res = [ None ]
 		width = self.l.getItemSize().width()
+
 		res.append(MultiContentEntryText(pos=(0, 0), size=(width, 25), font=0, flags = RT_HALIGN_LEFT, text = mountpoint.encode("UTF-8")))
-
-		# Make active human-readable
-		if active == "1":
-			act = self.active
-		else:
-			act = self.inactive
-
-		res.append(MultiContentEntryText(pos=(0, 25), size=(width, 20), font=1, flags = RT_HALIGN_RIGHT, text = act))
+		res.append(MultiContentEntryText(pos=(0, 25), size=(width, 20), font=1, flags = RT_HALIGN_RIGHT, text = self.actTranslation[active]))
 
 		return res
