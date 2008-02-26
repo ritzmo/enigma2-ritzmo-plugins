@@ -42,6 +42,8 @@ def _parse(url, defaultPort=None):
 	if defaultPort is None:
 		if scheme == 'https':
 			defaultPort = 443
+		elif scheme == 'ftp':
+			defaultPort = 21
 		else:
 			defaultPort = 80
 	host, port = parsed[1], defaultPort
@@ -71,6 +73,16 @@ def download(url, file, writeProgress=None, contextFactory=None, *args, **kwargs
 	"""
 
 	scheme, host, port, path, username, password = _parse(url)	
+
+	if scheme == 'ftp':
+		from FTPProgressDownloader import FTPProgressDownloader
+
+		if not (username and password):
+			username = 'anonymous'
+			password = 'my@email.com'
+
+		client = FTPProgressDownloader(host, port, path, file, username, password, writeProgress, *args, **kwargs)
+		return client.deferred
 
 	if username and password:
 		# twisted will crash if we don't rewrite this ;-)
