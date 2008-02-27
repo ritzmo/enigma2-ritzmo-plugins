@@ -9,13 +9,13 @@ class FTPProgressDownloader(Protocol):
 
 	def __init__(self, host, port, path, fileOrName, username = 'anonymous', \
 		password = 'my@email.com', writeProgress = None, passive = True, \
-		resume = False, *args, **kwargs):
+		supportPartial = False, *args, **kwargs):
 
 		timeout = 30
 
 		# We need this later
 		self.path = path
-		self.resume = resume
+		self.resume = supportPartial
 
 		# Initialize
 		self.currentlength = 0

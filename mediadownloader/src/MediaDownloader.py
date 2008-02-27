@@ -9,6 +9,106 @@ from Components.Label import Label
 # Download
 from VariableProgressSource import VariableProgressSource
 
+from urlparse import urlparse, urlunparse
+
+def _parse(url, defaultPort = None):
+	url = url.strip()
+	parsed = urlparse(url)
+	scheme = parsed[0]
+	path = urlunparse(('','')+parsed[2:])
+
+	if defaultPort is None:
+		if scheme == 'https':
+			defaultPort = 443
+		elif scheme == 'ftp':
+			defaultPort = 21
+		else:
+			defaultPort = 80
+
+	host, port = parsed[1], defaultPort
+
+	if '@' in host:
+		username, host = host.split('@')
+		if ':' in username:
+			username, password = username.split(':')
+		else:
+			password = ""
+	else:
+		username = ""
+		password = ""
+
+	if ':' in host:
+		host, port = host.split(':')
+		port = int(port)
+
+	if path == "":
+		path = "/"
+
+	return scheme, host, port, path, username, password
+
+def download(url, file, writeProgress = None, contextFactory = None, \
+	*args, **kwargs):
+
+	"""Download a remote file and provide current-/total-length.
+
+	@param file: path to file on filesystem, or file-like object.
+	@param writeProgress: function which takes two arguments (pos, length)
+
+	See HTTPDownloader to see what extra args can be passed if remote file
+	is accessible via http or https. Both Backends should offer supportPartial.
+	"""
+
+	scheme, host, port, path, username, password = _parse(url)	
+
+	if scheme == 'ftp':
+		from FTPProgressDownloader import FTPProgressDownloader
+
+		if not (username and password):
+			username = 'anonymous'
+			password = 'my@email.com'
+
+		client = FTPProgressDownloader(
+			host,
+			port,
+			path,
+			file,
+			username,
+			password,
+			writeProgress,
+			*args,
+			**kwargs
+		)
+		return client.deferred
+
+	if username and password:
+		from base64 import encodestring
+
+		# twisted will crash if we don't rewrite this ;-)
+		url = scheme + '://' + host + ':' + str(port) + path
+
+		basicAuth = encodestring("%s:%s" % (username, password))
+		authHeader = "Basic " + basicAuth.strip()
+		AuthHeaders = {"Authorization": authHeader}
+
+		if kwargs.has_key("headers"):
+			kwargs["headers"].update(AuthHeaders)
+		else:
+			kwargs["headers"] = AuthHeaders
+
+	from HTTPProgressDownloader import HTTPProgressDownloader
+	from twisted.internet import reactor
+
+	factory = HTTPProgressDownloader(url, file, writeProgress, *args, **kwargs)
+	if scheme == 'https':
+		from twisted.internet import ssl
+		if contextFactory is None:
+			contextFactory = ssl.ClientContextFactory()
+		reactor.connectSSL(host, port, factory, contextFactory)
+	else:
+		reactor.connectTCP(host, port, factory)
+
+	return factory.deferred
+
 class MediaDownloader(Screen):
 	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
 	for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
@@ -68,10 +168,14 @@ class MediaDownloader(Screen):
 			self.close()
 
 	def fetchFile(self):
-		from HTTPProgressDownloader import download
-
 		# Fetch file
-		download(self.file.path, self.filename, self["progress"].writeValues).addCallback(self.gotFile).addErrback(self.error)
+		d = download(
+			self.file.path,
+			self.filename,
+			self["progress"].writeValues
+		)
+
+		d.addCallback(self.gotFile).addErrback(self.error)
 
 	def openCallback(self, res):
 		from Components.Scanner import openFile
