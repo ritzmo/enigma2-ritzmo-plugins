@@ -2,18 +2,20 @@ from twisted.internet import reactor, defer
 from twisted.internet.protocol import Protocol, ClientCreator
 from twisted.protocols.ftp import FTPClient, FTPFileListProtocol
 
+from os import SEEK_END
+
 class FTPProgressDownloader(Protocol):
 	"""Download to a file from FTP and keep track of progress."""
 
 	def __init__(self, host, port, path, fileOrName, username = 'anonymous', \
-		password = 'my@email.com', writeProgress = None, *args, **kwargs):
+		password = 'my@email.com', writeProgress = None, passive = True, \
+		resume = False, *args, **kwargs):
 
-		# TODO: fix forcing passv here
-		passive_ftp = True
 		timeout = 30
 
 		# We need this later
 		self.path = path
+		self.resume = resume
 
 		# Initialize
 		self.currentlength = 0
@@ -27,7 +29,7 @@ class FTPProgressDownloader(Protocol):
 		else:
 			self.file = fileOrName
 
-		creator = ClientCreator(reactor, FTPClient, username, password, passive = passive_ftp)
+		creator = ClientCreator(reactor, FTPClient, username, password, passive = passive)
 
 		creator.connectTCP(host, port, timeout).addCallback(self.controlConnectionMade).addErrback(self.connectionFailed)
 
@@ -58,7 +60,6 @@ class FTPProgressDownloader(Protocol):
 	def ftpFetchSize(self):
 		d = self.ftpclient.queueStringCommand('SIZE ' + self.path)
 		d.addCallback(self.sizeRcvd).addErrback(self.ftpFetchList)
-		#d.arm()
 
 	# Handle recieved msg
 	def listRcvd(self):
@@ -81,24 +82,30 @@ class FTPProgressDownloader(Protocol):
 		self.filelist = FTPFileListProtocol()
 		d = self.ftpclient.list(self.path, self.filelist)
 		d.addCallback(self.listRcvd).addErrback(self.connectionFailed)
-		#d.arm()
 
 	def openFile(self):
-		# TODO: implement offset/resume
-		return open(self.filename, 'w')
+		if self.resume:
+			file = open(self.filename, 'w+b')
+		else:
+			file = open(self.filename, 'wb')
+
+		return (file, file.size())
 
 	def ftpFetchFile(self):
+		offset = 0
+
 		# Finally open file
 		if self.file is None:
 			try:
-				self.file = self.openFile()
+				self.file, offset = self.openFile()
 			except IOError, ie:
 				# TODO: handle exception
 				raise ie
 
-		d = self.ftpclient.retrieveFile(self.path, self)
+		offset = self.resume and offset or 0
+
+		d = self.ftpclient.retrieveFile(self.path, self, offset = offset)
 		d.addCallback(self.ftpFinish).addErrback(self.connectionFailed)
-		#d.arm()
 
 	def dataReceived(self, data):
 		if not self.file:
@@ -108,6 +115,9 @@ class FTPProgressDownloader(Protocol):
 			self.currentlength += len(data)
 			self.writeProgress(self.currentlength, self.totallength)
 		try:
+			if self.resume:
+				self.file.seek(0, SEEK_END)
+
 			self.file.write(data)
 		except IOError, ie:
 			# TODO: handle exception
