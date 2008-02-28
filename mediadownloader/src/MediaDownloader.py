@@ -80,6 +80,7 @@ def download(url, file, writeProgress = None, contextFactory = None, \
 		)
 		return client.deferred
 
+	# We force username and password here as we lack a satisfying input method
 	if username and password:
 		from base64 import encodestring
 

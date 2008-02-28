@@ -3,7 +3,8 @@
 #
 
 # Download a single File
-def download_file(session, url, to = None, askOpen = False, callback = None, **kwargs):
+def download_file(session, url, to = None, askOpen = False, callback = None, \
+	**kwargs):
 	"""Provides a simple downloader Application"""
 
 	from Components.Scanner import ScanFile
@@ -16,6 +17,7 @@ def download_file(session, url, to = None, askOpen = False, callback = None, **k
 def filescan_chosen(session, item):
 	if item:
 		from MediaDownloader import MediaDownloader
+
 		session.open(MediaDownloader, item[1], askOpen = True)
 
 # Open as FileScanner
@@ -30,7 +32,8 @@ def filescan_open(items, session, **kwargs):
 		# Create human-readable filenames
 		choices = [
 			(
-				item.path[item.path.rfind("/")+1:].replace('%20', ' ').replace('%5F', '_').replace('%2D', '-'),
+				item.path[item.path.rfind("/")+1:].replace('%20', ' ').\
+					replace('%5F', '_').replace('%2D', '-'),
 				item
 			)
 				for item in items
@@ -55,7 +58,7 @@ def filescan(**kwargs):
 	# Overwrite checkFile to detect remote files
 	class RemoteScanner(Scanner):
 		def checkFile(self, file):
-			return file.path.startswith("http://") or file.path.startswith("https://")
+			return file.path.startswith(("http://", "https://", "ftp://"))
 
 	return [
 		RemoteScanner(
@@ -74,5 +77,9 @@ def Plugins(**kwargs):
 	from Plugins.Plugin import PluginDescriptor
 
 	return [
-		PluginDescriptor(name="MediaDownloader", where = PluginDescriptor.WHERE_FILESCAN, fnc = filescan)
+		PluginDescriptor(
+			name="MediaDownloader",
+			where = PluginDescriptor.WHERE_FILESCAN,
+			fnc = filescan
+		)
 	]
