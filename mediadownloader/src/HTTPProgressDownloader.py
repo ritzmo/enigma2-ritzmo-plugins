@@ -6,7 +6,9 @@ class HTTPProgressDownloader(HTTPDownloader):
 	def __init__(self, url, fileOrName, writeProgress = None, *args, **kwargs):
 		HTTPDownloader.__init__(self, url, fileOrName, *args, **kwargs)
 
-		# Save callback locally
+		# Save callback(s) locally
+		if writeProgress and type(writeProgress) is not list:
+			writeProgress = [ writeProgress ]
 		self.writeProgress = writeProgress
 
 		# Initialize
@@ -18,7 +20,8 @@ class HTTPProgressDownloader(HTTPDownloader):
 		if self.writeProgress and self.status == '200':
 			if headers.has_key('content-length'):
 				self.totallength = int(headers['content-length'][0])
-				self.writeProgress(0, self.totallength)
+				for cb in self.writeProgress:
+					cb(0, self.totallength)
 
 		return HTTPDownloader.gotHeaders(self, headers)
 
@@ -26,6 +29,7 @@ class HTTPProgressDownloader(HTTPDownloader):
 		# If we have a callback and 'OK' from server increment pos
 		if self.writeProgress and self.status == '200':
 			self.currentlength += len(data)
-			self.writeProgress(self.currentlength, self.totallength)
+			for cb in self.writeProgress:
+				cb(self.currentlength, self.totallength)
 
 		return HTTPDownloader.pagePart(self, data)

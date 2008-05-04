@@ -11,6 +11,8 @@ from VariableProgressSource import VariableProgressSource
 
 from urlparse import urlparse, urlunparse
 
+import time
+
 def _parse(url, defaultPort = None):
 	url = url.strip()
 	parsed = urlparse(url)
@@ -52,7 +54,7 @@ def download(url, file, writeProgress = None, contextFactory = None, \
 	"""Download a remote file and provide current-/total-length.
 
 	@param file: path to file on filesystem, or file-like object.
-	@param writeProgress: function which takes two arguments (pos, length)
+	@param writeProgress: function or list of functions taking two parameters (pos, length)
 
 	See HTTPDownloader to see what extra args can be passed if remote file
 	is accessible via http or https. Both Backends should offer supportPartial.
@@ -128,6 +130,11 @@ class MediaDownloader(Screen):
 		self.filename = downloadTo
 		self.callback = callback
 
+		# Init what we need for progress callback
+		self.lastLength = 0
+		self.lastTime = 0
+		self.lastApprox = 0
+
 		# Inform user about whats currently done
 		self["wait"] = Label(_("Downloading..."))
 		self["progress"] = VariableProgressSource()
@@ -173,10 +180,34 @@ class MediaDownloader(Screen):
 		d = download(
 			self.file.path,
 			self.filename,
-			self["progress"].writeValues
+			[
+				self["progress"].writeValues,
+				self.gotProgress
+			]
 		)
 
 		d.addCallback(self.gotFile).addErrback(self.error)
+
+	def gotProgress(self, pos, max):
+		newTime = time.time()
+		# Check if we're called the first time (got total)
+		if self.lastTime == 0:
+			self.lastTime = newTime
+			# XXX: we could show total length though :-)
+		# We dont want to update more often than every two sec (could be done by a timer, but this should give a more accurate result though it might lag)
+		elif int(newTime - self.lastTime) >= 2:
+			newLength = pos
+
+			# XXX: ok, this calculation might be f***ed up, but I'm puzzled right now <:
+			self.lastApprox = round(((newLength - self.lastLength) / (newTime - self.lastTime) / 1024), 2)
+
+			print "[MediaDownloader] DL speed approximated as", self.lastApprox, "kb/s"
+			print "[MediaDownloader] That gives us an ETA of", int(round(((max-pos) / 1024)/self.lastApprox)), "sec or so *g*"
+
+			self.lastLength = newLength
+			self.lastTime = newTime
+
+			# TODO: display in UI
 
 	def openCallback(self, res):
 		from Components.Scanner import openFile
@@ -213,7 +244,10 @@ class MediaDownloader(Screen):
 
 			self.close()
 
-	def error(self):
+	def error(self, msg = ""):
+		if msg != "":
+			print "[MediaDownloader] Error downloading:", msg
+
 		self.session.open(
 			MessageBox,
 			_("Error while downloading file %s") % (self.file.path),

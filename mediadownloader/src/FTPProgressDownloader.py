@@ -20,6 +20,8 @@ class FTPProgressDownloader(Protocol):
 		# Initialize
 		self.currentlength = 0
 		self.totallength = None
+		if writeProgress and type(writeProgress) is not list:
+			writeProgress = [ writeProgress ]
 		self.writeProgress = writeProgress
 
 		# Output
@@ -48,8 +50,8 @@ class FTPProgressDownloader(Protocol):
 		code, msg = msgs[0].split()
 		if code == '213':
 			self.totallength = int(msg)
-			if self.writeProgress is not None:
-				self.writeProgress(0, self.totallength)
+			for cb in self.writeProgress or [ ]:
+				cb(0, self.totallength)
 
 			# We know the size, so start fetching
 			self.ftpFetchFile()
@@ -65,12 +67,12 @@ class FTPProgressDownloader(Protocol):
 	def listRcvd(self):
 		# Quit if file not found
 		if not len(self.filelist.files):
-				self.connectionFailed()
-				return
+			self.connectionFailed()
+			return
 
 		self.totallength = self.filelist.files[0]['size']
-		if self.writeProgress is not None:
-			self.writeProgress(0, self.totallength)
+		for cb in self.writeProgress or [ ]:
+			cb(0, self.totallength)
 
 		# Invalidate list
 		self.filelist = None
@@ -111,10 +113,12 @@ class FTPProgressDownloader(Protocol):
 		if not self.file:
 			return
 
-		if self.writeProgress is not None:
+		if self.writeProgress:
 			self.currentlength += len(data)
-			self.writeProgress(self.currentlength, self.totallength)
+			for cb in self.writeProgress:
+				cb(self.currentlength, self.totallength)
 		try:
+			# XXX: why did i always seek? do we really need this?
 			if self.resume:
 				self.file.seek(0, SEEK_END)
 
