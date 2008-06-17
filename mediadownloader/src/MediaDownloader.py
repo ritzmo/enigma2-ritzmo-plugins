@@ -116,9 +116,11 @@ class MediaDownloader(Screen):
 	"""Simple Plugin which downloads a given file. If not targetfile is specified the user will be asked
 	for a location (see LocationBox). If doOpen is True the Plugin will try to open it after downloading."""
 
-	skin = """<screen name="MediaDownloader" position="100,150" size="540,60" >
-			<widget name="wait" position="20,10" size="500,30" valign="center" font="Regular;23" />
+	skin = """<screen name="MediaDownloader" position="100,150" size="540,95" >
+			<widget name="wait" position="2,10" size="500,30" valign="center" font="Regular;23" />
 			<widget source="progress" render="Progress" position="2,40" size="536,20" />
+			<widget name="eta" position="2,65" size="200,30" font="Regular;23" />
+			<widget name="speed" position="338,65" size="200,30" halign="right" font="Regular;23" />
 		</screen>"""
 
 	def __init__(self, session, file, askOpen = False, downloadTo = None, callback = None):
@@ -138,6 +140,8 @@ class MediaDownloader(Screen):
 		# Inform user about whats currently done
 		self["wait"] = Label(_("Downloading..."))
 		self["progress"] = VariableProgressSource()
+		self["eta"] = Label(_("ETA ??:?? h")) # XXX: we could just leave eta and speed empty
+		self["speed"] = Label(_("?? kb/s"))
 
 		# Set Limit if we know it already (Server might not tell it)
 		if self.file.size:
@@ -193,21 +197,19 @@ class MediaDownloader(Screen):
 		# Check if we're called the first time (got total)
 		if self.lastTime == 0:
 			self.lastTime = newTime
-			# XXX: we could show total length though :-)
+
 		# We dont want to update more often than every two sec (could be done by a timer, but this should give a more accurate result though it might lag)
 		elif int(newTime - self.lastTime) >= 2:
 			newLength = pos
 
-			# XXX: ok, this calculation might be f***ed up, but I'm puzzled right now <:
 			self.lastApprox = round(((newLength - self.lastLength) / (newTime - self.lastTime) / 1024), 2)
 
-			print "[MediaDownloader] DL speed approximated as", self.lastApprox, "kb/s"
-			print "[MediaDownloader] That gives us an ETA of", int(round(((max-pos) / 1024)/self.lastApprox)), "sec or so *g*"
+			secLen = int(round(((max-pos) / 1024) / self.lastApprox))
+			self["eta"].setText(_("ETA %d:%02d min") % (secLen / 60, secLen % 60))
+			self["speed"].setText(_("%d kb/s") % (self.lastApprox))
 
 			self.lastLength = newLength
 			self.lastTime = newTime
-
-			# TODO: display in UI
 
 	def openCallback(self, res):
 		from Components.Scanner import openFile
