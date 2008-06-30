@@ -167,7 +167,8 @@ class MediaDownloader(Screen):
 				LocationBox,
 				_("Where to save?"),
 				path.basename(self.file.path),
-				minFree = self.file.size
+				minFree = self.file.size,
+				bookmarks = config.plugins.mediadownloader.bookmarks
 			)
 
 	def gotFilename(self, res):

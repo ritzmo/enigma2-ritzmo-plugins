@@ -2,6 +2,15 @@
 # To be used as simple Downloading Application by other Plugins
 #
 
+from Components.config import config, ConfigSubsection, ConfigLocation
+from Tools.Directories import resolveFilename, SCOPE_HDD
+
+# SCOPE_HDD is not really what we want but the best we can get :-)
+config.plugins.mediadownloader = ConfigSubsection()
+config.plugins.mediadownloader.bookmarks = ConfigLocation(default = [resolveFilename(SCOPE_HDD)])
+
+# TODO: support custom bookmark element?
+
 # Download a single File
 def download_file(session, url, to = None, askOpen = False, callback = None, \
 	**kwargs):
