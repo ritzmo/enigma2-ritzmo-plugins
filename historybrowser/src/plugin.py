@@ -19,11 +19,15 @@ class SimpleServiceList(MenuList):
 
 		self.l.setFont(0, gFont("Regular", 22))
 		self.l.setBuildFunc(self.buildListboxEntry)
-		instance.setItemHeight(25)
+		self.l.setItemHeight(25)
 
-	def buildListboxEntry(self, bouquetref, serviceref):
+	def buildListboxEntry(self, baseref, bouquetref, serviceref = None):
 		res = [ None ]
 		width = self.l.getItemSize().width()
+
+		if not serviceref:
+			print "[History Browser] Entry is missing serviceref, assuming tuple (bouquetref, serviceref)"
+			serviceref = bouquetref
 
 		text = ServiceReference(serviceref).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '')
 
@@ -46,7 +50,7 @@ class HistoryBrowser(Screen):
 		Screen.__init__(self, session)
 		self.servicelist = servicelist
 
-		tuplehistory = [(x[0], x[1]) for x in self.servicelist.history]
+		tuplehistory = [tuple(x) for x in self.servicelist.history]
 		tuplehistory.reverse()
 
 		self["history"] = SimpleServiceList(tuplehistory)
@@ -63,13 +67,15 @@ class HistoryBrowser(Screen):
 	def ok(self):
 		cur = self["history"].getCurrent()
 		if cur:
-			# TODO: this seems buggy
-			if self.servicelist.getRoot() != cur[0]: #already in correct bouquet?
+			# XXX: seems ok, but is it? :-)
+			if len(cur) != 3:
+				cur = (None, cur[0], cur[1])
+			if self.servicelist.getRoot() != cur[1]: # already in correct bouquet?
 				self.servicelist.clearPath()
-				if self.servicelist.bouquet_root != cur[0]:
-					self.servicelist.enterPath(self.servicelist.bouquet_root)
-				self.servicelist.enterPath(cur[0])
-			self.servicelist.setCurrentSelection(cur[1])
+				if cur[0]:
+					self.servicelist.enterPath(cur[0])
+				self.servicelist.enterPath(cur[1])
+			self.servicelist.setCurrentSelection(cur[2])
 			self.servicelist.zap()
 		self.close() # TODO: do we really want to close here?
 
