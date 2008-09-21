@@ -24,5 +24,5 @@ def Plugins(**kwargs):
 	from Plugins.Plugin import PluginDescriptor
 	return [
 			PluginDescriptor(name="Mount Manager", where = PluginDescriptor.WHERE_AUTOSTART, fnc=autostart),
-			PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_MENU, fnc=menu)
+			PluginDescriptor(name="Mount Manager", description="Manage your network mounts", where = PluginDescriptor.WHERE_PLUGINMENU, fnc=main)
 	]
