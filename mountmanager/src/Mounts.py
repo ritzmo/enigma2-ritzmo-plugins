@@ -21,8 +21,8 @@ class Mounts():
 		self.commandSucceeded = True
 		self.commands = [(None, "modprobe cifs")]
 		self.container = eConsoleAppContainer()
-		self.container.appClosed.get().append(self.runFinished)
-		self.container.dataAvail.get().append(self.dataAvail)
+		self.container.appClosed.append(self.runFinished)
+		self.container.dataAvail.append(self.dataAvail)
 
 		# Initialize Timer
 		self.timer = eTimer()
