@@ -4,6 +4,7 @@ from twisted.protocols.ftp import FTPClient, FTPFileListProtocol
 
 from os import SEEK_END
 
+# XXX: did I ever actually test supportPartial?
 class FTPProgressDownloader(Protocol):
 	"""Download to a file from FTP and keep track of progress."""
 
@@ -64,7 +65,7 @@ class FTPProgressDownloader(Protocol):
 		d.addCallback(self.sizeRcvd).addErrback(self.ftpFetchList)
 
 	# Handle recieved msg
-	def listRcvd(self):
+	def listRcvd(self, *args):
 		# Quit if file not found
 		if not len(self.filelist.files):
 			self.connectionFailed()
@@ -80,18 +81,18 @@ class FTPProgressDownloader(Protocol):
 		# We know the size, so start fetching
 		self.ftpFetchFile()
 
-	def ftpFetchList(self):
+	def ftpFetchList(self, *args, **kwargs):
 		self.filelist = FTPFileListProtocol()
 		d = self.ftpclient.list(self.path, self.filelist)
 		d.addCallback(self.listRcvd).addErrback(self.connectionFailed)
 
 	def openFile(self):
 		if self.resume:
-			file = open(self.filename, 'w+b')
+			file = open(self.filename, 'ab')
 		else:
 			file = open(self.filename, 'wb')
 
-		return (file, file.size())
+		return (file, file.tell())
 
 	def ftpFetchFile(self):
 		offset = 0
