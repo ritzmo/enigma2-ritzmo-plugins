@@ -196,19 +196,21 @@ class MediaDownloader(Screen):
 	def gotProgress(self, pos, max):
 		newTime = time.time()
 		# Check if we're called the first time (got total)
-		if self.lastTime == 0:
+		lastTime = self.lastTime
+		if lastTime == 0:
 			self.lastTime = newTime
 
 		# We dont want to update more often than every two sec (could be done by a timer, but this should give a more accurate result though it might lag)
-		elif int(newTime - self.lastTime) >= 2:
+		elif int(newTime - lastTime) >= 2:
 			newLength = pos
 
-			self.lastApprox = round(((newLength - self.lastLength) / (newTime - self.lastTime) / 1024), 2)
+			lastApprox = round(((newLength - self.lastLength) / (newTime - lastTime) / 1024), 2)
 
-			secLen = int(round(((max-pos) / 1024) / self.lastApprox))
+			secLen = int(round(((max-pos) / 1024) / lastApprox))
 			self["eta"].setText(_("ETA %d:%02d min") % (secLen / 60, secLen % 60))
-			self["speed"].setText(_("%d kb/s") % (self.lastApprox))
+			self["speed"].setText(_("%d kb/s") % (lastApprox))
 
+			self.lastApprox = lastApprox
 			self.lastLength = newLength
 			self.lastTime = newTime
 
