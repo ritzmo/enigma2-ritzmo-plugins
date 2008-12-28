@@ -9,6 +9,7 @@ from Components.Label import Label
 # Download
 from VariableProgressSource import VariableProgressSource
 
+from Components.config import config
 from urlparse import urlparse, urlunparse
 
 import time
