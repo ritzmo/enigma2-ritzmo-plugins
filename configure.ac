@@ -13,9 +13,6 @@ mountmanager/Makefile
 mountmanager/etc/Makefile
 mountmanager/src/Makefile
 
-mediadownloader/Makefile
-mediadownloader/src/Makefile
-
 tictactoe/Makefile
 tictactoe/src/Makefile
 
