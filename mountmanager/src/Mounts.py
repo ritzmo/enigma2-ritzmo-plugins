@@ -5,11 +5,11 @@ from os import makedirs, path
 from enigma import eTimer, eConsoleAppContainer
 
 # Parse config
-from xml.dom.minidom import parse as minidom_parse
+from xml.etree.cElementTree import parse as cet_parse 
 
 XML_FSTAB = "/etc/enigma2/mounts.xml"
 
-class Mounts():
+class Mounts:
 	"""Manages Mounts declared in a XML-Document."""
 	def __init__(self):
 		# Read in XML when initing
@@ -26,31 +26,10 @@ class Mounts():
 
 		# Initialize Timer
 		self.timer = eTimer()
-		self.timer.timeout.get().append(self.mountTimeout)
+		self.timer.callback.append(self.mountTimeout)
 
 		# Try to load cifs module (non-critical)
 		self.nextCommand()
-
-	def getValue(self, definitions, default):
-		# Initialize Output
-		ret = ""
-
-		# How many definitions are present
-		Len = len(definitions)
-
-		# We have definitions
-		if Len > 0:
-			# Iterate through nodes of last one
-			for node in definitions[Len-1].childNodes:
-				# Append text if we have a text node
-				if node.nodeType == node.TEXT_NODE:
-					ret = ret + node.data
-		# If output is still empty return default
-		if not len(ret):
-			return default
-
-		# Otherwise return output
-		return ret
 
 	def reload(self):
 		# Initialize mounts to empty list
@@ -61,44 +40,52 @@ class Mounts():
 			return
 
 		# Let minidom parse mounts.xml
-		dom = minidom_parse(XML_FSTAB)
+		tree = cet_parse(XML_FSTAB).getroot()
 
-		# Config is stored in "mountmanager" element
-		for config in dom.getElementsByTagName("mountmanager"):
-			# Read out NFS Mounts
-			for nfs in dom.getElementsByTagName("nfs"):
-				for mount in nfs.getElementsByTagName("mount"):
-					try:
-						self.mounts.append(
-							(
-								"nfs",
-								self.getValue(mount.getElementsByTagName("active"), "0"),
-								self.getValue(mount.getElementsByTagName("ip"), "192.168.0.0"),
-								self.getValue(mount.getElementsByTagName("share"), "/exports/"),
-								self.getValue(mount.getElementsByTagName("dir"), "/media/net"),
-								self.getValue(mount.getElementsByTagName("options"), "rw,nolock")
-							)
-						)
-					except Exception, e:
-						print "[MountManager] Error reading Mounts:", e
+		def getValue(definitions, default):
+			# Initialize Output
+			ret = ""
 
-			# Read out CIFS Mounts
-			for cifs in dom.getElementsByTagName("cifs"):
-				for mount in cifs.getElementsByTagName("mount"):
-					try:
-						self.mounts.append(
-							(
-								"cifs",
-								self.getValue(mount.getElementsByTagName("active"), "0"),
-								self.getValue(mount.getElementsByTagName("ip"), "192.168.0.0"),
-								self.getValue(mount.getElementsByTagName("share"), "/exports/"),
-								self.getValue(mount.getElementsByTagName("dir"), "/media/net"),
-								self.getValue(mount.getElementsByTagName("username"), "guest"),
-								self.getValue(mount.getElementsByTagName("password"), "")
-							)
+			# How many definitions are present
+			Len = len(definitions)
+
+			return Len > 0 and definitions[Len-1].text or default
+
+
+		# Read out NFS Mounts
+		for nfs in tree.findall("nfs"):
+			for mount in nfs.findall("mount"):
+				try:
+					self.mounts.append(
+						(
+							"nfs",
+							getValue(mount.findall("active"), "0"),
+							getValue(mount.findall("ip"), "192.168.0.0"),
+							getValue(mount.findall("share"), "/exports/"),
+							getValue(mount.findall("dir"), "/media/net"),
+							getValue(mount.findall("options"), "rw,nolock")
 						)
-					except Exception, e:
-						print "[MountManager] Error reading Mounts:", e
+					)
+				except Exception, e:
+					print "[MountManager] Error reading Mounts:", e
+
+		# Read out CIFS Mounts
+		for cifs in tree.findall("cifs"):
+			for mount in cifs.findall("mount"):
+				try:
+					self.mounts.append(
+						(
+							"cifs",
+							getValue(mount.findall("active"), "0"),
+							getValue(mount.findall("ip"), "192.168.0.0"),
+							getValue(mount.findall("share"), "/exports/"),
+							getValue(mount.findall("dir"), "/media/net"),
+							getValue(mount.findall("username"), "guest"),
+							getValue(mount.findall("password"), "")
+						)
+					)
+				except Exception, e:
+					print "[MountManager] Error reading Mounts:", e
 
 	def getList(self):
 		# Return List of Mountpoints
@@ -154,11 +141,11 @@ class Mounts():
 			list.append('<nfs>\n')
 			for mount in nfsmounts:
 				list.append(' <mount>\n')
-				list.append(''.join(["  <active>", mount[1], "</active>\n"]))
-				list.append(''.join(["  <ip>", mount[2], "</ip>\n"]))
-				list.append(''.join(["  <share>", mount[3], "</share>\n"]))
-				list.append(''.join(["  <dir>", mount[4], "</dir>\n"]))
-				list.append(''.join(["  <options>", mount[5], "</options>\n"]))
+				list.extend(["  <active>", mount[1], "</active>\n"])
+				list.extend(["  <ip>", mount[2], "</ip>\n"])
+				list.extend(["  <share>", mount[3], "</share>\n"])
+				list.extend(["  <dir>", mount[4], "</dir>\n"])
+				list.extend(["  <options>", mount[5], "</options>\n"])
 				list.append(' </mount>\n')
 			list.append('</nfs>\n')
 
@@ -167,12 +154,12 @@ class Mounts():
 			list.append('<cifs>\n')
 			for mount in cifsmounts:
 				list.append(' <mount>\n')
-				list.append(''.join(["  <active>", mount[1], "</active>\n"]))
-				list.append(''.join(["  <ip>", mount[2], "</ip>\n"]))
-				list.append(''.join(["  <share>", mount[3], "</share>\n"]))
-				list.append(''.join(["  <dir>", mount[4], "</dir>\n"]))
-				list.append(''.join(["  <username>", mount[5], "</username>\n"]))
-				list.append(''.join(["  <password>", mount[6], "</password>\n"]))
+				list.extend(["  <active>", mount[1], "</active>\n"])
+				list.extend(["  <ip>", mount[2], "</ip>\n"])
+				list.extend(["  <share>", mount[3], "</share>\n"])
+				list.extend(["  <dir>", mount[4], "</dir>\n"])
+				list.extend(["  <username>", mount[5], "</username>\n"])
+				list.extend(["  <password>", mount[6], "</password>\n"])
 				list.append(' </mount>\n')
 			list.append('</cifs>\n')
 
