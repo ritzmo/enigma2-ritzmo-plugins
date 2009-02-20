@@ -1,1 +1,0 @@
-SUBDIRS = etc src

@@ -9,10 +9,6 @@ Makefile
 historybrowser/Makefile
 historybrowser/src/Makefile
 
-mountmanager/Makefile
-mountmanager/etc/Makefile
-mountmanager/src/Makefile
-
 tictactoe/Makefile
 tictactoe/src/Makefile
 
