@@ -10,7 +10,9 @@ from Components.MenuList import MenuList
 from Components.ActionMap import ActionMap
 from Components.Button import Button
 
-from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, gFont
+from Components.config import config
+
+from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, gFont
 
 from transmission import transmission
 
@@ -26,9 +28,17 @@ class EmissionOverviewList(MenuList):
 	def buildListboxEntry(self, torrent):
 		size = self.l.getItemSize()
 
+		if torrent.status == "downloading":
+			eta = str(torrent.eta or '?:??:??')
+		else:
+			eta = ""
+
+		# XXX: status icons would be nice :-)
+
 		return [
 			torrent,
-			(eListboxPythonMultiContent.TYPE_TEXT, 5, 1, size.width() - 10, size.height(), 0, RT_HALIGN_LEFT, torrent.name.encode('utf-8', 'ignore'))
+			(eListboxPythonMultiContent.TYPE_TEXT, 1, 1, size.width() - 85, size.height(), 0, RT_HALIGN_LEFT, torrent.name.encode('utf-8', 'ignore')),
+			(eListboxPythonMultiContent.TYPE_TEXT, size.width() - 80, 1, 79, size.height(), 0, RT_HALIGN_RIGHT, eta.encode('utf-8', 'ignore'))
 		]
 
 class EmissionOverview(Screen):
@@ -46,8 +56,13 @@ class EmissionOverview(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		# defaults only for now
-		self.transmission = transmission.Client()
+		# XXX: there is no gui for this yet
+		self.transmission = transmission.Client(
+			address = config.plugins.emission.hostname.value,
+			port = config.plugins.emission.port.value,
+			user = config.plugins.emission.username.value,
+			password = config.plugins.emission.password.value
+		)
 
 		self["SetupActions"] = ActionMap(["SetupActions"],
 		{
@@ -55,7 +70,7 @@ class EmissionOverview(Screen):
 			"cancel": self.close,
 		})
 
-		self["key_red"] = Button("")
+		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button("")
 		self["key_yellow"] = Button("")
 		self["key_blue"] = Button("")
@@ -86,8 +101,6 @@ class EmissionOverview(Screen):
 				self.transmission,
 				cur
 			)
-
-			print "[EmissionOverview] ok", cur
 
 	# XXX: some way to add new torrents would be nice
 	# they could be loaded from the harddisk or via twisted
