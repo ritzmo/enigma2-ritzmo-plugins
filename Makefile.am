@@ -1,2 +1,8 @@
 AUTOMAKE_OPTIONS = gnu
-SUBDIRS = historybrowser mountmanager tictactoe weatherforecast
+SUBDIRS = \
+	emission \
+	historybrowser \
+	mountmanager \
+	tictactoe \
+	weatherforecast
+
