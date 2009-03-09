@@ -17,10 +17,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 		<widget name="downspeed" position="470,5" size="85,20" halign="right" font="Regular;18" />
 		<eLabel position="420,27" text="UL: " size="50,20" font="Regular;18" transparent="1" />
 		<widget name="upspeed" position="470,27" size="85,20" halign="right" font="Regular;18" />
-		<widget name="name" position="5,5" size="420,22" font="Regular;18" />
-		<widget name="peers" position="5,27" size="545,22" font="Regular;18" />
+		<widget name="name" position="5,5" size="420,20" font="Regular;18" />
+		<widget name="peers" position="5,27" size="545,20" font="Regular;18" />
 		<widget source="progress" render="Progress" position="5,54" size="555,6" />
-		<eLabel text="Files" position="5,65" size="100,20" font="Regular;18" />
+		<widget name="files_text" position="5,65" size="100,20" font="Regular;18" />
 		<widget source="files" render="Listbox" position="0,85" size="566,145" scrollbarMode="showAlways">
 			<convert type="TemplatedMultiContent">
 				{"template": [
@@ -37,14 +37,14 @@ class EmissionDetailview(Screen, HelpableScreen):
 				 }
 			</convert>
 		</widget>
-		<ePixmap position="0,235" zPosition="4" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,235" zPosition="4" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,235" zPosition="4" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,235" zPosition="4" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<ePixmap position="0,235" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,235" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,235" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,235" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="420,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, daemon, torrent, prevFunc = None, nextFunc = None):
@@ -69,8 +69,8 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 		self["ColorActions"] = HelpableActionMap(self, "ColorActions",
 		{
-			"yellow": (self.yellow, _("toggle download status")),
-			"blue": (self.blue, _("remove torrent"))
+			"yellow": (self.toggleStatus, _("toggle download status")),
+			"blue": (self.remove , _("remove torrent")),
 		})
 
 		self["key_red"] = Button(_("Cancel"))
@@ -85,6 +85,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["downspeed"] = Label("")
 		self["peers"] = Label("")
 		self["name"] = Label(torrent.name)
+		self["files_text"] = Label(_("Files"))
 		self["files"] = List([])
 		self["progress"] = Progress(int(torrent.progress))
 
@@ -110,7 +111,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 				self["name"].setText(torrent.name)
 				self.updateList()
 
-	def yellow(self):
+	def toggleStatus(self):
 		id = self.torrentid
 		torrent = self.transmission.info([id])[id]
 		status = torrent.status
@@ -121,7 +122,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			self.transmission.stop([id])
 			self["key_yellow"].setText(_("start"))
 
-	def blue(self):
+	def remove(self):
 		self.session.openWithCallback(
 			self.removeCallback,
 			ChoiceBox,
