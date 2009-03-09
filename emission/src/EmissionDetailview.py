@@ -30,9 +30,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 						MultiContentEntryText(pos=(365,26), size=(70,20), text = "Total", font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(435,26), size=(100,20), text = 5, font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(220,26), size=(160,20), text = 6, font = 1, flags = RT_VALIGN_CENTER),
+						(eListboxPythonMultiContent.TYPE_PROGRESS, 0, 47, 540, 6, -7),
 					],
 				  "fonts": [gFont("Regular", 20),gFont("Regular", 18)],
-				  "itemHeight": 46
+				  "itemHeight": 54
 				 }
 			</convert>
 		</widget>
@@ -166,9 +167,12 @@ class EmissionDetailview(Screen, HelpableScreen):
 		for id in files:
 			x = files[id]
 			# x is dict: 'priority': 'normal', 'completed': 340237462, 'selected': True, 'name': 'btra5328500k.wmv', 'size': 508566678
-			l.append((id, x['priority'], str(x['completed']/1048576) + " MB", \
-				x['selected'], x['name'], str(x['size']/1048576) + " MB", \
-				x['selected'] and _("downloading") or _("skipping")
+			completed = x['completed']
+			size = x['size'] or 1 # to avoid division by zero ;-)
+			l.append((id, x['priority'], str(completed/1048576) + " MB", \
+				x['selected'], x['name'], str(size/1048576) + " MB", \
+				x['selected'] and _("downloading") or _("skipping"), \
+				int(100*(completed / float(size)))
 			))
 
 		index = self["files"].index
