@@ -11,13 +11,14 @@ config.plugins.emission.password = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.port = ConfigNumber(default = 9091)
 
 def main(session, **kwargs):
-	#reload(EmissionOverview)
+	reload(EmissionOverview)
 	session.open(
 		EmissionOverview.EmissionOverview
 	)
 
 def Plugins(**kwargs):
 	return [
-		PluginDescriptor(name = "e-mission", description = _("enigma2 frontend to transmission-daemon"), where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main)
+		PluginDescriptor(name = "e-mission", description = _("enigma2 frontend to transmission-daemon"), where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main),
+		PluginDescriptor(name = "e-mission...", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main),
 	]
 

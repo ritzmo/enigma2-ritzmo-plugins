@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-#
-# note to myself:
-# using transmission(rpc) now since it pretty much just works
-#
-
 from Screens.Screen import Screen
-from Components.ActionMap import ActionMap
+from Screens.HelpMenu import HelpableScreen
+from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
 from Components.Label import Label
 from Components.Sources.List import List
+from Components.Sources.Progress import Progress
 
 from enigma import eTimer
 
-class EmissionDetailview(Screen):
+class EmissionDetailview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,155" size="565,280">
 		<eLabel position="420,5" text="DL: " size="50,20" font="Regular;18" transparent="1" />
 		<widget name="downspeed" position="470,5" size="85,20" halign="right" font="Regular;18" transparent="1" />
@@ -30,6 +27,7 @@ class EmissionDetailview(Screen):
 						MultiContentEntryText(pos=(117,26), size=(100,20), text = 2, font = 1, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(388,26), size=(70,20), text = "Total", font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(458,26), size=(100,20), text = 5, font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
+						MultiContentEntryText(pos=(220,26), size=(180,20), text = 6, font = 1, flags = RT_VALIGN_CENTER),
 					],
 				  "fonts": [gFont("Regular", 20),gFont("Regular", 18)],
 				  "itemHeight": 46
@@ -48,29 +46,71 @@ class EmissionDetailview(Screen):
 
 	def __init__(self, session, daemon, torrent):
 		Screen.__init__(self, session)
+		HelpableScreen.__init__(self)
 		self.transmission = daemon
 		self.torrentid = torrent.id
 
-		self["SetupActions"] = ActionMap(["SetupActions"],
+		# XXX: implement next/previous dl?
+
+		self["SetupActions"] = HelpableActionMap(self, "SetupActions",
 		{
-			"ok": self.ok,
+			"ok": (self.ok, _("toggle file status")),
 			"cancel": self.close,
+		})
+
+		self["ColorActions"] = HelpableActionMap(self, "ColorActions",
+		{
+			"yellow": (self.yellow, _("toggle download status")),
+			"blue": (self.blue, _("remove torrent"))
 		})
 
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button("")
-		self["key_yellow"] = Button("")
-		self["key_blue"] = Button("")
+		if torrent.status == "stopped":
+			self["key_yellow"] = Button(_("start"))
+		else:
+			self["key_yellow"] = Button(_("stop"))
+		self["key_blue"] = Button(_("remove"))
 
 		self["upspeed"] = Label("")
 		self["downspeed"] = Label("")
 		self["peers"] = Label("")
 		self["name"] = Label(torrent.name) # this should be pretty constant so we only set it once
 		self["files"] = List([])
+		self["progress"] = Progress(torrent.progress)
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
 		self.timer.start(0, 1)
+
+	def yellow(self):
+		id = self.torrentid
+		torrent = self.transmission.info([id])[id]
+		status = torrent.status
+		if status == "stopped":
+			self.transmission.start([id])
+			self["key_yellow"].setText(_("pause"))
+		elif status in ("downloading", "seeding"):
+			self.transmission.stop([id])
+			self["key_yellow"].setText(_("start"))
+
+	def blue(self):
+		self.session.openWithCallback(
+			self.removeCallback,
+			ChoiceBox,
+			_("Really delete torrent?"),
+			[(_("no"), "no"),
+			(_("yes"), "yes"),
+			(_("yes, including data"), "data")]
+		)
+
+	def removeCallback(self, ret = None):
+		if ret:
+			ret = ret[1]
+			if ret == "yes":
+				self.transmission.remove([self.torrentid], delete_data = False)
+			elif ret == "data":
+				self.transmission.remove([self.torrentid], delete_data = True)
 
 	def updateList(self, *args, **kwargs):
 		id = self.torrentid
@@ -78,6 +118,7 @@ class EmissionDetailview(Screen):
 
 		self["upspeed"].setText(_("%d kb/s") % (torrent.rateUpload / 1024))
 		self["downspeed"].setText(_("%d kb/s") % (torrent.rateDownload / 1024))
+		self["progress"].setValue(torrent.progress)
 
 		status = torrent.status
 		if status == 'check pending':
@@ -97,13 +138,25 @@ class EmissionDetailview(Screen):
 		for id in files:
 			x = files[id]
 			# x is dict: 'priority': 'normal', 'completed': 340237462, 'selected': True, 'name': 'btra5328500k.wmv', 'size': 508566678
-			l.append((id, x['priority'], str(x['completed']/1048576) + " MB", x['selected'], x['name'], str(x['size']/1048576) + " MB"))
+			l.append((id, x['priority'], str(x['completed']/1048576) + " MB", \
+				x['selected'], x['name'], str(x['size']/1048576) + " MB", \
+				x['selected'] and _("downloading") or _("skipping")
+			))
 		self["files"].updateList(l)
 
-		self.timer.startLongTimer(3)
+		self.timer.startLongTimer(5)
 
 	def ok(self):
-		print "[EmissionDetailview] ok", self["files"].getCurrent()
+		cur = self["files"].getCurrent()
+		if cur and False: # set_files broken in transmissionrpc :-) 
+			self.transmission.set_files({
+				self.torrentid: {
+					cur[0]: {
+						'priority': cur[1],
+						'selected': not cur[3]
+					}
+				}
+			})
 
 	def close(self):
 		self.timer.stop()

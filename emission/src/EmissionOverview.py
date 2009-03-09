@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#
-# note to myself:
-# using transmission(rpc) now since it pretty much just works
-#
-
 from Screens.Screen import Screen
 from Components.MenuList import MenuList
 from Components.ActionMap import ActionMap
@@ -17,6 +12,7 @@ from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, RT_HALIGN
 from transmission import transmission
 
 import EmissionDetailview
+import EmissionSetup
 
 class EmissionOverviewList(MenuList):
 	def __init__(self, list):
@@ -56,7 +52,6 @@ class EmissionOverview(Screen):
 
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		# XXX: there is no gui for this yet
 		self.transmission = transmission.Client(
 			address = config.plugins.emission.hostname.value,
 			port = config.plugins.emission.port.value,
@@ -70,10 +65,15 @@ class EmissionOverview(Screen):
 			"cancel": self.close,
 		})
 
+		self["ColorActions"] = ActionMap(["ColorActions"],
+		{
+			"blue": self.configure,
+		})
+
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button("")
 		self["key_yellow"] = Button("")
-		self["key_blue"] = Button("")
+		self["key_blue"] = Button(_("Configure"))
 
 		# note:
 		# This should give some kind of overview actually (currently only name)
@@ -83,8 +83,28 @@ class EmissionOverview(Screen):
 		self.timer.callback.append(self.updateList)
 		self.timer.start(0, 1)
 
+	def configureCallback(self):
+		self.transmission = transmission.Client(
+			address = config.plugins.emission.hostname.value,
+			port = config.plugins.emission.port.value,
+			user = config.plugins.emission.username.value,
+			password = config.plugins.emission.password.value
+		)
+		self.updateList()
+
+	def configure(self):
+		reload(EmissionSetup)
+		self.timer.stop()
+		self.session.openWithCallback(
+			self.configureCallback,
+			EmissionSetup.EmissionSetup
+		)
+
 	def updateList(self, *args, **kwargs):
-		list = self.transmission.list().values()
+		try:
+			list = self.transmission.list().values()
+		except transmission.TransmissionError:
+			list = []
 		self.list = [(x,) for x in list]
 		self['list'].setList(self.list)
 		self.timer.startLongTimer(10)
@@ -93,7 +113,7 @@ class EmissionOverview(Screen):
 		cur = self['list'].getCurrent()
 		if cur:
 			cur = cur and cur[0]
-			#reload(EmissionDetailview)
+			reload(EmissionDetailview)
 			self.timer.stop()
 			self.session.openWithCallback(
 				self.updateList,
