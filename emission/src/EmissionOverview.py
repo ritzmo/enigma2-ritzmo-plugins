@@ -4,47 +4,21 @@ from Screens.Screen import Screen
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
 from Screens.LocationBox import LocationBox
-from Components.MenuList import MenuList
 from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
 from Components.FileList import FileList
 from Components.Label import Label
 from Components.Pixmap import Pixmap
+from Components.Sources.List import List
 
 from Components.config import config
 
 from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, gFont
 
-import base64
 from transmission import transmission
 
 import EmissionDetailview
 import EmissionSetup
-
-class EmissionOverviewList(MenuList):
-	def __init__(self, list):
-		MenuList.__init__(self, list, False, eListboxPythonMultiContent)
-		self.l.setBuildFunc(self.buildListboxEntry)
-		self.l.setFont(0, gFont("Regular", 22))
-		self.l.setItemHeight(30)
-
-	def buildListboxEntry(self, torrent):
-		size = self.l.getItemSize()
-
-		# XXX: status icons would be nice :-)
-		if torrent.status == "downloading":
-			eta = str(torrent.eta or '?:??:??')
-			return [
-				torrent,
-				(eListboxPythonMultiContent.TYPE_TEXT, 1, 1, size.width() - 95, 24, 0, RT_HALIGN_LEFT, torrent.name.encode('utf-8', 'ignore')),
-				(eListboxPythonMultiContent.TYPE_TEXT, size.width() - 90, 1, 89, 24, 0, RT_HALIGN_RIGHT, eta.encode('utf-8', 'ignore')),
-				(eListboxPythonMultiContent.TYPE_PROGRESS, 1, 24, size.width(), 6, int(torrent.progress)),
-			]
-		return [
-			torrent,
-			(eListboxPythonMultiContent.TYPE_TEXT, 1, 1, size.width() - 2, 24, 0, RT_HALIGN_LEFT, torrent.name.encode('utf-8', 'ignore')),
-			(eListboxPythonMultiContent.TYPE_PROGRESS, 1, 24, size.width(), 6, int(torrent.progress)),
-		]
 
 class TorrentLocationBox(LocationBox):
 	def __init__(self, session):
@@ -91,12 +65,23 @@ class TorrentLocationBox(LocationBox):
 class EmissionOverview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionOverview" title="Torrent Overview" position="75,155" size="565,300">
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="all_sel" pixmap="skin_default/epg_now.png" />
-		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="5,10" zPosition="2" name="all_text" halign="center" font="Regular;18" />
+		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="5,7" zPosition="2" name="all_text" halign="center" font="Regular;18" />
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="downloading_sel" pixmap="skin_default/epg_next.png" />
-		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="111,10" zPosition="2" name="downloading_text" halign="center" font="Regular;18" />
+		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="111,7" zPosition="2" name="downloading_text" halign="center" font="Regular;18" />
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="seeding_sel" pixmap="skin_default/epg_more.png" />
-		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="200,10" zPosition="2" name="seeding_text" halign="center" font="Regular;18" />
-		<widget name="list" position="5,30" size="555,225" scrollbarMode="showOnDemand" />
+		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="212,7" zPosition="2" name="seeding_text" halign="center" font="Regular;18" />
+		<widget source="list" render="Listbox" position="0,30" size="565,225" scrollbarMode="showAlways">
+			<convert type="TemplatedMultiContent">
+				{"template": [
+						MultiContentEntryText(pos=(2,2), size=(555,22), text = 1, font = 0, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
+						MultiContentEntryText(pos=(2,26), size=(555,18), text = 2, font = 1, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
+						(eListboxPythonMultiContent.TYPE_PROGRESS, 0, 44, 537, 6, -3),
+					],
+				  "fonts": [gFont("Regular", 20),gFont("Regular", 16)],
+				  "itemHeight": 51
+				 }
+			</convert>
+		</widget>
 		<ePixmap position="0,260" zPosition="4" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
 		<ePixmap position="140,260" zPosition="4" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
 		<ePixmap position="280,260" zPosition="4" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
@@ -157,8 +142,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		self["seeding_sel"] = Pixmap()
 		self["seeding_sel"].hide()
 
-		# This should actually give some kind of overview (currently just name and eta or is this enough?)
-		self['list'] = EmissionOverviewList([])
+		self['list'] = List([])
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
@@ -180,13 +164,31 @@ class EmissionOverview(Screen, HelpableScreen):
 					self.newDl,
 					TorrentLocationBox
 				)
+			elif ret == "pauseShown":
+				self.transmission.stop([x[0].id for x in self.list])
+			elif ret == "unpauseShown":
+				self.transmission.start([x[0].id for x in self.list])
+			elif ret == "pauseAll":
+				try:
+					self.transmission.stop([x.id for x in self.transmission.list().values()])
+				except transmission.TransmissionError:
+					pass
+			elif ret == "unpauseAll":
+				try:
+					self.transmission.start([x.id for x in self.transmission.list().values()])
+				except transmission.TransmissionError:
+					pass
 
 	def menu(self):
 		self.session.openWithCallback(
 			self.menuCallback,
 			ChoiceBox,
 			_("What do you want to do?"),
-			[(_("Add new download"), "newDl")],
+			[(_("Add new download"), "newDl"),
+			(_("Pause shown"), "pauseShown"),
+			(_("Unpause shown"), "unpauseShown"),
+			(_("Pause all"), "pauseAll"),
+			(_("Unpause all"), "pauseAll")],
 		)
 
 	def showHideSetTextMagic(self):
@@ -232,12 +234,12 @@ class EmissionOverview(Screen, HelpableScreen):
 		self.updateList()
 
 	def prevItem(self):
-		self['list'].up()
+		self['list'].selectPrevious()
 		cur = self['list'].getCurrent()
 		return cur and cur[0]
 
 	def nextItem(self):
-		self['list'].down()
+		self['list'].selectNext()
 		cur = self['list'].getCurrent()
 		return cur and cur[0]
 
@@ -265,19 +267,35 @@ class EmissionOverview(Screen, HelpableScreen):
 			# XXX: some hint in gui would be nice
 			list = []
 		if self.list_type == self.LIST_TYPE_ALL:
-			self.list = [(x,) for x in list]
+			self.list = [
+				(x, x.name.encode('utf-8', 'ignore'),
+				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
+				for x in list
+			]
 		elif self.list_type == self.LIST_TYPE_DOWNLOADING:
-			self.list = [(x,) for x in list if x.status == "downloading"]
+			self.list = [
+				(x, x.name.encode('utf-8', 'ignore'),
+				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
+				for x in list if x.status == "downloading"
+			]
 		elif self.list_type == self.LIST_TYPE_SEEDING:
-			self.list = [(x,) for x in list if x.status == "seeding"]
+			self.list = [
+				(x, x.name.encode('utf-8', 'ignore'),
+				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
+				for x in list if x.status == "seeding"
+			]
 
+		# XXX: this is a little ugly but this way we have the least
+		# visible distortion :-)
+		index = self['list'].index
 		self['list'].setList(self.list)
+		self['list'].index = index
 		self.timer.startLongTimer(10)
 
 	def ok(self):
 		cur = self['list'].getCurrent()
 		if cur:
-			cur = cur and cur[0]
+			cur = cur[0]
 			reload(EmissionDetailview)
 			self.timer.stop()
 			self.session.openWithCallback(

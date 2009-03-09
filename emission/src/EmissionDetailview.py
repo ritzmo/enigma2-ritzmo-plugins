@@ -21,16 +21,15 @@ class EmissionDetailview(Screen, HelpableScreen):
 		<widget name="peers" position="5,27" size="545,22" font="Regular;18" />
 		<widget source="progress" render="Progress" position="5,54" size="555,6" />
 		<eLabel text="Files" position="5,65" size="100,20" font="Regular;18" />
-		<!-- this sucks with scrollbar :-) -->
-		<widget source="files" render="Listbox" position="5,85" size="560,145">
+		<widget source="files" render="Listbox" position="0,85" size="566,145" scrollbarMode="showAlways">
 			<convert type="TemplatedMultiContent">
 				{"template": [
 						MultiContentEntryText(pos=(2,2), size=(560,22), text = 4, font = 0, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(2,26), size=(110,20), text = "Downloaded", font = 1, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
 						MultiContentEntryText(pos=(117,26), size=(100,20), text = 2, font = 1, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
-						MultiContentEntryText(pos=(388,26), size=(70,20), text = "Total", font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
-						MultiContentEntryText(pos=(458,26), size=(100,20), text = 5, font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
-						MultiContentEntryText(pos=(220,26), size=(180,20), text = 6, font = 1, flags = RT_VALIGN_CENTER),
+						MultiContentEntryText(pos=(365,26), size=(70,20), text = "Total", font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
+						MultiContentEntryText(pos=(435,26), size=(100,20), text = 5, font = 1, flags = RT_HALIGN_RIGHT|RT_VALIGN_CENTER),
+						MultiContentEntryText(pos=(220,26), size=(160,20), text = 6, font = 1, flags = RT_VALIGN_CENTER),
 					],
 				  "fonts": [gFont("Regular", 20),gFont("Regular", 18)],
 				  "itemHeight": 46
@@ -171,8 +170,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 				x['selected'], x['name'], str(x['size']/1048576) + " MB", \
 				x['selected'] and _("downloading") or _("skipping")
 			))
-		self["files"].updateList(l)
 
+		index = self["files"].index
+		self["files"].setList(l)
+		self["files"].index = index
 		self.timer.startLongTimer(5)
 
 	def ok(self):
