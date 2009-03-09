@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from Screens.Screen import Screen
+from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
 from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
@@ -12,14 +13,16 @@ from enigma import eTimer
 
 class EmissionDetailview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,155" size="565,280">
-		<eLabel position="420,5" text="DL: " size="50,20" font="Regular;18" transparent="1" />
-		<widget name="downspeed" position="470,5" size="85,20" halign="right" font="Regular;18" transparent="1" />
+		<eLabel position="420,5" text="DL: " size="50,20" font="Regular;18" />
+		<widget name="downspeed" position="470,5" size="85,20" halign="right" font="Regular;18" />
 		<eLabel position="420,27" text="UL: " size="50,20" font="Regular;18" transparent="1" />
-		<widget name="upspeed" position="470,27" size="85,20" halign="right" font="Regular;18" transparent="1" />
-		<widget name="name" position="5,5" size="420,22" font="Regular;18" transparent="1" />
-		<widget name="peers" position="5,27" size="545,22" font="Regular;18" transparent="1" />
-		<eLabel text="Files" position="5,65" size="100,20" font="Regular;18" transparent="1" />
-		<widget source="files" render="Listbox" position="5,85" size="560,110" transparent="1" scrollbarMode="showOnDemand">
+		<widget name="upspeed" position="470,27" size="85,20" halign="right" font="Regular;18" />
+		<widget name="name" position="5,5" size="420,22" font="Regular;18" />
+		<widget name="peers" position="5,27" size="545,22" font="Regular;18" />
+		<widget source="progress" render="Progress" position="5,54" size="555,6" />
+		<eLabel text="Files" position="5,65" size="100,20" font="Regular;18" />
+		<!-- this sucks with scrollbar :-) -->
+		<widget source="files" render="Listbox" position="5,85" size="560,145">
 			<convert type="TemplatedMultiContent">
 				{"template": [
 						MultiContentEntryText(pos=(2,2), size=(560,22), text = 4, font = 0, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
@@ -44,13 +47,19 @@ class EmissionDetailview(Screen, HelpableScreen):
 		<widget name="key_blue" position="420,235" zPosition="5" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
-	def __init__(self, session, daemon, torrent):
+	def __init__(self, session, daemon, torrent, prevFunc = None, nextFunc = None):
 		Screen.__init__(self, session)
 		HelpableScreen.__init__(self)
 		self.transmission = daemon
 		self.torrentid = torrent.id
+		self.prevFunc = prevFunc
+		self.nextFunc = nextFunc
 
-		# XXX: implement next/previous dl?
+		self["ChannelSelectBaseActions"] = HelpableActionMap(self, "ChannelSelectBaseActions",
+		{
+			"prevMarker": (self.prevDl, _("show previous download details")),
+			"nextMarker": (self.nextDl, _("show next download details")),
+		})
 
 		self["SetupActions"] = HelpableActionMap(self, "SetupActions",
 		{
@@ -75,13 +84,31 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["upspeed"] = Label("")
 		self["downspeed"] = Label("")
 		self["peers"] = Label("")
-		self["name"] = Label(torrent.name) # this should be pretty constant so we only set it once
+		self["name"] = Label(torrent.name)
 		self["files"] = List([])
-		self["progress"] = Progress(torrent.progress)
+		self["progress"] = Progress(int(torrent.progress))
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
 		self.timer.start(0, 1)
+
+	def prevDl(self):
+		if self.prevFunc:
+			torrent = self.prevFunc()
+			if torrent:
+				self.timer.stop()
+				self.torrentid = torrent.id
+				self["name"].setText(torrent.name)
+				self.updateList()
+
+	def nextDl(self):
+		if self.nextFunc:
+			torrent = self.nextFunc()
+			if torrent:
+				self.timer.stop()
+				self.torrentid = torrent.id
+				self["name"].setText(torrent.name)
+				self.updateList()
 
 	def yellow(self):
 		id = self.torrentid
@@ -109,8 +136,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 			ret = ret[1]
 			if ret == "yes":
 				self.transmission.remove([self.torrentid], delete_data = False)
+				self.close()
 			elif ret == "data":
 				self.transmission.remove([self.torrentid], delete_data = True)
+				self.close()
 
 	def updateList(self, *args, **kwargs):
 		id = self.torrentid
@@ -118,7 +147,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 		self["upspeed"].setText(_("%d kb/s") % (torrent.rateUpload / 1024))
 		self["downspeed"].setText(_("%d kb/s") % (torrent.rateDownload / 1024))
-		self["progress"].setValue(torrent.progress)
+		self["progress"].setValue(int(torrent.progress))
 
 		status = torrent.status
 		if status == 'check pending':
@@ -148,7 +177,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 	def ok(self):
 		cur = self["files"].getCurrent()
-		if cur and False: # set_files broken in transmissionrpc :-) 
+		if cur and False: # set_files broken in transmissionrpc :-)
 			self.transmission.set_files({
 				self.torrentid: {
 					cur[0]: {

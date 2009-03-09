@@ -19,7 +19,7 @@ class EmissionSetup(Screen, ConfigListScreen):
 		self.skinName = "Setup"
 
 		# Summary
-		self.setup_title = _("emission settings")
+		self.setup_title = _("eMission settings")
 		self.onChangedEntry = []
 
 		ConfigListScreen.__init__(
@@ -39,7 +39,7 @@ class EmissionSetup(Screen, ConfigListScreen):
 		self["canceltext"] = Label(_("Cancel"))
 		self["ok"] = Pixmap()
 		self["cancel"] = Pixmap()
-		self["title"] = Label(_("e-mission settings"))
+		self["title"] = Label(_("eMission settings"))
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions"],
@@ -55,7 +55,7 @@ class EmissionSetup(Screen, ConfigListScreen):
 		self.onLayoutFinish.append(self.setCustomTitle)
 
 	def setCustomTitle(self):
-		self.setTitle(_("Configure e-mission"))
+		self.setTitle(_("Configure eMission"))
 
 	def changed(self):
 		for x in self.onChangedEntry:
