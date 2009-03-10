@@ -12,16 +12,22 @@ from Components.Sources.Progress import Progress
 from enigma import eTimer
 
 class EmissionDetailview(Screen, HelpableScreen):
-	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,155" size="565,280">
-		<eLabel position="420,5" text="DL: " size="50,20" font="Regular;18" />
-		<widget name="downspeed" position="470,5" size="85,20" halign="right" font="Regular;18" />
-		<eLabel position="420,27" text="UL: " size="50,20" font="Regular;18" transparent="1" />
-		<widget name="upspeed" position="470,27" size="85,20" halign="right" font="Regular;18" />
-		<widget name="name" position="5,5" size="420,20" font="Regular;18" />
-		<widget name="peers" position="5,27" size="545,20" font="Regular;18" />
-		<widget source="progress" render="Progress" position="5,54" size="555,6" />
-		<widget name="files_text" position="5,65" size="100,20" font="Regular;18" />
-		<widget source="files" render="Listbox" position="0,85" size="566,145" scrollbarMode="showAlways">
+	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,75" size="565,450">
+		<eLabel position="450,5" text="DL: " size="30,20" font="Regular;18" />
+		<widget name="downspeed" position="480,5" size="85,20" halign="right" font="Regular;18" />
+		<eLabel position="450,27" text="UL: " size="30,20" font="Regular;18" transparent="1" />
+		<widget name="upspeed" position="480,27" size="85,20" halign="right" font="Regular;18" />
+		<widget name="name" position="5,5" size="445,20" font="Regular;18" />
+		<widget name="peers" position="5,27" size="555,20" font="Regular;18" />
+		<!-- XXX: the actual uri might end up in the next line, this sucks :-) -->
+		<widget name="tracker" position="5,50" size="555,20" font="Regular;18" />
+		<widget name="private" position="5,73" size="555,20" font="Regular;18" />
+		<widget name="eta" position="5,130" size="555,20" font="Regular;18" />
+		<widget name="progress_text" position="5,155" size="400,20" font="Regular;18" />
+		<widget name="ratio" position="410,155" size="150,20" font="Regular;18" halign="right" />
+		<widget source="progress" render="Progress" position="5,180" size="555,6" />
+		<widget name="files_text" position="5,190" size="100,20" font="Regular;18" />
+		<widget source="files" render="Listbox" position="0,215" size="566,185" scrollbarMode="showAlways">
 			<convert type="TemplatedMultiContent">
 				{"template": [
 						MultiContentEntryText(pos=(2,2), size=(560,22), text = 4, font = 0, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
@@ -37,14 +43,14 @@ class EmissionDetailview(Screen, HelpableScreen):
 				 }
 			</convert>
 		</widget>
-		<ePixmap position="0,235" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,235" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,235" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,235" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,235" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<ePixmap position="0,405" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,405" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,405" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,405" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="420,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, daemon, torrent, prevFunc = None, nextFunc = None):
@@ -88,6 +94,11 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["files_text"] = Label(_("Files"))
 		self["files"] = List([])
 		self["progress"] = Progress(int(torrent.progress))
+		self["progress_text"] = Label("")
+		self["ratio"] = Label("")
+		self["eta"] = Label("")
+		self["tracker"] = Label("")
+		self["private"] = Label("")
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
@@ -151,17 +162,31 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["progress"].setValue(int(torrent.progress))
 
 		status = torrent.status
+		progressText = ''
 		if status == 'check pending':
 			peerText = _("check pending") # ???
 		elif status == 'checking':
 			peerText = _("checking")
+			progressText = str(torrent.recheckProgress) # XXX: what is this? :D
 		elif status == 'downloading':
 			peerText = _("Downloading from %d of %d peers") % (torrent.peersSendingToUs, torrent.peersConnected)
+			progressText = _("Downloaded %d of %d MB (%d%%)") % (torrent.downloadedEver/1048576, torrent.sizeWhenDone/1048576, torrent.progress)
 		elif status == 'seeding':
 			peerText = _("Seeding to %d of %d peers") % (torrent.peersGettingFromUs, torrent.peersConnected)
+			progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
 		elif status == 'stopped':
 			peerText = _("stopped")
+			progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
 		self["peers"].setText(peerText)
+		self["progress_text"].setText(progressText)
+		self["ratio"].setText(_("Ratio: %.2f" % (torrent.ratio)))
+		self["eta"].setText(_("Remaining: %s") % (torrent.eta or '?:??:??'))
+
+		# XXX: we should not need to set this all the time but when we enter this screen we just don't have this piece of information
+		trackers = torrent.trackers
+		if trackers:
+			self["tracker"].setText(_("Tracker: %s") % (trackers[0]['announce']))
+		self["private"].setText(_("Private: %s") % (torrent.isPrivate and _("yes") or _("no")))
 
 		l = []
 		files = torrent.files()

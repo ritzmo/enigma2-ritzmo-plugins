@@ -4,6 +4,7 @@ from Screens.Screen import Screen
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
 from Screens.LocationBox import LocationBox
+from Screens.MessageBox import MessageBox
 from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
 from Components.FileList import FileList
@@ -151,11 +152,13 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def newDl(self, ret = None):
 		if ret:
-			if self.transmission.add_url(ret):
-				# XXX: talk to me said the user :-)
-				print "added"
-			else:
-				print "hmmm"
+			if not self.transmission.add_url(ret):
+				self.session.open(
+					MessageBox,
+					_("Torrent could not be scheduled not download!"),
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 
 	def menuCallback(self, ret = None):
 		if ret:
@@ -210,7 +213,7 @@ class EmissionOverview(Screen, HelpableScreen):
 			self["downloading_sel"].hide()
 			self["seeding_sel"].show()
 			self["key_yellow"].setText(_("Download"))
-			self["key_blue"].setText(_("Seeding"))
+			self["key_blue"].setText(_("All"))
 
 	def prevlist(self):
 		self.timer.stop()
