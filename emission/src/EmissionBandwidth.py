@@ -33,9 +33,9 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			self.uploadLimit = ConfigNumber(default = val.uploadLimit)
 			self.maxConnectedPeers = ConfigNumber(default = val.maxConnectedPeers)
 		else:
-			self.downloadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enable)
+			self.downloadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enabled)
 			self.downloadLimit = ConfigNumber(default = val.speed_limit_down)
-			self.uploadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enable)
+			self.uploadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled)
 			self.uploadLimit = ConfigNumber(default = val.speed_limit_up)
 			self.maxConnectedPeers = ConfigNumber(default = val.peer_limit)
 
@@ -105,9 +105,9 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			)
 		else:
 			self.close({
-				'speed_limit_down_enable': self.downloadLimitMode.value,
+				'speed_limit_down_enabled': self.downloadLimitMode.value,
 				'speed_limit_down': self.downloadLimit.value,
-				'speed_limit_up_enable': self.uploadLimitMode.value,
+				'speed_limit_up_enabled': self.uploadLimitMode.value,
 				'speed_limit_up': self.uploadLimit.value,
 				'peer_limit': self.maxConnectedPeers.value,
 			})

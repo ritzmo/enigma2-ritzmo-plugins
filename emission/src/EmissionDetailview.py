@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from Screens.Screen import Screen
+from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
 from Components.ActionMap import HelpableActionMap
@@ -208,9 +209,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 		l = []
 		files = torrent.files()
-		for id in files:
-			x = files[id]
-			# x is dict: 'priority': 'normal', 'completed': 340237462, 'selected': True, 'name': 'btra5328500k.wmv', 'size': 508566678
+		for id, x in files.iteritems():
 			completed = x['completed']
 			size = x['size'] or 1 # to avoid division by zero ;-)
 			l.append((id, x['priority'], str(completed/1048576) + " MB", \
@@ -227,14 +226,31 @@ class EmissionDetailview(Screen, HelpableScreen):
 	def ok(self):
 		cur = self["files"].getCurrent()
 		if cur:
-			self.transmission.set_files({
-				self.torrentid: {
-					cur[0]: {
-						'priority': cur[1],
-						'selected': not cur[3]
-					}
-				}
-			})
+			id = self.torrentid
+			torrent = self.transmission.info([id])[id]
+			files = torrent.files()
+
+			# XXX: we need to make sure that at least one file is selected for
+			# download so unfortunately we might have to check all files if
+			# we are unselecting this one
+			if cur[3]:
+				files[cur[0]]['selected'] = False
+				atLeastOneSelected = False
+				for file in files.values():
+					if file['selected']:
+						atLeastOneSelected = True
+						break
+				if not atLeastOneSelected:
+					self.session.open(
+						MessageBox,
+						_("Unselecting the only file scheduled for download is not possible through RPC."),
+						type = MessageBox.TYPE_ERROR
+					)
+					return
+			else:
+				files[cur[0]]['selected'] = True
+
+			self.transmission.set_files({self.torrentid: files})
 
 	def close(self):
 		self.timer.stop()
