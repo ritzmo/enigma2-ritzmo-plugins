@@ -18,6 +18,7 @@ from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, RT_HALIGN
 
 from transmission import transmission
 
+import EmissionBandwidth
 import EmissionDetailview
 import EmissionSetup
 
@@ -150,6 +151,10 @@ class EmissionOverview(Screen, HelpableScreen):
 		self.timer.callback.append(self.updateList)
 		self.timer.start(0, 1)
 
+	def bandwidthCallback(self, ret = None):
+		if ret:
+			self.transmission.set_session(**ret)
+
 	def newDl(self, ret = None):
 		if ret:
 			if not self.transmission.add_url(ret):
@@ -182,6 +187,14 @@ class EmissionOverview(Screen, HelpableScreen):
 					self.transmission.start([x.id for x in self.transmission.list().values()])
 				except transmission.TransmissionError:
 					pass
+			elif ret == "bandwidth":
+				reload(EmissionBandwidth)
+				self.session.openWithCallback(
+					self.bandwidthCallback,
+					EmissionBandwidth.EmissionBandwidth,
+					self.transmission.get_session(),
+					False
+				)
 
 	def menu(self):
 		self.session.openWithCallback(
@@ -189,6 +202,7 @@ class EmissionOverview(Screen, HelpableScreen):
 			ChoiceBox,
 			_("What do you want to do?"),
 			[(_("Add new download"), "newDl"),
+			(_("Bandwidth settings"), "bandwidth"),
 			(_("Pause shown"), "pauseShown"),
 			(_("Unpause shown"), "unpauseShown"),
 			(_("Pause all"), "pauseAll"),

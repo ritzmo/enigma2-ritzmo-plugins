@@ -11,6 +11,8 @@ from Components.Sources.Progress import Progress
 
 from enigma import eTimer
 
+import EmissionBandwidth
+
 class EmissionDetailview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,75" size="565,450">
 		<eLabel position="450,5" text="DL: " size="30,20" font="Regular;18" />
@@ -76,11 +78,12 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["ColorActions"] = HelpableActionMap(self, "ColorActions",
 		{
 			"yellow": (self.toggleStatus, _("toggle download status")),
+			"green": (self.bandwidth, _("open bandwidth settings")),
 			"blue": (self.remove , _("remove torrent")),
 		})
 
 		self["key_red"] = Button(_("Cancel"))
-		self["key_green"] = Button("")
+		self["key_green"] = Button(_("Bandwidth"))
 		if torrent.status == "stopped":
 			self["key_yellow"] = Button(_("start"))
 		else:
@@ -103,6 +106,21 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
 		self.timer.start(0, 1)
+
+	def bandwidthCallback(self, ret = None):
+		if ret:
+			self.transmission.change([self.torrentid], **ret)
+
+	def bandwidth(self):
+		reload(EmissionBandwidth)
+		id = self.torrentid
+		torrent = self.transmission.info([id])[id]
+		self.session.openWithCallback(
+			self.bandwidthCallback,
+			EmissionBandwidth.EmissionBandwidth,
+			torrent,
+			True
+		)
 
 	def prevDl(self):
 		if self.prevFunc:
@@ -208,7 +226,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 	def ok(self):
 		cur = self["files"].getCurrent()
-		if cur and False: # set_files broken in transmissionrpc :-)
+		if cur:
 			self.transmission.set_files({
 				self.torrentid: {
 					cur[0]: {
