@@ -2,8 +2,10 @@
 
 from Plugins.Plugin import PluginDescriptor
 from Components.config import config, ConfigSubsection, ConfigText, \
-	ConfigNumber, ConfigYesNo
+	ConfigNumber, ConfigYesNo, ConfigSelection
 import EmissionOverview
+
+from EmissionOverview import LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING
 
 from transmission import transmission
 
@@ -13,6 +15,7 @@ config.plugins.emission.username = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.password = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.port = ConfigNumber(default = 9091)
 config.plugins.emission.autodownload_from_simplerss = ConfigYesNo(default = False)
+config.plugins.emission.last_tab = ConfigSelection(choices = [LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING], default = LIST_TYPE_ALL)
 
 def simplerss_update_callback(id = None):
 	try:
@@ -43,9 +46,10 @@ def simplerss_handle_callback(el):
 		# XXX: we might want to handle this better than just ignoring it
 		pass
 	else:
-		if el.value and simplerss_update_callback not in update_callbacks:
-			update_callbacks.append(simplerss_update_callback)
-		elif not el.value and simplerss_update_callback in update_callbacks:
+		if el.value:
+			if simplerss_update_callback not in update_callbacks:
+				update_callbacks.append(simplerss_update_callback)
+		elif simplerss_update_callback in update_callbacks:
 			update_callbacks.remove(simplerss_update_callback)
 
 config.plugins.emission.autodownload_from_simplerss.addNotifier(simplerss_handle_callback, immediate_feedback = False)

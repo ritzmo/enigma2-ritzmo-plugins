@@ -22,6 +22,10 @@ import EmissionBandwidth
 import EmissionDetailview
 import EmissionSetup
 
+LIST_TYPE_ALL = "all"
+LIST_TYPE_DOWNLOADING = "down"
+LIST_TYPE_SEEDING = "up"
+
 class TorrentLocationBox(LocationBox):
 	def __init__(self, session):
 		# XXX: implement bookmarks
@@ -98,10 +102,6 @@ class EmissionOverview(Screen, HelpableScreen):
 		<widget name="key_blue" position="420,290" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
-	LIST_TYPE_ALL = 0
-	LIST_TYPE_DOWNLOADING = 1
-	LIST_TYPE_SEEDING = 2
-
 	def __init__(self, session):
 		Screen.__init__(self, session)
 		HelpableScreen.__init__(self)
@@ -133,8 +133,8 @@ class EmissionOverview(Screen, HelpableScreen):
 
 		self["key_red"] = Button(_("Cancel"))
 		self["key_green"] = Button(_("Configure"))
-		self["key_yellow"] = Button(_("Seeding"))
-		self["key_blue"] = Button(_("Download"))
+		self["key_yellow"] = Button("")
+		self["key_blue"] = Button("")
 
 		self["all_text"] = Label(_("All"))
 		self["downloading_text"] = Label(_("DL"))
@@ -143,15 +143,14 @@ class EmissionOverview(Screen, HelpableScreen):
 		self["downspeed"] = Label("")
 		self["torrents"] = Label("")
 
-		self.list_type = self.LIST_TYPE_ALL
-
 		self["all_sel"] = Pixmap()
 		self["downloading_sel"] = Pixmap()
-		self["downloading_sel"].hide()
 		self["seeding_sel"] = Pixmap()
-		self["seeding_sel"].hide()
 
 		self['list'] = List([])
+
+		self.list_type = config.plugins.emission.last_tab.value
+		self.showHideSetTextMagic()
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
@@ -216,19 +215,20 @@ class EmissionOverview(Screen, HelpableScreen):
 		)
 
 	def showHideSetTextMagic(self):
-		if self.list_type == self.LIST_TYPE_ALL:
+		list_type = self.list_type
+		if list_type == LIST_TYPE_ALL:
 			self["all_sel"].show()
 			self["downloading_sel"].hide()
 			self["seeding_sel"].hide()
 			self["key_yellow"].setText(_("Seeding"))
 			self["key_blue"].setText(_("Download"))
-		elif self.list_type == self.LIST_TYPE_DOWNLOADING:
+		elif list_type == LIST_TYPE_DOWNLOADING:
 			self["all_sel"].hide()
 			self["downloading_sel"].show()
 			self["seeding_sel"].hide()
 			self["key_yellow"].setText(_("All"))
 			self["key_blue"].setText(_("Seeding"))
-		elif self.list_type == self.LIST_TYPE_SEEDING:
+		else: #if list_type == LIST_TYPE_SEEDING:
 			self["all_sel"].hide()
 			self["downloading_sel"].hide()
 			self["seeding_sel"].show()
@@ -237,23 +237,25 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def prevlist(self):
 		self.timer.stop()
-		if self.list_type == self.LIST_TYPE_ALL:
-			self.list_type = self.LIST_TYPE_SEEDING
-		elif self.list_type == self.LIST_TYPE_DOWNLOADING:
-			self.list_type = self.LIST_TYPE_ALL
-		elif self.list_type == self.LIST_TYPE_SEEDING:
-			self.list_type = self.LIST_TYPE_DOWNLOADING
+		list_type = self.list_type
+		if list_type == LIST_TYPE_ALL:
+			self.list_type = LIST_TYPE_SEEDING
+		elif list_type == LIST_TYPE_DOWNLOADING:
+			self.list_type = LIST_TYPE_ALL
+		else: #if list_type == LIST_TYPE_SEEDING:
+			self.list_type = LIST_TYPE_DOWNLOADING
 		self.showHideSetTextMagic()
 		self.updateList()
 
 	def nextlist(self):
 		self.timer.stop()
-		if self.list_type == self.LIST_TYPE_ALL:
-			self.list_type = self.LIST_TYPE_DOWNLOADING
-		elif self.list_type == self.LIST_TYPE_DOWNLOADING:
-			self.list_type = self.LIST_TYPE_SEEDING
-		elif self.list_type == self.LIST_TYPE_SEEDING:
-			self.list_type = self.LIST_TYPE_ALL
+		list_type = self.list_type
+		if list_type == LIST_TYPE_ALL:
+			self.list_type = LIST_TYPE_DOWNLOADING
+		elif list_type == LIST_TYPE_DOWNLOADING:
+			self.list_type = LIST_TYPE_SEEDING
+		else: #if list_type == LIST_TYPE_SEEDING:
+			self.list_type = LIST_TYPE_ALL
 		self.showHideSetTextMagic()
 		self.updateList()
 
@@ -295,21 +297,22 @@ class EmissionOverview(Screen, HelpableScreen):
 			self["upspeed"].setText("")
 			self["downspeed"].setText("")
 		else:
-			if self.list_type == self.LIST_TYPE_ALL:
+			list_type = self.list_type
+			if list_type == LIST_TYPE_ALL:
 				self.list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
 					int(x.progress))
 					for x in list
 				]
-			elif self.list_type == self.LIST_TYPE_DOWNLOADING:
+			elif list_type == LIST_TYPE_DOWNLOADING:
 				self.list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
 					int(x.progress))
 					for x in list if x.status == "downloading"
 				]
-			elif self.list_type == self.LIST_TYPE_SEEDING:
+			else: #if list_type == LIST_TYPE_SEEDING:
 				self.list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
@@ -331,19 +334,22 @@ class EmissionOverview(Screen, HelpableScreen):
 	def ok(self):
 		cur = self['list'].getCurrent()
 		if cur:
-			cur = cur[0]
 			reload(EmissionDetailview)
 			self.timer.stop()
 			self.session.openWithCallback(
 				self.updateList,
 				EmissionDetailview.EmissionDetailview,
 				self.transmission,
-				cur,
+				cur[0],
 				self.prevItem,
 				self.nextItem,
 			)
 
 	def close(self):
 		self.timer.stop()
+		config.plugins.emission.last_tab.value = self.list_type
+		config.plugins.emission.last_tab.save()
 		Screen.close(self)
+
+__all__ = ['LIST_TYPE_ALL', 'LIST_TYPE_DOWNLOADING', 'LIST_TYPE_SEEDING', 'EmissionOverview']
 
