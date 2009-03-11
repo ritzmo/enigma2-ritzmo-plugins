@@ -65,13 +65,14 @@ class TorrentLocationBox(LocationBox):
 				self.selectConfirmed(True)
 
 class EmissionOverview(Screen, HelpableScreen):
-	skin = """<screen name="EmissionOverview" title="Torrent Overview" position="75,145" size="565,320">
+	skin = """<screen name="EmissionOverview" title="Torrent Overview" position="75,135" size="565,330">
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="all_sel" pixmap="skin_default/epg_now.png" />
 		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="5,7" zPosition="2" name="all_text" halign="center" font="Regular;18" />
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="downloading_sel" pixmap="skin_default/epg_next.png" />
 		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="111,7" zPosition="2" name="downloading_text" halign="center" font="Regular;18" />
 		<widget size="320,25" alphatest="on" position="5,5" zPosition="1" name="seeding_sel" pixmap="skin_default/epg_more.png" />
 		<widget valign="center" transparent="1" size="108,22" backgroundColor="#25062748" position="212,7" zPosition="2" name="seeding_text" halign="center" font="Regular;18" />
+		<widget name="torrents" size="240,22" position="320,7" halign="right" font="Regular;18" />
 		<!--ePixmap size="550,230" alphatest="on" position="5,25" pixmap="skin_default/border_epg.png" /-->
 		<widget source="list" render="Listbox" position="5,30" size="550,225" scrollbarMode="showAlways">
 			<convert type="TemplatedMultiContent">
@@ -85,14 +86,16 @@ class EmissionOverview(Screen, HelpableScreen):
 				 }
 			</convert>
 		</widget>
-		<ePixmap position="0,275" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,275" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,275" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,275" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,275" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,275" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,275" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,275" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="upspeed" size="150,20" position="5,260" halign="left" font="Regular;18" />
+		<widget name="downspeed" size="150,20" position="410,260" halign="right" font="Regular;18" />
+		<ePixmap position="0,290" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,290" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,290" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,290" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
+		<widget name="key_red" position="0,290" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_green" position="140,290" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_yellow" position="280,290" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget name="key_blue" position="420,290" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	LIST_TYPE_ALL = 0
@@ -136,6 +139,9 @@ class EmissionOverview(Screen, HelpableScreen):
 		self["all_text"] = Label(_("All"))
 		self["downloading_text"] = Label(_("DL"))
 		self["seeding_text"] = Label(_("UL"))
+		self["upspeed"] = Label("")
+		self["downspeed"] = Label("")
+		self["torrents"] = Label("")
 
 		self.list_type = self.LIST_TYPE_ALL
 
@@ -281,33 +287,45 @@ class EmissionOverview(Screen, HelpableScreen):
 	def updateList(self, *args, **kwargs):
 		try:
 			list = self.transmission.list().values()
+			session = self.transmission.session_stats()
 		except transmission.TransmissionError:
 			# XXX: some hint in gui would be nice
-			list = []
-		if self.list_type == self.LIST_TYPE_ALL:
-			self.list = [
-				(x, x.name.encode('utf-8', 'ignore'),
-				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
-				for x in list
-			]
-		elif self.list_type == self.LIST_TYPE_DOWNLOADING:
-			self.list = [
-				(x, x.name.encode('utf-8', 'ignore'),
-				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
-				for x in list if x.status == "downloading"
-			]
-		elif self.list_type == self.LIST_TYPE_SEEDING:
-			self.list = [
-				(x, x.name.encode('utf-8', 'ignore'),
-				str(x.eta or '?:??:??').encode('utf-8'), int(x.progress))
-				for x in list if x.status == "seeding"
-			]
+			self['list'].setList([])
+			self["torrents"].setText("")
+			self["upspeed"].setText("")
+			self["downspeed"].setText("")
+		else:
+			if self.list_type == self.LIST_TYPE_ALL:
+				self.list = [
+					(x, x.name.encode('utf-8', 'ignore'),
+					str(x.eta or '?:??:??').encode('utf-8'),
+					int(x.progress))
+					for x in list
+				]
+			elif self.list_type == self.LIST_TYPE_DOWNLOADING:
+				self.list = [
+					(x, x.name.encode('utf-8', 'ignore'),
+					str(x.eta or '?:??:??').encode('utf-8'),
+					int(x.progress))
+					for x in list if x.status == "downloading"
+				]
+			elif self.list_type == self.LIST_TYPE_SEEDING:
+				self.list = [
+					(x, x.name.encode('utf-8', 'ignore'),
+					str(x.eta or '?:??:??').encode('utf-8'),
+					int(x.progress))
+					for x in list if x.status == "seeding"
+				]
 
-		# XXX: this is a little ugly but this way we have the least
-		# visible distortion :-)
-		index = self['list'].index
-		self['list'].setList(self.list)
-		self['list'].index = index
+			self["torrents"].setText(_("Active Torrents: %d/%d") % (session.activeTorrentCount, session.torrentCount))
+			self["upspeed"].setText(_("UL: %d kb/s") % (session.uploadSpeed/1024))
+			self["downspeed"].setText(_("DL: %d kb/s") % (session.downloadSpeed/1024))
+
+			# XXX: this is a little ugly but this way we have the least
+			# visible distortion :-)
+			index = self['list'].index
+			self['list'].setList(self.list)
+			self['list'].index = index
 		self.timer.startLongTimer(10)
 
 	def ok(self):
