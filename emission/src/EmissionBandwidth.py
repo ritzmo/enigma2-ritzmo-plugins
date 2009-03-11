@@ -13,7 +13,7 @@ from Components.Pixmap import Pixmap
 
 # Configuration
 from Components.config import config, getConfigListEntry, \
-	ConfigNumber, ConfigSelection
+	ConfigNumber, ConfigSelection, NoSave
 
 class EmissionBandwidth(Screen, ConfigListScreen):
 	def __init__(self, session, val, isTorrent):
@@ -27,17 +27,17 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		ConfigListScreen.__init__(self, [], session = session, on_change = self.changed)
 
 		if isTorrent:
-			self.downloadLimitMode = ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.downloadLimitMode)
-			self.downloadLimit = ConfigNumber(default = val.downloadLimit)
-			self.uploadLimitMode = ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.uploadLimitMode)
-			self.uploadLimit = ConfigNumber(default = val.uploadLimit)
-			self.maxConnectedPeers = ConfigNumber(default = val.maxConnectedPeers)
+			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.downloadLimitMode))
+			self.downloadLimit = NoSave(ConfigNumber(default = val.downloadLimit))
+			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.uploadLimitMode))
+			self.uploadLimit = NoSave(ConfigNumber(default = val.uploadLimit))
+			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.maxConnectedPeers))
 		else:
-			self.downloadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enabled)
-			self.downloadLimit = ConfigNumber(default = val.speed_limit_down)
-			self.uploadLimitMode = ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled)
-			self.uploadLimit = ConfigNumber(default = val.speed_limit_up)
-			self.maxConnectedPeers = ConfigNumber(default = val.peer_limit)
+			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enabled))
+			self.downloadLimit = NoSave(ConfigNumber(default = val.speed_limit_down))
+			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled))
+			self.uploadLimit = NoSave(ConfigNumber(default = val.speed_limit_up))
+			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.peer_limit))
 
 		self.downloadLimitMode.addNotifier(self.updateList, initial_call = False)
 		self.uploadLimitMode.addNotifier(self.updateList, initial_call = False)
@@ -100,7 +100,7 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		if self.downloadLimitMode.value == 2 or self.uploadLimitMode.value == 2:
 			self.session.open(
 					MessageBox,
-					_("Setting \"Unlimited\" is unsupported through RPC.\nEither abort or choose another limit."),
+					_("Setting \"Unlimited\" is not supported via RPC.\nEither abort or choose another limit to continue."),
 					type = MessageBox.TYPE_ERROR
 			)
 		else:
