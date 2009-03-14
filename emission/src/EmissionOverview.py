@@ -29,9 +29,14 @@ import EmissionBandwidth
 import EmissionDetailview
 import EmissionSetup
 
-LIST_TYPE_ALL = "all"
-LIST_TYPE_DOWNLOADING = "down"
-LIST_TYPE_SEEDING = "up"
+LIST_TYPE_ALL = 0
+LIST_TYPE_DOWNLOADING = 1
+LIST_TYPE_SEEDING = 2
+
+SORT_TYPE_TIME = 0
+SORT_TYPE_PROGRESS = 1
+SORT_TYPE_ADDED = 2
+SORT_TYPE_SPEED = 3
 
 class TorrentLocationBox(LocationBox):
 	def __init__(self, session):
@@ -157,6 +162,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		self['list'] = List([])
 
 		self.list_type = config.plugins.emission.last_tab.value
+		self.sort_type = config.plugins.emission.last_sort.value
 		self.showHideSetTextMagic()
 
 		self.timer = eTimer()
@@ -168,7 +174,10 @@ class EmissionOverview(Screen, HelpableScreen):
 			self.transmission.set_session(**ret)
 		self.updateList()
 
-	def newDl(self, ret = None):
+	def menuCallback(self, ret = None):
+		ret and ret[1]()
+
+	def newDlCallback(self, ret = None):
 		if ret:
 			if not self.transmission.add_url(ret):
 				self.session.open(
@@ -179,48 +188,69 @@ class EmissionOverview(Screen, HelpableScreen):
 				)
 		self.updateList()
 
-	def menuCallback(self, ret = None):
-		if ret:
-			ret = ret[1]
-			if ret == "newDl":
-				self.timer.stop()
-				self.session.openWithCallback(
-					self.newDl,
-					TorrentLocationBox
-				)
-			elif ret == "pauseShown":
-				self.transmission.stop([x[0].id for x in self.list])
-			elif ret == "unpauseShown":
-				self.transmission.start([x[0].id for x in self.list])
-			elif ret == "pauseAll":
-				try:
-					self.transmission.stop([x.id for x in self.transmission.list().values()])
-				except transmission.TransmissionError:
-					pass
-			elif ret == "unpauseAll":
-				try:
-					self.transmission.start([x.id for x in self.transmission.list().values()])
-				except transmission.TransmissionError:
-					pass
-			elif ret == "configure":
-				reload(EmissionSetup)
-				self.timer.stop()
-				self.session.openWithCallback(
-					self.configureCallback,
-					EmissionSetup.EmissionSetup
-				)
+	def newDl(self):
+		self.timer.stop()
+		self.session.openWithCallback(
+			self.newDlCallback,
+			TorrentLocationBox
+		)
+
+	def sortCallback(self, ret = None):
+		if ret is not None:
+			self.sort_type = config.plugins.emission.last_sort.value = ret[1]
+			config.plugins.emission.last_sort.save()
+		self.updateList()
+
+	def sort(self):
+		self.timer.stop()
+		self.session.openWithCallback(
+			self.sortCallback,
+			ChoiceBox,
+			_("Which sorting method do you prefer?"),
+			[(_("by eta") ,SORT_TYPE_TIME),
+			(_("by progress") ,SORT_TYPE_PROGRESS),
+			(_("by age") ,SORT_TYPE_ADDED),
+			(_("by speed") ,SORT_TYPE_SPEED)]
+		)
+
+	def pauseShown(self):
+		self.transmission.stop([x[0].id for x in self.list])
+
+	def unpauseShown(self):
+		self.transmission.start([x[0].id for x in self.list])
+
+	def pauseAll(self):
+		try:
+			self.transmission.stop([x.id for x in self.transmission.list().values()])
+		except transmission.TransmissionError:
+			pass
+
+	def unpauseAll(self):
+		try:
+			self.transmission.start([x.id for x in self.transmission.list().values()])
+		except transmission.TransmissionError:
+			pass
+
+	def configure(self):
+		reload(EmissionSetup)
+		self.timer.stop()
+		self.session.openWithCallback(
+			self.configureCallback,
+			EmissionSetup.EmissionSetup
+		)
 
 	def menu(self):
 		self.session.openWithCallback(
 			self.menuCallback,
 			ChoiceBox,
 			_("What do you want to do?"),
-			[(_("Configure connection"), "configure"),
-			(_("Add new download"), "newDl"),
-			(_("Pause shown"), "pauseShown"),
-			(_("Unpause shown"), "unpauseShown"),
-			(_("Pause all"), "pauseAll"),
-			(_("Unpause all"), "pauseAll")],
+			[(_("Configure connection"), self.configure),
+			(_("Change sorting"), self.sort),
+			(_("Add new download"), self.newDl),
+			(_("Pause shown"), self.pauseShown),
+			(_("Unpause shown"), self.unpauseShown),
+			(_("Pause all"), self.pauseAll),
+			(_("Unpause all"), self.unpauseAll)],
 		)
 
 	def showHideSetTextMagic(self):
@@ -308,23 +338,41 @@ class EmissionOverview(Screen, HelpableScreen):
 			self["upspeed"].setText("")
 			self["downspeed"].setText("")
 		else:
+			sort_type = self.sort_type
+			if sort_type == SORT_TYPE_TIME:
+				def cmp_func(x, y):
+					x_eta = x.fields['eta']
+					y_eta = y.fields['eta']
+					if x_eta > 0 and y_eta < 1:
+						return 1
+					if y_eta > 0 and x_eta < 1:
+						return -1
+					return cmp(x_eta, y_eta) or cmp(x.progress, y.progress)
+
+				list.sort(cmp = cmp_func, reverse = True)
+			elif sort_type == SORT_TYPE_PROGRESS:
+				list.sort(key = lambda x: x.progress, reverse = True)
+			elif sort_type == SORT_TYPE_SPEED:
+				list.sort(key = lambda x: (x.rateDownload, x.rateUpload), reverse = True)
+			# SORT_TYPE_ADDED is what we already have
+
 			list_type = self.list_type
 			if list_type == LIST_TYPE_ALL:
-				self.list = [
+				list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
 					int(x.progress))
 					for x in list
 				]
 			elif list_type == LIST_TYPE_DOWNLOADING:
-				self.list = [
+				list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
 					int(x.progress))
 					for x in list if x.status == "downloading"
 				]
 			else: #if list_type == LIST_TYPE_SEEDING:
-				self.list = [
+				list = [
 					(x, x.name.encode('utf-8', 'ignore'),
 					str(x.eta or '?:??:??').encode('utf-8'),
 					int(x.progress))
@@ -337,9 +385,11 @@ class EmissionOverview(Screen, HelpableScreen):
 
 			# XXX: this is a little ugly but this way we have the least
 			# visible distortion :-)
-			index = min(self['list'].index, len(self.list)-1)
-			self['list'].setList(self.list)
+			index = min(self['list'].index, len(list)-1)
+			self['list'].setList(list)
 			self['list'].index = index
+
+			self.list = list
 		self.timer.startLongTimer(10)
 
 	def ok(self):
@@ -362,5 +412,8 @@ class EmissionOverview(Screen, HelpableScreen):
 		config.plugins.emission.last_tab.save()
 		Screen.close(self)
 
-__all__ = ['LIST_TYPE_ALL', 'LIST_TYPE_DOWNLOADING', 'LIST_TYPE_SEEDING', 'EmissionOverview']
+__all__ = ['LIST_TYPE_ALL', 'LIST_TYPE_DOWNLOADING', \
+	'LIST_TYPE_SEEDING', 'EmissionOverview', 'SORT_TYPE_TIME', \
+	'SORT_TYPE_PROGRESS', 'SORT_TYPE_ADDED', 'SORT_TYPE_SPEED']
+
 

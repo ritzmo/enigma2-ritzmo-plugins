@@ -5,7 +5,7 @@ from Components.config import config, ConfigSubsection, ConfigText, \
 	ConfigNumber, ConfigYesNo, ConfigSelection
 
 import EmissionOverview
-from EmissionOverview import LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING
+from EmissionOverview import LIST_TYPE_ALL, SORT_TYPE_ADDED
 
 config.plugins.emission = ConfigSubsection()
 config.plugins.emission.hostname = ConfigText(default = "localhost", fixed_size = False)
@@ -13,7 +13,9 @@ config.plugins.emission.username = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.password = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.port = ConfigNumber(default = 9091)
 config.plugins.emission.autodownload_from_simplerss = ConfigYesNo(default = False)
-config.plugins.emission.last_tab = ConfigSelection(choices = [LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING], default = LIST_TYPE_ALL)
+# XXX: this is not compatible to the previous version and WILL break if not the default was used
+config.plugins.emission.last_tab = ConfigNumber(default = LIST_TYPE_ALL)
+config.plugins.emission.last_sort = ConfigNumber(default = SORT_TYPE_ADDED)
 
 # by default sockets (and therefore urllib2 which transmissionrpc uses)
 # block so we set a default timeout of 10s for all sockets...
