@@ -343,9 +343,9 @@ class EmissionOverview(Screen, HelpableScreen):
 				def cmp_func(x, y):
 					x_eta = x.fields['eta']
 					y_eta = y.fields['eta']
-					if x_eta > 0 and y_eta < 1:
+					if x_eta > -1 and y_eta < 0:
 						return 1
-					if y_eta > 0 and x_eta < 1:
+					if y_eta > -1 and x_eta < 0:
 						return -1
 					return cmp(x_eta, y_eta) or cmp(x.progress, y.progress)
 
