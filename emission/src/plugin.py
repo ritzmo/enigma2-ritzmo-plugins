@@ -3,11 +3,9 @@
 from Plugins.Plugin import PluginDescriptor
 from Components.config import config, ConfigSubsection, ConfigText, \
 	ConfigNumber, ConfigYesNo, ConfigSelection
+
 import EmissionOverview
-
 from EmissionOverview import LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING
-
-from transmission import transmission
 
 config.plugins.emission = ConfigSubsection()
 config.plugins.emission.hostname = ConfigText(default = "localhost", fixed_size = False)
@@ -16,6 +14,17 @@ config.plugins.emission.password = ConfigText(default = "", fixed_size = False)
 config.plugins.emission.port = ConfigNumber(default = 9091)
 config.plugins.emission.autodownload_from_simplerss = ConfigYesNo(default = False)
 config.plugins.emission.last_tab = ConfigSelection(choices = [LIST_TYPE_ALL, LIST_TYPE_DOWNLOADING, LIST_TYPE_SEEDING], default = LIST_TYPE_ALL)
+
+# by default sockets (and therefore urllib2 which transmissionrpc uses)
+# block so we set a default timeout of 10s for all sockets...
+# not nice, but does its job :-)
+import socket
+socket.setdefaulttimeout(10)
+
+try:
+	from transmissionrpc import transmission
+except ImportError:
+	from transmission import transmission
 
 def simplerss_update_callback(id = None):
 	try:

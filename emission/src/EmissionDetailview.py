@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+# GUI (Screens)
 from Screens.Screen import Screen
 from Screens.MessageBox import MessageBox
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
+
+# GUI (Components)
 from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
 from Components.Label import Label
@@ -83,7 +86,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			"blue": (self.remove , _("remove torrent")),
 		})
 
-		self["key_red"] = Button(_("Cancel"))
+		self["key_red"] = Button(_("Close"))
 		self["key_green"] = Button(_("Bandwidth"))
 		if torrent.status == "stopped":
 			self["key_yellow"] = Button(_("start"))
@@ -111,9 +114,11 @@ class EmissionDetailview(Screen, HelpableScreen):
 	def bandwidthCallback(self, ret = None):
 		if ret:
 			self.transmission.change([self.torrentid], **ret)
+		self.updateList()
 
 	def bandwidth(self):
 		reload(EmissionBandwidth)
+		self.timer.stop()
 		id = self.torrentid
 		torrent = self.transmission.info([id])[id]
 		self.session.openWithCallback(
@@ -218,7 +223,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 				int(100*(completed / float(size)))
 			))
 
-		index = self["files"].index
+		index = min(self["files"].index, len(l)-1)
 		self["files"].setList(l)
 		self["files"].index = index
 		self.timer.startLongTimer(5)
@@ -226,6 +231,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 	def ok(self):
 		cur = self["files"].getCurrent()
 		if cur:
+			self.timer.stop()
 			id = self.torrentid
 			torrent = self.transmission.info([id])[id]
 			files = torrent.files()
@@ -246,11 +252,13 @@ class EmissionDetailview(Screen, HelpableScreen):
 						_("Unselecting the only file scheduled for download is not possible through RPC."),
 						type = MessageBox.TYPE_ERROR
 					)
+					self.updateList()
 					return
 			else:
 				files[cur[0]]['selected'] = True
 
 			self.transmission.set_files({self.torrentid: files})
+			self.updateList()
 
 	def close(self):
 		self.timer.stop()

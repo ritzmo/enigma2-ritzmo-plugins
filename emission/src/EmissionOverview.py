@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
+# GUI (Screens)
 from Screens.Screen import Screen
 from Screens.ChoiceBox import ChoiceBox
 from Screens.HelpMenu import HelpableScreen
 from Screens.LocationBox import LocationBox
 from Screens.MessageBox import MessageBox
+
+# GUI (Components)
 from Components.ActionMap import HelpableActionMap
 from Components.Button import Button
 from Components.FileList import FileList
@@ -12,11 +15,15 @@ from Components.Label import Label
 from Components.Pixmap import Pixmap
 from Components.Sources.List import List
 
+# Configuration
 from Components.config import config
 
-from enigma import eTimer, eListboxPythonMultiContent, RT_HALIGN_LEFT, RT_HALIGN_RIGHT, gFont
+from enigma import eTimer
 
-from transmission import transmission
+try:
+	from transmissionrpc import transmission
+except ImportError:
+	from transmission import transmission
 
 import EmissionBandwidth
 import EmissionDetailview
@@ -121,7 +128,7 @@ class EmissionOverview(Screen, HelpableScreen):
 
 		self["ColorActions"] = HelpableActionMap(self, "ColorActions",
 		{
-			"green": (self.configure, _("open setup")),
+			"green": (self.bandwidth, _("open bandwidth settings")),
 			"yellow": (self.prevlist, _("show previous list")),
 			"blue": (self.nextlist, _("show next list")),
 		})
@@ -131,8 +138,8 @@ class EmissionOverview(Screen, HelpableScreen):
 			"menu": (self.menu, _("open context menu")),
 		})
 
-		self["key_red"] = Button(_("Cancel"))
-		self["key_green"] = Button(_("Configure"))
+		self["key_red"] = Button(_("Close"))
+		self["key_green"] = Button(_("Bandwidth"))
 		self["key_yellow"] = Button("")
 		self["key_blue"] = Button("")
 
@@ -159,6 +166,7 @@ class EmissionOverview(Screen, HelpableScreen):
 	def bandwidthCallback(self, ret = None):
 		if ret:
 			self.transmission.set_session(**ret)
+		self.updateList()
 
 	def newDl(self, ret = None):
 		if ret:
@@ -169,11 +177,13 @@ class EmissionOverview(Screen, HelpableScreen):
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
+		self.updateList()
 
 	def menuCallback(self, ret = None):
 		if ret:
 			ret = ret[1]
 			if ret == "newDl":
+				self.timer.stop()
 				self.session.openWithCallback(
 					self.newDl,
 					TorrentLocationBox
@@ -192,13 +202,12 @@ class EmissionOverview(Screen, HelpableScreen):
 					self.transmission.start([x.id for x in self.transmission.list().values()])
 				except transmission.TransmissionError:
 					pass
-			elif ret == "bandwidth":
-				reload(EmissionBandwidth)
+			elif ret == "configure":
+				reload(EmissionSetup)
+				self.timer.stop()
 				self.session.openWithCallback(
-					self.bandwidthCallback,
-					EmissionBandwidth.EmissionBandwidth,
-					self.transmission.get_session(),
-					False
+					self.configureCallback,
+					EmissionSetup.EmissionSetup
 				)
 
 	def menu(self):
@@ -206,8 +215,8 @@ class EmissionOverview(Screen, HelpableScreen):
 			self.menuCallback,
 			ChoiceBox,
 			_("What do you want to do?"),
-			[(_("Add new download"), "newDl"),
-			(_("Bandwidth settings"), "bandwidth"),
+			[(_("Configure connection"), "configure"),
+			(_("Add new download"), "newDl"),
 			(_("Pause shown"), "pauseShown"),
 			(_("Unpause shown"), "unpauseShown"),
 			(_("Pause all"), "pauseAll"),
@@ -269,6 +278,16 @@ class EmissionOverview(Screen, HelpableScreen):
 		cur = self['list'].getCurrent()
 		return cur and cur[0]
 
+	def bandwidth(self):
+		reload(EmissionBandwidth)
+		self.timer.stop()
+		self.session.openWithCallback(
+			self.bandwidthCallback,
+			EmissionBandwidth.EmissionBandwidth,
+			self.transmission.get_session(),
+			False
+		)
+
 	def configureCallback(self):
 		self.transmission = transmission.Client(
 			address = config.plugins.emission.hostname.value,
@@ -277,14 +296,6 @@ class EmissionOverview(Screen, HelpableScreen):
 			password = config.plugins.emission.password.value
 		)
 		self.updateList()
-
-	def configure(self):
-		reload(EmissionSetup)
-		self.timer.stop()
-		self.session.openWithCallback(
-			self.configureCallback,
-			EmissionSetup.EmissionSetup
-		)
 
 	def updateList(self, *args, **kwargs):
 		try:
@@ -326,7 +337,7 @@ class EmissionOverview(Screen, HelpableScreen):
 
 			# XXX: this is a little ugly but this way we have the least
 			# visible distortion :-)
-			index = self['list'].index
+			index = min(self['list'].index, len(self.list)-1)
 			self['list'].setList(self.list)
 			self['list'].index = index
 		self.timer.startLongTimer(10)
