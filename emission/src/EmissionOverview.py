@@ -385,9 +385,10 @@ class EmissionOverview(Screen, HelpableScreen):
 					y_eta = y.fields['eta']
 					if x_eta > -1 and y_eta < 0:
 						return 1
-					if y_eta > -1 and x_eta < 0:
+					if x_eta < 0 and y_eta > -1:
 						return -1
-					return cmp(x_eta, y_eta) or cmp(x.progress, y.progress)
+					# note: cmp call inversed because lower eta is "better"
+					return cmp(y_eta, x_eta) or cmp(x.progress, y.progress)
 
 				list.sort(cmp = cmp_func, reverse = True)
 			elif sort_type == SORT_TYPE_PROGRESS:

@@ -97,7 +97,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 		self["upspeed"] = Label("")
 		self["downspeed"] = Label("")
 		self["peers"] = Label("")
-		self["name"] = Label(torrent.name)
+		self["name"] = Label(str(torrent.name))
 		self["files_text"] = Label(_("Files"))
 		self["files"] = List([])
 		self["progress"] = Progress(int(torrent.progress))
@@ -153,7 +153,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			if torrent:
 				self.timer.stop()
 				self.torrentid = torrent.id
-				self["name"].setText(torrent.name)
+				self["name"].setText(str(torrent.name))
 				self.updateList()
 
 	def nextDl(self):
@@ -162,7 +162,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			if torrent:
 				self.timer.stop()
 				self.torrentid = torrent.id
-				self["name"].setText(torrent.name)
+				self["name"].setText(str(torrent.name))
 				self.updateList()
 
 	def toggleStatus(self):
@@ -255,7 +255,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			# XXX: we should not need to set this all the time but when we enter this screen we just don't have this piece of information
 			trackers = torrent.trackers
 			if trackers:
-				self["tracker"].setText(_("Tracker: %s") % (trackers[0]['announce']))
+				self["tracker"].setText(str(_("Tracker: %s") % (trackers[0]['announce'])))
 			self["private"].setText(_("Private: %s") % (torrent.isPrivate and _("yes") or _("no")))
 
 			l = []
@@ -264,7 +264,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 				completed = x['completed']
 				size = x['size'] or 1 # to avoid division by zero ;-)
 				l.append((id, x['priority'], str(completed/1048576) + " MB", \
-					x['selected'], x['name'], str(size/1048576) + " MB", \
+					x['selected'], str(x['name']), str(size/1048576) + " MB", \
 					x['selected'] and _("downloading") or _("skipping"), \
 					int(100*(completed / float(size)))
 				))
