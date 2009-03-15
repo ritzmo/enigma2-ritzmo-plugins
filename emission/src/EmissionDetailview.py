@@ -113,20 +113,39 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 	def bandwidthCallback(self, ret = None):
 		if ret:
-			self.transmission.change([self.torrentid], **ret)
+			try:
+				self.transmission.change([self.torrentid], **ret)
+			except transmission.TransmissionError:
+				self.session.open(
+					MessageBox,
+					_("Could not connect to transmission-daemon!"),
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 		self.updateList()
 
 	def bandwidth(self):
 		reload(EmissionBandwidth)
 		self.timer.stop()
 		id = self.torrentid
-		torrent = self.transmission.info([id])[id]
-		self.session.openWithCallback(
-			self.bandwidthCallback,
-			EmissionBandwidth.EmissionBandwidth,
-			torrent,
-			True
-		)
+		try:
+			torrent = self.transmission.info([id])[id]
+		except transmission.TransmissionError:
+			self.session.open(
+				MessageBox,
+				_("Could not connect to transmission-daemon!"),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
+			# XXX: this seems silly but cleans the gui and restarts the timer :-)
+			self.updateList()
+		else:
+			self.session.openWithCallback(
+				self.bandwidthCallback,
+				EmissionBandwidth.EmissionBandwidth,
+				torrent,
+				True
+			)
 
 	def prevDl(self):
 		if self.prevFunc:
@@ -148,14 +167,22 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 	def toggleStatus(self):
 		id = self.torrentid
-		torrent = self.transmission.info([id])[id]
-		status = torrent.status
-		if status == "stopped":
-			self.transmission.start([id])
-			self["key_yellow"].setText(_("pause"))
-		elif status in ("downloading", "seeding"):
-			self.transmission.stop([id])
-			self["key_yellow"].setText(_("start"))
+		try:
+			torrent = self.transmission.info([id])[id]
+			status = torrent.status
+			if status == "stopped":
+				self.transmission.start([id])
+				self["key_yellow"].setText(_("pause"))
+			elif status in ("downloading", "seeding"):
+				self.transmission.stop([id])
+				self["key_yellow"].setText(_("start"))
+		except transmission.TransmissionError:
+			self.session.open(
+				MessageBox,
+				_("Could not connect to transmission-daemon!"),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
 
 	def remove(self):
 		self.session.openWithCallback(
@@ -170,62 +197,81 @@ class EmissionDetailview(Screen, HelpableScreen):
 	def removeCallback(self, ret = None):
 		if ret:
 			ret = ret[1]
-			if ret == "yes":
-				self.transmission.remove([self.torrentid], delete_data = False)
-				self.close()
-			elif ret == "data":
-				self.transmission.remove([self.torrentid], delete_data = True)
-				self.close()
+			try:
+				if ret == "yes":
+					self.transmission.remove([self.torrentid], delete_data = False)
+					self.close()
+				elif ret == "data":
+					self.transmission.remove([self.torrentid], delete_data = True)
+					self.close()
+			except transmission.TransmissionError:
+				self.session.open(
+					MessageBox,
+					_("Could not connect to transmission-daemon!"),
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 
 	def updateList(self, *args, **kwargs):
 		id = self.torrentid
-		torrent = self.transmission.info([id])[id]
+		try:
+			torrent = self.transmission.info([id])[id]
+		except transmission.TransmissionError:
+			self["upspeed"].setText("")
+			self["downspeed"].setText("")
+			self["peers"].setText("")
+			self["progress_text"].setText("")
+			self["ratio"].setText("")
+			self["eta"].setText("")
+			self["tracker"].setText("")
+			self["private"].setText("")
+			self["files"].setList([])
+		else:
+			self["upspeed"].setText(_("%d kb/s") % (torrent.rateUpload / 1024))
+			self["downspeed"].setText(_("%d kb/s") % (torrent.rateDownload / 1024))
+			self["progress"].setValue(int(torrent.progress))
 
-		self["upspeed"].setText(_("%d kb/s") % (torrent.rateUpload / 1024))
-		self["downspeed"].setText(_("%d kb/s") % (torrent.rateDownload / 1024))
-		self["progress"].setValue(int(torrent.progress))
+			status = torrent.status
+			progressText = ''
+			if status == 'check pending':
+				peerText = _("check pending") # ???
+			elif status == 'checking':
+				peerText = _("checking")
+				progressText = str(torrent.recheckProgress) # XXX: what is this? :D
+			elif status == 'downloading':
+				peerText = _("Downloading from %d of %d peers") % (torrent.peersSendingToUs, torrent.peersConnected)
+				progressText = _("Downloaded %d of %d MB (%d%%)") % (torrent.downloadedEver/1048576, torrent.sizeWhenDone/1048576, torrent.progress)
+			elif status == 'seeding':
+				peerText = _("Seeding to %d of %d peers") % (torrent.peersGettingFromUs, torrent.peersConnected)
+				progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
+			elif status == 'stopped':
+				peerText = _("stopped")
+				progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
+			self["peers"].setText(peerText)
+			self["progress_text"].setText(progressText)
+			self["ratio"].setText(_("Ratio: %.2f" % (torrent.ratio)))
+			self["eta"].setText(_("Remaining: %s") % (torrent.eta or '?:??:??'))
 
-		status = torrent.status
-		progressText = ''
-		if status == 'check pending':
-			peerText = _("check pending") # ???
-		elif status == 'checking':
-			peerText = _("checking")
-			progressText = str(torrent.recheckProgress) # XXX: what is this? :D
-		elif status == 'downloading':
-			peerText = _("Downloading from %d of %d peers") % (torrent.peersSendingToUs, torrent.peersConnected)
-			progressText = _("Downloaded %d of %d MB (%d%%)") % (torrent.downloadedEver/1048576, torrent.sizeWhenDone/1048576, torrent.progress)
-		elif status == 'seeding':
-			peerText = _("Seeding to %d of %d peers") % (torrent.peersGettingFromUs, torrent.peersConnected)
-			progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
-		elif status == 'stopped':
-			peerText = _("stopped")
-			progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
-		self["peers"].setText(peerText)
-		self["progress_text"].setText(progressText)
-		self["ratio"].setText(_("Ratio: %.2f" % (torrent.ratio)))
-		self["eta"].setText(_("Remaining: %s") % (torrent.eta or '?:??:??'))
+			# XXX: we should not need to set this all the time but when we enter this screen we just don't have this piece of information
+			trackers = torrent.trackers
+			if trackers:
+				self["tracker"].setText(_("Tracker: %s") % (trackers[0]['announce']))
+			self["private"].setText(_("Private: %s") % (torrent.isPrivate and _("yes") or _("no")))
 
-		# XXX: we should not need to set this all the time but when we enter this screen we just don't have this piece of information
-		trackers = torrent.trackers
-		if trackers:
-			self["tracker"].setText(_("Tracker: %s") % (trackers[0]['announce']))
-		self["private"].setText(_("Private: %s") % (torrent.isPrivate and _("yes") or _("no")))
+			l = []
+			files = torrent.files()
+			for id, x in files.iteritems():
+				completed = x['completed']
+				size = x['size'] or 1 # to avoid division by zero ;-)
+				l.append((id, x['priority'], str(completed/1048576) + " MB", \
+					x['selected'], x['name'], str(size/1048576) + " MB", \
+					x['selected'] and _("downloading") or _("skipping"), \
+					int(100*(completed / float(size)))
+				))
 
-		l = []
-		files = torrent.files()
-		for id, x in files.iteritems():
-			completed = x['completed']
-			size = x['size'] or 1 # to avoid division by zero ;-)
-			l.append((id, x['priority'], str(completed/1048576) + " MB", \
-				x['selected'], x['name'], str(size/1048576) + " MB", \
-				x['selected'] and _("downloading") or _("skipping"), \
-				int(100*(completed / float(size)))
-			))
-
-		index = min(self["files"].index, len(l)-1)
-		self["files"].setList(l)
-		self["files"].index = index
+			index = min(self["files"].index, len(l)-1)
+			self["files"].setList(l)
+			self["files"].index = index
 		self.timer.startLongTimer(5)
 
 	def ok(self):
@@ -233,31 +279,39 @@ class EmissionDetailview(Screen, HelpableScreen):
 		if cur:
 			self.timer.stop()
 			id = self.torrentid
-			torrent = self.transmission.info([id])[id]
-			files = torrent.files()
+			try:
+				torrent = self.transmission.info([id])[id]
+				files = torrent.files()
 
-			# XXX: we need to make sure that at least one file is selected for
-			# download so unfortunately we might have to check all files if
-			# we are unselecting this one
-			if cur[3]:
-				files[cur[0]]['selected'] = False
-				atLeastOneSelected = False
-				for file in files.values():
-					if file['selected']:
-						atLeastOneSelected = True
-						break
-				if not atLeastOneSelected:
-					self.session.open(
-						MessageBox,
-						_("Unselecting the only file scheduled for download is not possible through RPC."),
-						type = MessageBox.TYPE_ERROR
-					)
-					self.updateList()
-					return
-			else:
-				files[cur[0]]['selected'] = True
+				# XXX: we need to make sure that at least one file is selected for
+				# download so unfortunately we might have to check all files if
+				# we are unselecting this one
+				if cur[3]:
+					files[cur[0]]['selected'] = False
+					atLeastOneSelected = False
+					for file in files.values():
+						if file['selected']:
+							atLeastOneSelected = True
+							break
+					if not atLeastOneSelected:
+						self.session.open(
+							MessageBox,
+							_("Unselecting the only file scheduled for download is not possible through RPC."),
+							type = MessageBox.TYPE_ERROR
+						)
+						self.updateList()
+						return
+				else:
+					files[cur[0]]['selected'] = True
 
-			self.transmission.set_files({self.torrentid: files})
+				self.transmission.set_files({self.torrentid: files})
+			except transmission.TransmissionError:
+				self.session.open(
+					MessageBox,
+					_("Could not connect to transmission-daemon!"),
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 			self.updateList()
 
 	def close(self):

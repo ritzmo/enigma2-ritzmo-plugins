@@ -171,7 +171,15 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def bandwidthCallback(self, ret = None):
 		if ret:
-			self.transmission.set_session(**ret)
+			try:
+				self.transmission.set_session(**ret)
+			except transmission.TransmissionError:
+				self.session.open(
+					MessageBox,
+					_("Could not connect to transmission-daemon!"),
+					type = MessageBox.TYPE_ERROR,
+					timeout = 5
+				)
 		self.updateList()
 
 	def menuCallback(self, ret = None):
@@ -179,13 +187,23 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def newDlCallback(self, ret = None):
 		if ret:
-			if not self.transmission.add_url(ret):
+			try:
+				res = self.transmission.add_url(ret)
+			except transmission.TransmissionError:
 				self.session.open(
 					MessageBox,
-					_("Torrent could not be scheduled not download!"),
+					_("Could not connect to transmission-daemon!"),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
+			else:
+				if not res:
+					self.session.open(
+						MessageBox,
+						_("Torrent could not be scheduled not download!"),
+						type = MessageBox.TYPE_ERROR,
+						timeout = 5
+					)
 		self.updateList()
 
 	def newDl(self):
@@ -223,13 +241,23 @@ class EmissionOverview(Screen, HelpableScreen):
 		try:
 			self.transmission.stop([x.id for x in self.transmission.list().values()])
 		except transmission.TransmissionError:
-			pass
+			self.session.open(
+				MessageBox,
+				_("Could not connect to transmission-daemon!"),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
 
 	def unpauseAll(self):
 		try:
 			self.transmission.start([x.id for x in self.transmission.list().values()])
 		except transmission.TransmissionError:
-			pass
+			self.session.open(
+				MessageBox,
+				_("Could not connect to transmission-daemon!"),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
 
 	def configure(self):
 		reload(EmissionSetup)
@@ -311,12 +339,24 @@ class EmissionOverview(Screen, HelpableScreen):
 	def bandwidth(self):
 		reload(EmissionBandwidth)
 		self.timer.stop()
-		self.session.openWithCallback(
-			self.bandwidthCallback,
-			EmissionBandwidth.EmissionBandwidth,
-			self.transmission.get_session(),
-			False
-		)
+		try:
+			sess = self.transmission.get_session()
+		except transmission.TransmissionError:
+			self.session.open(
+				MessageBox,
+				_("Could not connect to transmission-daemon!"),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
+			# XXX: this seems silly but cleans the gui and restarts the timer :-)
+			self.updateList()
+		else:
+			self.session.openWithCallback(
+				self.bandwidthCallback,
+				EmissionBandwidth.EmissionBandwidth,
+				sess,
+				False
+			)
 
 	def configureCallback(self):
 		self.transmission = transmission.Client(

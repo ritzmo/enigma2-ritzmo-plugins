@@ -47,8 +47,11 @@ def simplerss_update_callback(id = None):
 								user = config.plugins.emission.username.value,
 								password = config.plugins.emission.password.value
 							)
-						# XXX: we might want to run this in the background cause this might block...
-						client.add_url(file.path)
+						try:
+							# XXX: we might want to run this in the background cause this might block...
+							client.add_url(file.path)
+						except transmission.TransmissionError:
+							pass
 
 def simplerss_handle_callback(el):
 	try:
