@@ -50,7 +50,7 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		self["ok"] = Pixmap()
 		self["cancel"] = Pixmap()
 		# XXX: this looks stupid in the default skin :-)
-		self["title"] = Label(_("%s bandwidth settings") % (isTorrent and val.name or "eMission"))
+		self["title"] = Label(_("%s bandwidth settings") % (isTorrent and str(val.name) or "eMission"))
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions"],
