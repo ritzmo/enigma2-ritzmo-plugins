@@ -29,7 +29,7 @@ class EmissionSetup(Screen, ConfigListScreen):
 				getConfigListEntry(_("Username"), config.plugins.emission.username),
 				getConfigListEntry(_("Password"), config.plugins.emission.password),
 				getConfigListEntry(_("Port"), config.plugins.emission.port),
-				getConfigListEntry(_("Automatically download torrent enclosures from SimpleRSS"), config.plugins.emission.autodownload_from_simplerss),
+				getConfigListEntry(_("Auto-add torrent enclosures from SimpleRSS"), config.plugins.emission.autodownload_from_simplerss),
 			],
 			session = session,
 			on_change = self.changed
