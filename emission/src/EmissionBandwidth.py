@@ -13,7 +13,7 @@ from Components.Pixmap import Pixmap
 
 # Configuration
 from Components.config import config, getConfigListEntry, \
-	ConfigNumber, ConfigSelection, NoSave
+	ConfigNumber, ConfigSelection, ConfigText, ConfigYesNo, NoSave
 
 class EmissionBandwidth(Screen, ConfigListScreen):
 	def __init__(self, session, val, isTorrent):
@@ -26,6 +26,7 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 
 		ConfigListScreen.__init__(self, [], session = session, on_change = self.changed)
 
+		self.isTorrent = isTorrent
 		if isTorrent:
 			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.downloadLimitMode))
 			self.downloadLimit = NoSave(ConfigNumber(default = val.downloadLimit))
@@ -38,6 +39,11 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled))
 			self.uploadLimit = NoSave(ConfigNumber(default = val.speed_limit_up))
 			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.peer_limit))
+			self.encryption = NoSave(ConfigSelection(choices = [('required', _("required")), ('preferred', _("preferred")), ('tolerated', _("tolerated"))], default = val.encryption))
+			self.download_dir = NoSave(ConfigText(default = val.download_dir, fixed_size = False))
+			self.pex_allowed = NoSave(ConfigYesNo(default = val.pex_allowed))
+			self.port = NoSave(ConfigNumber(default = val.port))
+			self.port_forwarding_enabled = NoSave(ConfigYesNo(default = val.port_forwarding_enabled))
 
 		self.downloadLimitMode.addNotifier(self.updateList, initial_call = False)
 		self.uploadLimitMode.addNotifier(self.updateList, initial_call = False)
@@ -75,6 +81,14 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		if self.uploadLimitMode.value == 1:
 			list.append(getConfigListEntry(_("Limit"), self.uploadLimit))
 		list.append(getConfigListEntry(_("Maximum Connections"), self.maxConnectedPeers))
+		if not self.isTorrent:
+			list.extend((
+				getConfigListEntry(_("Encryption"), self.encryption),
+				getConfigListEntry(_("Download directory"), self.download_dir),
+				getConfigListEntry(_("Allow PEX"), self.pex_allowed),
+				getConfigListEntry(_("Port"), self.port),
+				getConfigListEntry(_("Enable Port-Forwarding"), self.port_forwarding_enabled),
+			))
 		self["config"].setList(list)
 
 	def setCustomTitle(self):
@@ -104,11 +118,20 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 					type = MessageBox.TYPE_ERROR
 			)
 		else:
-			self.close({
+			dict = {
 				'speed_limit_down_enabled': self.downloadLimitMode.value,
 				'speed_limit_down': self.downloadLimit.value,
 				'speed_limit_up_enabled': self.uploadLimitMode.value,
 				'speed_limit_up': self.uploadLimit.value,
 				'peer_limit': self.maxConnectedPeers.value,
-			})
+			}
+			if not self.isTorrent:
+				dict.update({
+					'encryption': self.encryption.value,
+					'download_dir': self.download_dir.value,
+					'pex_allowed': self.pex_allowed.value,
+					'port': self.port.value,
+					'port_forwarding_enabled': self.port_forwarding_enabled.value,
+				})
+			self.close(dict)
 
