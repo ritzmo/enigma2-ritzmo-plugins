@@ -75,9 +75,7 @@ def main(session, **kwargs):
 	)
 
 def filescan_open(item, session, **kwargs):
-	from Tools.Directories import fileExists
-
-	transmission = transmission.Client(
+	client = transmission.Client(
 		address = config.plugins.emission.hostname.value,
 		port = config.plugins.emission.port.value,
 		user = config.plugins.emission.username.value,
@@ -89,7 +87,7 @@ def filescan_open(item, session, **kwargs):
 	# XXX: keep track of erroneous torrents?
 	for each in item:
 		try:
-			if transmission.add_url(each):
+			if client.add_url(each):
 				added += 1
 		except transmission.TransmissionError:
 			pass
