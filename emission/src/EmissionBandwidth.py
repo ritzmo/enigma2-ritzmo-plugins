@@ -34,15 +34,24 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			self.uploadLimit = NoSave(ConfigNumber(default = val.uploadLimit))
 			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.maxConnectedPeers))
 		else:
+			# XXX: this still needs support in transmissionrpc, but at least it won't crash with trunk any longer :-)
+			try:
+				# 1.50+
+				peerLimit = val.peer_limit
+				port = val.port
+			except:
+				# 1.60+
+				peerLimit = val.peer_limit_global
+				port = val.peer_port
 			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enabled))
 			self.downloadLimit = NoSave(ConfigNumber(default = val.speed_limit_down))
 			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled))
 			self.uploadLimit = NoSave(ConfigNumber(default = val.speed_limit_up))
-			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.peer_limit))
+			self.maxConnectedPeers = NoSave(ConfigNumber(default = peerLimit))
 			self.encryption = NoSave(ConfigSelection(choices = [('required', _("required")), ('preferred', _("preferred")), ('tolerated', _("tolerated"))], default = val.encryption))
 			self.download_dir = NoSave(ConfigText(default = val.download_dir, fixed_size = False))
 			self.pex_allowed = NoSave(ConfigYesNo(default = val.pex_allowed))
-			self.port = NoSave(ConfigNumber(default = val.port))
+			self.port = NoSave(ConfigNumber(default = port))
 			self.port_forwarding_enabled = NoSave(ConfigYesNo(default = val.port_forwarding_enabled))
 
 		self.downloadLimitMode.addNotifier(self.updateList, initial_call = False)
