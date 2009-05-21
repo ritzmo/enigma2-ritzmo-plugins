@@ -173,10 +173,10 @@ class EmissionOverview(Screen, HelpableScreen):
 		if ret:
 			try:
 				self.transmission.set_session(**ret)
-			except transmission.TransmissionError:
+			except transmission.TransmissionError, te:
 				self.session.open(
 					MessageBox,
-					_("Could not connect to transmission-daemon!"),
+					_("Error communicating with transmission-daemon: %s.") % (te),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
@@ -189,10 +189,10 @@ class EmissionOverview(Screen, HelpableScreen):
 		if ret:
 			try:
 				res = self.transmission.add_url(ret)
-			except transmission.TransmissionError:
+			except transmission.TransmissionError, te:
 				self.session.open(
 					MessageBox,
-					_("Could not connect to transmission-daemon!"),
+					_("Error communicating with transmission-daemon: %s.") % (te),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
@@ -240,10 +240,10 @@ class EmissionOverview(Screen, HelpableScreen):
 	def pauseAll(self):
 		try:
 			self.transmission.stop([x.id for x in self.transmission.list().values()])
-		except transmission.TransmissionError:
+		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
-				_("Could not connect to transmission-daemon!"),
+				_("Error communicating with transmission-daemon: %s.") % (te),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -251,10 +251,10 @@ class EmissionOverview(Screen, HelpableScreen):
 	def unpauseAll(self):
 		try:
 			self.transmission.start([x.id for x in self.transmission.list().values()])
-		except transmission.TransmissionError:
+		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
-				_("Could not connect to transmission-daemon!"),
+				_("Error communicating with transmission-daemon: %s.") % (te),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -341,10 +341,10 @@ class EmissionOverview(Screen, HelpableScreen):
 		self.timer.stop()
 		try:
 			sess = self.transmission.get_session()
-		except transmission.TransmissionError:
+		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
-				_("Could not connect to transmission-daemon!"),
+				_("Error communicating with transmission-daemon: %s.") % (te),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -456,5 +456,4 @@ class EmissionOverview(Screen, HelpableScreen):
 __all__ = ['LIST_TYPE_ALL', 'LIST_TYPE_DOWNLOADING', \
 	'LIST_TYPE_SEEDING', 'EmissionOverview', 'SORT_TYPE_TIME', \
 	'SORT_TYPE_PROGRESS', 'SORT_TYPE_ADDED', 'SORT_TYPE_SPEED']
-
 

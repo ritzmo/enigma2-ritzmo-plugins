@@ -115,10 +115,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 		if ret:
 			try:
 				self.transmission.change([self.torrentid], **ret)
-			except transmission.TransmissionError:
+			except transmission.TransmissionError, te:
 				self.session.open(
 					MessageBox,
-					_("Could not connect to transmission-daemon!"),
+					_("Error communicating with transmission-daemon: %s.") % (te),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
@@ -130,10 +130,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 		id = self.torrentid
 		try:
 			torrent = self.transmission.info([id])[id]
-		except transmission.TransmissionError:
+		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
-				_("Could not connect to transmission-daemon!"),
+				_("Error communicating with transmission-daemon: %s.") % (te),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -176,10 +176,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 			elif status in ("downloading", "seeding"):
 				self.transmission.stop([id])
 				self["key_yellow"].setText(_("start"))
-		except transmission.TransmissionError:
+		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
-				_("Could not connect to transmission-daemon!"),
+				_("Error communicating with transmission-daemon: %s.") % (te),
 				type = MessageBox.TYPE_ERROR,
 				timeout = 5
 			)
@@ -204,10 +204,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 				elif ret == "data":
 					self.transmission.remove([self.torrentid], delete_data = True)
 					self.close()
-			except transmission.TransmissionError:
+			except transmission.TransmissionError, te:
 				self.session.open(
 					MessageBox,
-					_("Could not connect to transmission-daemon!"),
+					_("Error communicating with transmission-daemon: %s.") % (te),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
@@ -305,10 +305,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 					files[cur[0]]['selected'] = True
 
 				self.transmission.set_files({self.torrentid: files})
-			except transmission.TransmissionError:
+			except transmission.TransmissionError, te:
 				self.session.open(
 					MessageBox,
-					_("Could not connect to transmission-daemon!"),
+					_("Error communicating with transmission-daemon: %s.") % (te),
 					type = MessageBox.TYPE_ERROR,
 					timeout = 5
 				)
