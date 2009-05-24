@@ -28,21 +28,36 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 
 		self.isTorrent = isTorrent
 		if isTorrent:
-			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.downloadLimitMode))
+			# XXX: can we implement this cleanly?
+			try:
+				# 1.50+
+				downloadLimitMode = val.downloadLimitMode
+				uploadLimitMode = val.uploadLimitMode
+				modelist = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))]
+			except Exception:
+				# 1.60+
+				downloadLimitMode = val.downloadLimited
+				uploadLimitMode = val.uploadLimited
+				modelist = [(0, _("Global Setting")), (1, _("Limit"))] # XXX: this is a pure guess...
+
+			self.downloadLimitMode = NoSave(ConfigSelection(choices = modelist, default = downloadLimitMode))
 			self.downloadLimit = NoSave(ConfigNumber(default = val.downloadLimit))
-			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))], default = val.uploadLimitMode))
+			self.uploadLimitMode = NoSave(ConfigSelection(choices = modelist, default = uploadLimitMode))
 			self.uploadLimit = NoSave(ConfigNumber(default = val.uploadLimit))
 			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.maxConnectedPeers))
 		else:
-			# XXX: this still needs support in transmissionrpc, but at least it won't crash with trunk any longer :-)
+			# XXX: can we implement this cleanly?
 			try:
 				# 1.50+
 				peerLimit = val.peer_limit
 				port = val.port
+				pex_allowed = val.pex_allowed
 			except:
 				# 1.60+
 				peerLimit = val.peer_limit_global
 				port = val.peer_port
+				pex_allowed = val.pex_enabled
+
 			self.downloadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_down_enabled))
 			self.downloadLimit = NoSave(ConfigNumber(default = val.speed_limit_down))
 			self.uploadLimitMode = NoSave(ConfigSelection(choices = [(0, _("Unlimited")), (1, _("Limit"))], default = val.speed_limit_up_enabled))
@@ -50,7 +65,7 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			self.maxConnectedPeers = NoSave(ConfigNumber(default = peerLimit))
 			self.encryption = NoSave(ConfigSelection(choices = [('required', _("required")), ('preferred', _("preferred")), ('tolerated', _("tolerated"))], default = val.encryption))
 			self.download_dir = NoSave(ConfigText(default = val.download_dir, fixed_size = False))
-			self.pex_allowed = NoSave(ConfigYesNo(default = val.pex_allowed))
+			self.pex_allowed = NoSave(ConfigYesNo(default = pex_allowed))
 			self.port = NoSave(ConfigNumber(default = port))
 			self.port_forwarding_enabled = NoSave(ConfigYesNo(default = val.port_forwarding_enabled))
 
