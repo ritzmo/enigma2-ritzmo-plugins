@@ -20,10 +20,7 @@ from Components.config import config
 
 from enigma import eTimer
 
-try:
-	from transmissionrpc import transmission
-except ImportError:
-	from transmission import transmission
+from transmissionrpc import transmission
 
 import EmissionBandwidth
 import EmissionDetailview

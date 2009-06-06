@@ -23,10 +23,7 @@ config.plugins.emission.last_sort = ConfigNumber(default = SORT_TYPE_ADDED)
 import socket
 socket.setdefaulttimeout(10)
 
-try:
-	from transmissionrpc import transmission
-except ImportError:
-	from transmission import transmission
+from transmissionrpc import transmission
 
 NOTIFICATIONID = 'EmissionAutodownloadError'
 
