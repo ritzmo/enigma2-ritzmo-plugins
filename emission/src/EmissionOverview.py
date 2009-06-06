@@ -341,6 +341,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		self.timer.stop()
 		try:
 			sess = self.transmission.get_session()
+			rpc_version = self.transmission.rpc_version
 		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
@@ -355,7 +356,8 @@ class EmissionOverview(Screen, HelpableScreen):
 				self.bandwidthCallback,
 				EmissionBandwidth.EmissionBandwidth,
 				sess,
-				False
+				False,
+				rpc_version
 			)
 
 	def configureCallback(self):

@@ -16,7 +16,7 @@ from Components.config import config, getConfigListEntry, \
 	ConfigNumber, ConfigSelection, ConfigText, ConfigYesNo, NoSave
 
 class EmissionBandwidth(Screen, ConfigListScreen):
-	def __init__(self, session, val, isTorrent):
+	def __init__(self, session, val, isTorrent, rpc_version):
 		Screen.__init__(self, session)
 		self.skinName = "Setup"
 
@@ -28,14 +28,11 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 
 		self.isTorrent = isTorrent
 		if isTorrent:
-			# XXX: can we implement this cleanly?
-			try:
-				# 1.50+
+			if rpc_version < 5:
 				downloadLimitMode = val.downloadLimitMode
 				uploadLimitMode = val.uploadLimitMode
 				modelist = [(0, _("Global Setting")), (2, _("Unlimited")), (1, _("Limit"))]
-			except Exception:
-				# 1.60+
+			else:
 				downloadLimitMode = val.downloadLimited
 				uploadLimitMode = val.uploadLimited
 				modelist = [(0, _("Global Setting")), (1, _("Limit"))] # XXX: this is a pure guess...
@@ -45,15 +42,12 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 			self.uploadLimitMode = NoSave(ConfigSelection(choices = modelist, default = uploadLimitMode))
 			self.uploadLimit = NoSave(ConfigNumber(default = val.uploadLimit))
 			self.maxConnectedPeers = NoSave(ConfigNumber(default = val.maxConnectedPeers))
-		else:
-			# XXX: can we implement this cleanly?
-			try:
-				# 1.50+
+		else: #if not isTorrent:
+			if rpc_version < 5:
 				peerLimit = val.peer_limit
 				port = val.port
 				pex_allowed = val.pex_allowed
-			except:
-				# 1.60+
+			else:
 				peerLimit = val.peer_limit_global
 				port = val.peer_port
 				pex_allowed = val.pex_enabled
@@ -142,6 +136,7 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 					type = MessageBox.TYPE_ERROR
 			)
 		else:
+			# NOTE: transmissionrpc will take care of translating the arguments
 			dict = {
 				'speed_limit_down_enabled': self.downloadLimitMode.value,
 				'speed_limit_down': self.downloadLimit.value,

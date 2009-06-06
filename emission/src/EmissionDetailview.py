@@ -130,6 +130,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 		id = self.torrentid
 		try:
 			torrent = self.transmission.info([id])[id]
+			rpc_version = self.transmission.rpc_version
 		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
@@ -144,7 +145,8 @@ class EmissionDetailview(Screen, HelpableScreen):
 				self.bandwidthCallback,
 				EmissionBandwidth.EmissionBandwidth,
 				torrent,
-				True
+				True,
+				rpc_version
 			)
 
 	def prevDl(self):
