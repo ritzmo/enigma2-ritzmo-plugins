@@ -115,12 +115,15 @@ class EmissionOverview(Screen, HelpableScreen):
 		Screen.__init__(self, session)
 		HelpableScreen.__init__(self)
 
-		self.transmission = transmission.Client(
-			address = config.plugins.emission.hostname.value,
-			port = config.plugins.emission.port.value,
-			user = config.plugins.emission.username.value,
-			password = config.plugins.emission.password.value
-		)
+		try:
+			self.transmission = transmission.Client(
+				address = config.plugins.emission.hostname.value,
+				port = config.plugins.emission.port.value,
+				user = config.plugins.emission.username.value,
+				password = config.plugins.emission.password.value
+			)
+		except transmission.TransmissionError, te:
+			self.transmission = None
 
 		self["SetupActions"] = HelpableActionMap(self, "SetupActions",
 		{
@@ -167,7 +170,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		self.timer.start(0, 1)
 
 	def bandwidthCallback(self, ret = None):
-		if ret:
+		if self.transmission is not None and ret:
 			try:
 				self.transmission.set_session(**ret)
 			except transmission.TransmissionError, te:
@@ -183,7 +186,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		ret and ret[1]()
 
 	def newDlCallback(self, ret = None):
-		if ret:
+		if self.transmission is not None and ret:
 			try:
 				res = self.transmission.add_url(ret)
 			except transmission.TransmissionError, te:
@@ -229,12 +232,17 @@ class EmissionOverview(Screen, HelpableScreen):
 		)
 
 	def pauseShown(self):
-		self.transmission.stop([x[0].id for x in self.list])
+		if self.transmission is not None:
+			self.transmission.stop([x[0].id for x in self.list])
 
 	def unpauseShown(self):
-		self.transmission.start([x[0].id for x in self.list])
+		if self.transmission is not None:
+			self.transmission.start([x[0].id for x in self.list])
 
 	def pauseAll(self):
+		if self.transmission is None:
+			return
+
 		try:
 			self.transmission.stop([x.id for x in self.transmission.list().values()])
 		except transmission.TransmissionError, te:
@@ -246,6 +254,9 @@ class EmissionOverview(Screen, HelpableScreen):
 			)
 
 	def unpauseAll(self):
+		if self.transmission is None:
+			return
+
 		try:
 			self.transmission.start([x.id for x in self.transmission.list().values()])
 		except transmission.TransmissionError, te:
@@ -334,6 +345,9 @@ class EmissionOverview(Screen, HelpableScreen):
 		return cur and cur[0]
 
 	def bandwidth(self):
+		if self.transmission is None:
+			return
+
 		reload(EmissionBandwidth)
 		self.timer.stop()
 		try:
@@ -358,15 +372,29 @@ class EmissionOverview(Screen, HelpableScreen):
 			)
 
 	def configureCallback(self):
-		self.transmission = transmission.Client(
-			address = config.plugins.emission.hostname.value,
-			port = config.plugins.emission.port.value,
-			user = config.plugins.emission.username.value,
-			password = config.plugins.emission.password.value
-		)
-		self.updateList()
+		try:
+			self.transmission = transmission.Client(
+				address = config.plugins.emission.hostname.value,
+				port = config.plugins.emission.port.value,
+				user = config.plugins.emission.username.value,
+				password = config.plugins.emission.password.value
+			)
+		except transmission.TransmissionError, te:
+			self.transmission = None
+			self.session.open(
+				MessageBox,
+				_("Error communicating with transmission-daemon: %s.") % (te),
+				type = MessageBox.TYPE_ERROR,
+				timeout = 5
+			)
+		else:
+			self.updateList()
 
 	def updateList(self, *args, **kwargs):
+		# XXX: if we are not connected do NOT restart timer, it's useless anyway
+		if self.transmission is None:
+			return
+
 		try:
 			list = self.transmission.list().values()
 			session = self.transmission.session_stats()
@@ -434,7 +462,7 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def ok(self):
 		cur = self['list'].getCurrent()
-		if cur:
+		if self.transmission is not None and cur:
 			reload(EmissionDetailview)
 			self.timer.stop()
 			self.session.openWithCallback(
