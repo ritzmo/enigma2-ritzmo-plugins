@@ -8,10 +8,9 @@ from Screens.HelpMenu import HelpableScreen
 
 # GUI (Components)
 from Components.ActionMap import HelpableActionMap
-from Components.Button import Button
-from Components.Label import Label
 from Components.Sources.List import List
 from Components.Sources.Progress import Progress
+from Components.Sources.StaticText import StaticText
 
 from enigma import eTimer
 
@@ -19,21 +18,29 @@ import EmissionBandwidth
 
 class EmissionDetailview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,75" size="565,450">
-		<eLabel position="450,5" text="DL: " size="30,20" font="Regular;18" />
-		<widget name="downspeed" position="480,5" size="85,20" halign="right" font="Regular;18" />
-		<eLabel position="450,27" text="UL: " size="30,20" font="Regular;18" transparent="1" />
-		<widget name="upspeed" position="480,27" size="85,20" halign="right" font="Regular;18" />
-		<widget name="name" position="5,5" size="445,20" font="Regular;18" />
-		<widget name="peers" position="5,27" size="555,20" font="Regular;18" />
+		<ePixmap position="0,0" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
+		<ePixmap position="140,0" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
+		<ePixmap position="280,0" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
+		<ePixmap position="420,0" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
+		<widget source="key_red" render="Label" position="0,0" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget source="key_green" render="Label" position="140,0" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget source="key_yellow" render="Label" position="280,0" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<widget source="key_blue" render="Label" position="420,0" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
+		<eLabel position="450,45" text="DL: " size="30,20" font="Regular;18" />
+		<widget source="downspeed" render="Label" position="480,45" size="85,20" halign="right" font="Regular;18" />
+		<eLabel position="450,67" text="UL: " size="30,20" font="Regular;18" transparent="1" />
+		<widget source="upspeed" render="Label" position="480,67" size="85,20" halign="right" font="Regular;18" />
+		<widget source="name" render="Label" position="5,45" size="445,20" font="Regular;18" />
+		<widget source="peers" render="Label" position="5,67" size="445,20" font="Regular;18" />
 		<!-- XXX: the actual uri might end up in the next line, this sucks :-) -->
-		<widget name="tracker" position="5,50" size="555,20" font="Regular;18" />
-		<widget name="private" position="5,73" size="555,20" font="Regular;18" />
-		<widget name="eta" position="5,130" size="555,20" font="Regular;18" />
-		<widget name="progress_text" position="5,155" size="400,20" font="Regular;18" />
-		<widget name="ratio" position="410,155" size="150,20" font="Regular;18" halign="right" />
-		<widget source="progress" render="Progress" position="5,180" size="555,6" />
-		<widget name="files_text" position="5,190" size="100,20" font="Regular;18" />
-		<widget source="files" render="Listbox" position="0,215" size="566,185" scrollbarMode="showAlways">
+		<widget source="tracker" render="Label" position="5,90" size="555,20" font="Regular;18" />
+		<widget source="private" render="Label" position="5,113" size="555,20" font="Regular;18" />
+		<widget source="eta" render="Label" position="5,170" size="555,20" font="Regular;18" />
+		<widget source="progress_text" render="Label" position="5,195" size="400,20" font="Regular;18" />
+		<widget source="ratio" render="Label" position="410,195" size="150,20" font="Regular;18" halign="right" />
+		<widget source="progress" render="Progress" position="5,220" size="555,6" />
+		<widget source="files_text" render="Label" position="5,230" size="100,20" font="Regular;18" />
+		<widget source="files" render="Listbox" position="0,255" size="566,185" scrollbarMode="showAlways">
 			<convert type="TemplatedMultiContent">
 				{"template": [
 						MultiContentEntryText(pos=(2,2), size=(560,22), text = 4, font = 0, flags = RT_HALIGN_LEFT|RT_VALIGN_CENTER),
@@ -49,14 +56,6 @@ class EmissionDetailview(Screen, HelpableScreen):
 				 }
 			</convert>
 		</widget>
-		<ePixmap position="0,405" size="140,40" pixmap="skin_default/buttons/red.png" transparent="1" alphatest="on" />
-		<ePixmap position="140,405" size="140,40" pixmap="skin_default/buttons/green.png" transparent="1" alphatest="on" />
-		<ePixmap position="280,405" size="140,40" pixmap="skin_default/buttons/yellow.png" transparent="1" alphatest="on" />
-		<ePixmap position="420,405" size="140,40" pixmap="skin_default/buttons/blue.png" transparent="1" alphatest="on" />
-		<widget name="key_red" position="0,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_green" position="140,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_yellow" position="280,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
-		<widget name="key_blue" position="420,405" zPosition="1" size="140,40" valign="center" halign="center" font="Regular;21" transparent="1" foregroundColor="white" shadowColor="black" shadowOffset="-1,-1" />
 	</screen>"""
 
 	def __init__(self, session, daemon, torrent, prevFunc = None, nextFunc = None):
@@ -86,26 +85,26 @@ class EmissionDetailview(Screen, HelpableScreen):
 			"blue": (self.remove , _("remove torrent")),
 		})
 
-		self["key_red"] = Button(_("Close"))
-		self["key_green"] = Button(_("Bandwidth"))
+		self["key_red"] = StaticText(_("Close"))
+		self["key_green"] = StaticText(_("Bandwidth"))
 		if torrent.status == "stopped":
-			self["key_yellow"] = Button(_("start"))
+			self["key_yellow"] = StaticText(_("start"))
 		else:
-			self["key_yellow"] = Button(_("stop"))
-		self["key_blue"] = Button(_("remove"))
+			self["key_yellow"] = StaticText(_("stop"))
+		self["key_blue"] = StaticText(_("remove"))
 
-		self["upspeed"] = Label("")
-		self["downspeed"] = Label("")
-		self["peers"] = Label("")
-		self["name"] = Label(str(torrent.name))
-		self["files_text"] = Label(_("Files"))
+		self["upspeed"] = StaticText("")
+		self["downspeed"] = StaticText("")
+		self["peers"] = StaticText("")
+		self["name"] = StaticText(str(torrent.name))
+		self["files_text"] = StaticText(_("Files"))
 		self["files"] = List([])
 		self["progress"] = Progress(int(torrent.progress))
-		self["progress_text"] = Label("")
-		self["ratio"] = Label("")
-		self["eta"] = Label("")
-		self["tracker"] = Label("")
-		self["private"] = Label("")
+		self["progress_text"] = StaticText("")
+		self["ratio"] = StaticText("")
+		self["eta"] = StaticText("")
+		self["tracker"] = StaticText("")
+		self["private"] = StaticText("")
 
 		self.timer = eTimer()
 		self.timer.callback.append(self.updateList)
@@ -155,7 +154,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			if torrent:
 				self.timer.stop()
 				self.torrentid = torrent.id
-				self["name"].setText(str(torrent.name))
+				self["name"].text = str(torrent.name)
 				self.updateList()
 
 	def nextDl(self):
@@ -164,7 +163,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			if torrent:
 				self.timer.stop()
 				self.torrentid = torrent.id
-				self["name"].setText(str(torrent.name))
+				self["name"].text = str(torrent.name)
 				self.updateList()
 
 	def toggleStatus(self):
@@ -174,10 +173,10 @@ class EmissionDetailview(Screen, HelpableScreen):
 			status = torrent.status
 			if status == "stopped":
 				self.transmission.start([id])
-				self["key_yellow"].setText(_("pause"))
+				self["key_yellow"].text = _("pause")
 			elif status in ("downloading", "seeding"):
 				self.transmission.stop([id])
-				self["key_yellow"].setText(_("start"))
+				self["key_yellow"].text = _("start")
 		except transmission.TransmissionError, te:
 			self.session.open(
 				MessageBox,
@@ -219,18 +218,18 @@ class EmissionDetailview(Screen, HelpableScreen):
 		try:
 			torrent = self.transmission.info([id])[id]
 		except transmission.TransmissionError:
-			self["upspeed"].setText("")
-			self["downspeed"].setText("")
-			self["peers"].setText("")
-			self["progress_text"].setText("")
-			self["ratio"].setText("")
-			self["eta"].setText("")
-			self["tracker"].setText("")
-			self["private"].setText("")
+			self["upspeed"].text = ""
+			self["downspeed"].text = ""
+			self["peers"].text = ""
+			self["progress_text"].text = ""
+			self["ratio"].text = ""
+			self["eta"].text = ""
+			self["tracker"].text = ""
+			self["private"].text = ""
 			self["files"].setList([])
 		else:
-			self["upspeed"].setText(_("%d kb/s") % (torrent.rateUpload / 1024))
-			self["downspeed"].setText(_("%d kb/s") % (torrent.rateDownload / 1024))
+			self["upspeed"].text = _("%d kb/s") % (torrent.rateUpload / 1024)
+			self["downspeed"].text = _("%d kb/s") % (torrent.rateDownload / 1024)
 			self["progress"].setValue(int(torrent.progress))
 
 			status = torrent.status
@@ -249,16 +248,16 @@ class EmissionDetailview(Screen, HelpableScreen):
 			elif status == 'stopped':
 				peerText = _("stopped")
 				progressText = _("Downloaded %d and uploaded %d MB") % (torrent.downloadedEver/1048576, torrent.uploadedEver/1048576)
-			self["peers"].setText(peerText)
-			self["progress_text"].setText(progressText)
-			self["ratio"].setText(_("Ratio: %.2f" % (torrent.ratio)))
-			self["eta"].setText(_("Remaining: %s") % (torrent.eta or '?:??:??'))
+			self["peers"].text = peerText
+			self["progress_text"].text = progressText
+			self["ratio"].text = _("Ratio: %.2f") % (torrent.ratio)
+			self["eta"].text = _("Remaining: %s") % (torrent.eta or '?:??:??')
 
 			# XXX: we should not need to set this all the time but when we enter this screen we just don't have this piece of information
 			trackers = torrent.trackers
 			if trackers:
-				self["tracker"].setText(str(_("Tracker: %s") % (trackers[0]['announce'])))
-			self["private"].setText(_("Private: %s") % (torrent.isPrivate and _("yes") or _("no")))
+				self["tracker"].text = str(_("Tracker: %s") % (trackers[0]['announce']))
+			self["private"].text = _("Private: %s") % (torrent.isPrivate and _("yes") or _("no"))
 
 			l = []
 			files = torrent.files()
