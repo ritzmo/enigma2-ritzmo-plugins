@@ -8,8 +8,7 @@ from Screens.Setup import SetupSummary
 
 # GUI (Components)
 from Components.ActionMap import ActionMap
-from Components.Label import Label
-from Components.Pixmap import Pixmap
+from Components.Sources.StaticText import StaticText
 
 # Configuration
 from Components.config import config, getConfigListEntry, \
@@ -18,7 +17,7 @@ from Components.config import config, getConfigListEntry, \
 class EmissionBandwidth(Screen, ConfigListScreen):
 	def __init__(self, session, val, isTorrent, rpc_version):
 		Screen.__init__(self, session)
-		self.skinName = "Setup"
+		self.skinName = [ "EmissionBandwith", "Setup" ]
 
 		# Summary
 		self.setup_title = _("Bandwidth settings")
@@ -69,12 +68,9 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		self.updateList()
 
 		# Initialize widgets
-		self["oktext"] = Label(_("OK"))
-		self["canceltext"] = Label(_("Cancel"))
-		self["ok"] = Pixmap()
-		self["cancel"] = Pixmap()
-		# XXX: this looks stupid in the default skin :-)
-		self["title"] = Label(_("%s bandwidth settings") % (isTorrent and str(val.name) or "eMission"))
+		self["key_green"] = StaticText(_("OK"))
+		self["key_red"] = StaticText(_("Cancel"))
+		self.full_title = _("%s bandwidth settings") % (isTorrent and str(val.name) or "eMission")
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions"],
@@ -110,14 +106,11 @@ class EmissionBandwidth(Screen, ConfigListScreen):
 		self["config"].setList(list)
 
 	def setCustomTitle(self):
-		self.setTitle(_("Configure eMission"))
+		self.setTitle(self.full_title)
 
 	def changed(self):
 		for x in self.onChangedEntry:
-			try:
-				x()
-			except:
-				pass
+			x()
 
 	def getCurrentEntry(self):
 		return self["config"].getCurrent()[0]

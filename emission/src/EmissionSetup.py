@@ -7,8 +7,7 @@ from Screens.Setup import SetupSummary
 
 # GUI (Components)
 from Components.ActionMap import ActionMap
-from Components.Label import Label
-from Components.Pixmap import Pixmap
+from Components.Sources.StaticText import StaticText
 
 # Configuration
 from Components.config import config, getConfigListEntry
@@ -16,7 +15,7 @@ from Components.config import config, getConfigListEntry
 class EmissionSetup(Screen, ConfigListScreen):
 	def __init__(self, session):
 		Screen.__init__(self, session)
-		self.skinName = "Setup"
+		self.skinName = [ "EmissionSetup", "Setup" ]
 
 		# Summary
 		self.setup_title = _("eMission settings")
@@ -36,11 +35,8 @@ class EmissionSetup(Screen, ConfigListScreen):
 		)
 
 		# Initialize widgets
-		self["oktext"] = Label(_("OK"))
-		self["canceltext"] = Label(_("Cancel"))
-		self["ok"] = Pixmap()
-		self["cancel"] = Pixmap()
-		self["title"] = Label(_("eMission settings"))
+		self["key_green"] = Label(_("OK"))
+		self["key_red"] = Label(_("Cancel"))
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions"],
@@ -56,14 +52,11 @@ class EmissionSetup(Screen, ConfigListScreen):
 		self.onLayoutFinish.append(self.setCustomTitle)
 
 	def setCustomTitle(self):
-		self.setTitle(_("Configure eMission"))
+		self.setTitle(self.setup_title)
 
 	def changed(self):
 		for x in self.onChangedEntry:
-			try:
-				x()
-			except:
-				pass
+			x()
 
 	def getCurrentEntry(self):
 		return self["config"].getCurrent()[0]
