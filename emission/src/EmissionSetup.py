@@ -35,8 +35,8 @@ class EmissionSetup(Screen, ConfigListScreen):
 		)
 
 		# Initialize widgets
-		self["key_green"] = Label(_("OK"))
-		self["key_red"] = Label(_("Cancel"))
+		self["key_green"] = StaticText(_("OK"))
+		self["key_red"] = StaticText(_("Cancel"))
 
 		# Define Actions
 		self["actions"] = ActionMap(["SetupActions"],
