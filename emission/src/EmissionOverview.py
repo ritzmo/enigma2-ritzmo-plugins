@@ -19,7 +19,7 @@ from Components.config import config
 
 from enigma import eTimer
 
-from transmissionrpc import transmission
+from transmissionrpc import Client, TransmissionError
 
 import EmissionBandwidth
 import EmissionDetailview
@@ -115,13 +115,13 @@ class EmissionOverview(Screen, HelpableScreen):
 		HelpableScreen.__init__(self)
 
 		try:
-			self.transmission = transmission.Client(
+			self.transmission = Client(
 				address = config.plugins.emission.hostname.value,
 				port = config.plugins.emission.port.value,
 				user = config.plugins.emission.username.value,
 				password = config.plugins.emission.password.value
 			)
-		except transmission.TransmissionError, te:
+		except TransmissionError, te:
 			self.transmission = None
 
 		self["SetupActions"] = HelpableActionMap(self, "SetupActions",
@@ -172,7 +172,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		if self.transmission is not None and ret:
 			try:
 				self.transmission.set_session(**ret)
-			except transmission.TransmissionError, te:
+			except TransmissionError, te:
 				self.session.open(
 					MessageBox,
 					_("Error communicating with transmission-daemon: %s.") % (te),
@@ -188,7 +188,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		if self.transmission is not None and ret:
 			try:
 				res = self.transmission.add_url(ret)
-			except transmission.TransmissionError, te:
+			except TransmissionError, te:
 				self.session.open(
 					MessageBox,
 					_("Error communicating with transmission-daemon: %s.") % (te),
@@ -244,7 +244,7 @@ class EmissionOverview(Screen, HelpableScreen):
 
 		try:
 			self.transmission.stop([x.id for x in self.transmission.list().values()])
-		except transmission.TransmissionError, te:
+		except TransmissionError, te:
 			self.session.open(
 				MessageBox,
 				_("Error communicating with transmission-daemon: %s.") % (te),
@@ -258,7 +258,7 @@ class EmissionOverview(Screen, HelpableScreen):
 
 		try:
 			self.transmission.start([x.id for x in self.transmission.list().values()])
-		except transmission.TransmissionError, te:
+		except TransmissionError, te:
 			self.session.open(
 				MessageBox,
 				_("Error communicating with transmission-daemon: %s.") % (te),
@@ -352,7 +352,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		try:
 			sess = self.transmission.get_session()
 			rpc_version = self.transmission.rpc_version
-		except transmission.TransmissionError, te:
+		except TransmissionError, te:
 			self.session.open(
 				MessageBox,
 				_("Error communicating with transmission-daemon: %s.") % (te),
@@ -372,13 +372,13 @@ class EmissionOverview(Screen, HelpableScreen):
 
 	def configureCallback(self):
 		try:
-			self.transmission = transmission.Client(
+			self.transmission = Client(
 				address = config.plugins.emission.hostname.value,
 				port = config.plugins.emission.port.value,
 				user = config.plugins.emission.username.value,
 				password = config.plugins.emission.password.value
 			)
-		except transmission.TransmissionError, te:
+		except TransmissionError, te:
 			self.transmission = None
 			self.session.open(
 				MessageBox,
@@ -397,7 +397,7 @@ class EmissionOverview(Screen, HelpableScreen):
 		try:
 			list = self.transmission.list().values()
 			session = self.transmission.session_stats()
-		except transmission.TransmissionError:
+		except TransmissionError:
 			# XXX: some hint in gui would be nice
 			self['list'].setList([])
 			self["torrents"].setText("")

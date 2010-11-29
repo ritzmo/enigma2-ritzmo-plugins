@@ -41,7 +41,7 @@ def simplerss_update_callback(id = None):
 				for file in item[3]:
 					if file.mimetype == "application/x-bittorrent":
 						if client is None:
-							client = transmission.Client(
+							client = Client(
 								address = config.plugins.emission.hostname.value,
 								port = config.plugins.emission.port.value,
 								user = config.plugins.emission.username.value,
@@ -50,7 +50,7 @@ def simplerss_update_callback(id = None):
 						try:
 							# XXX: we might want to run this in the background cause this might block...
 							client.add_url(file.path)
-						except transmission.TransmissionError:
+						except TransmissionError:
 							errors += 1
 
 		# Inform the user if an error occured
@@ -110,7 +110,7 @@ def main(session, **kwargs):
 	)
 
 def filescan_open(item, session, **kwargs):
-	client = transmission.Client(
+	client = Client(
 		address = config.plugins.emission.hostname.value,
 		port = config.plugins.emission.port.value,
 		user = config.plugins.emission.username.value,
@@ -125,7 +125,7 @@ def filescan_open(item, session, **kwargs):
 		try:
 			if client.add_url(each):
 				added += 1
-		except transmission.TransmissionError:
+		except TransmissionError:
 			errors += 1
 
 	from Screens.MessageBox import MessageBox
