@@ -1,0 +1,3 @@
+Repository of my not-yet-upstream-ready enigma2 plugins.
+
+If you intend to include them in your image you may use the bitbake recipe enigma2-ritzmo-plugins.bb which can be found inside the repository itself.
