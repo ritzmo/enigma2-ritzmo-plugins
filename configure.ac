@@ -12,6 +12,9 @@ emission/src/Makefile
 historybrowser/Makefile
 historybrowser/src/Makefile
 
+svdrp/Makefile
+svdrp/src/Makefile
+
 tictactoe/Makefile
 tictactoe/src/Makefile
 
