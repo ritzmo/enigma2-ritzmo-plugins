@@ -3,7 +3,7 @@ from twisted.internet.protocol import ClientFactory, ServerFactory
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from Screens.InfoBar import InfoBar
-from enigma import eEPGCache, eDVBVolumecontrol, eServiceReference, iServiceInformation
+from enigma import eEPGCache, eDVBVolumecontrol, eServiceCenter, eServiceReference, iServiceInformation
 from ServiceReference import ServiceReference
 from Components.TimerSanityCheck import TimerSanityCheck
 from RecordTimer import RecordTimerEntry
@@ -197,11 +197,13 @@ class SimpleVDRProtocol(LineReceiver):
 		list.extend(recordTimer.processed_timers)
 		list.sort(cmp = lambda x, y: x.begin < y.begin)
 
-		if timerId < 1 or len(list) < timerId:
+		if timerId < 1:
 			payload = "%d argument error" % (CODE_SYNTAX,)
 			return self.sendLine(payload)
 
-		timer = list[timerId - 1]
+		if len(list) >= timerId: oldTimer = list[timerId - 1]
+		else: oldTimer = None
+
 		try:
 			flags, channelid, datestring, beginstring, endstring, priority, lifetime, name, description = args[1].split(':')
 			flags = int(flags)
@@ -219,17 +221,25 @@ class SimpleVDRProtocol(LineReceiver):
 			payload = "%d argument error" % (CODE_SYNTAX,)
 			return self.sendLine(payload)
 
-		recordTimer.removeEntry(timer)
-		old = timer
 		if end < begin: end += 86400 # Add 1 day, beware - this is evil and might not work correctly due to dst
-		timer = RecordTimerEntry(service_ref, begin, end, name, description, 0, disabled=flags & 1 == 0, justplay=old.justplay, afterEvent=old.afterEvent, dirname=old.dirname, tags=old.tags)
-		timer.log_entries = old.log_entries
+		timer = RecordTimerEntry(service_ref, begin, end, name, description, 0, disabled=flags & 1 == 0)
+		if oldTimer:
+			recordTimer.removeEntry(oldTimer)
+			timer.justplay = oldTimer.justplay
+			timer.afterEvent = oldTimer.afterEvent
+			timer.dirname = oldTimer.dirname
+			timer.tags = oldTimer.tags
+			timer.log_entries = oldTimer.log_entries
+
 		conflict = recordTimer.record(timer)
 		if conflict is None:
 			return self.sendTimerLine(timer, timerId, last=True)
 		else:
 			payload = "%d timer conflict detected, original timer lost." % (CODE_ERR_LOCAL,)
 			return self.sendLine(payload)
+
+	def NEWT(self, args):
+		self.UPDT("999999999 " + args)
 
 	def MODT(self, args):
 		# <id> on | off | <settings>
@@ -277,6 +287,29 @@ class SimpleVDRProtocol(LineReceiver):
 				sef.sendTimerLine(timer, timerId, last=True)
 		else:
 			self.UPDT(' '.join(args))
+
+	def DELT(self, args):
+		try:
+			timerId = int(args)
+		except ValueError:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		import NavigationInstance
+		list = []
+		recordTimer = NavigationInstance.instance.RecordTimer
+		list.extend(recordTimer.timer_list)
+		list.extend(recordTimer.processed_timers)
+		list.sort(cmp = lambda x, y: x.begin < y.begin)
+
+		if timerId < 1 or len(list) < timerId:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		timer = list[timerId - 1]
+		recordTimer.removeEntry(timer)
+		payload = '%d Timer "%d" deleted' % (CODE_OK, timerId)
+		self.sendLine(payload)
 
 	def MESG(self, data):
 		if not data:
@@ -375,6 +408,25 @@ class SimpleVDRProtocol(LineReceiver):
 			idx += 1
 		sendMovieLine(lastItem[0], lastItem[1], lastItem[2], idx, last=True)
 
+	def DELR(self, args):
+		try:
+			movieId = int(args)
+		except ValueError:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		sref = self.movielist.list[movieId-1][0]
+		serviceHandler = eServiceCenter.getInstance()
+		offline = serviceHandler.offlineOperations(sref)
+
+		if offline is not None:
+			if not offline.deleteFromDisk(0):
+				payload = '%d Movie "%d" deleted' % (CODE_OK, movieId)
+				return self.sendLine(payload)
+
+		payload = "%d data inconsistency error." % (CODE_ERR_LOCAL,)
+		self.sendLine(payload)
+
 	def LSTE(self, args):
 		args = args.split()
 		first = args and args.pop(0)
@@ -445,16 +497,11 @@ class SimpleVDRProtocol(LineReceiver):
 		command = list.pop(0).upper()
 		args = list[0] if list else ''
 
-		"""
-		CHAN      CLRE      DELC      DELR      DELT      
-		EDIT      GRAB      HELP      HITK      LSTC      
-		LSTE      LSTR      LSTT      MESG      MODC      
-		MODT      MOVC      MOVT      NEWC      NEWT      
-		NEXT      PLAY      PLUG      PUTE      REMO      
-		SCAN      STAT      UPDT      VOLU      QUIT
-		"""
+		# still possible: grab, (partially) hitk, (theoretically) movc, next? (dunno what this does), play, stat and completion of existing commands
 		funcs = {
 			'CHAN': self.CHAN,
+			'DELR': self.DELR,
+			'DELT': self.DELT,
 			'HELP': self.HELP,
 			'LSTC': self.LSTC,
 			'LSTE': self.LSTE,
@@ -462,6 +509,7 @@ class SimpleVDRProtocol(LineReceiver):
 			'LSTR': self.LSTR,
 			'MESG': self.MESG,
 			'MODT': self.MODT,
+			'NEWT': self.NEWT,
 			'UPDT': self.UPDT,
 			'QUIT': self.stop,
 			'VOLU': self.VOLU,
