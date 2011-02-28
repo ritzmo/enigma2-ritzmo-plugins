@@ -3,7 +3,7 @@ from twisted.internet.protocol import ClientFactory, ServerFactory
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from Screens.InfoBar import InfoBar
-from enigma import eServiceReference, eDVBVolumecontrol
+from enigma import eServiceReference, eDVBVolumecontrol, iServiceInformation
 from ServiceReference import ServiceReference
 
 from Screens.MessageBox import MessageBox
@@ -32,6 +32,24 @@ CODE_ERR = 554
 class SimpleVDRProtocol(LineReceiver):
 	def __init__(self, client = False):
 		self.client = client
+		self._channelList = []
+		from Components.MovieList import MovieList
+		from Tools.Directories import resolveFilename, SCOPE_HDD
+		self.movielist = MovieList(eServiceReference("2:0:1:0:0:0:0:0:0:0:" + resolveFilename(SCOPE_HDD)))
+
+	def getChannelList(self):
+		if not self._channelList:
+			from Components.Sources.ServiceList import ServiceList
+			bouquet = eServiceReference('1:7:1:0:0:0:0:0:0:0:FROM BOUQUET "userbouquet.favourites.tv" ORDER BY bouquet')
+			slist = ServiceList(bouquet, validate_commands=False)
+			services = slist.getServicesAsList(format="S")
+			self._channelList = services[:]
+		return self._channelList
+
+	def setChannelList(self, channelList):
+		self._channelList = channelList
+
+	channelList = property(getChannelList, setChannelList)
 
 	def connectionMade(self):
 		self.factory.addClient(self)
@@ -75,15 +93,41 @@ class SimpleVDRProtocol(LineReceiver):
 		slist = ServiceList(bouquet, validate_commands=False)
 		services = slist.getServicesAsList(format="SNn")
 		if services:
+			def getServiceInfoValue(info, sref, what):
+				if info is None: return ""
+				v = info.getInfo(sref.ref, what)
+				if v == -2: return info.getInfoString(sref.ref, what)
+				elif v == -1: return "N/A"
+				return v
 			def sendServiceLine(service, last=False):
 				if service[0][:5] == '1:64:':
 					# format for markers:  ":Name"
 					line = "%d%s:%s" % (CODE_OK, '-' if not last else ' ', service[1])
 				else:
+					# <full name>,<short name>;<provider>:<freq>:<parameters>:<source>:<srate>:<vpid>:<apid>:<tpid>:<conditional access>:<:sid>:<nid>:<tid>:<:rid>
+					# e.g. RTL Television,RTL:12188:h:S19.2E:27500:163:104:105:0:12003:1:1089:0
+					sref = ServiceReference(service[0])
+					info = sref.info()
+					# XXX: how to get this?! o0
+					feinfo = None #sref.ref.frontendInfo()
+					fedata = feinfo.getAll(True) if feinfo else {}
+					prov = getServiceInfoValue(info, sref, iServiceInformation.sProvider)
+					frequency = fedata.get("frequency", 0)/1000
+					param = -1
+					source = '-1'
+					srate = -1
+					vpid = '-1'
+					apid = '-1'
+					tpid = -1
+					ca = '-1'
+					sid = -1
+					nid = -1
+					tid = -1
+					rid = -1
 					# TODO: support full format, these are only the important fields ;)
-					# <full name>,<short name>;<provider>:<freq>:(a lot more stuff o0)
-					line = "%d%s%s,%s;UNK:" % (CODE_OK, '-' if not last else ' ', service[1], service[2])
+					line = "%d%s%s,%s;%s:%d:%s:%s:%d:%s:%s:%d:%s:%d:%d:%d:%d" % (CODE_OK, '-' if not last else ' ', service[1], service[2], prov, frequency, param, source, srate, vpid, apid, tpid, ca, sid, nid, tid, rid)
 				self.sendLine(line)
+			self.channelList = [x[0] for x in services] # always refresh cache b/c this is what the user works with from now on
 			lastItem = services.pop()
 			for service in services:
 				sendServiceLine(service)
@@ -105,18 +149,27 @@ class SimpleVDRProtocol(LineReceiver):
 			flags = 0
 			if not timer.disabled: flags |= 1
 			if timer.state == timer.StateRunning: flags |= 8
-			channelid = 1
-			datestring = strftime('%Y-%m-%d', localtime(timer.begin))
-			beginstring = strftime('%H%M', localtime(timer.begin))
-			endstring = strftime('%H%M', localtime(timer.end))
-			line = "%d%s%d %d:%d:%s:%s:%s:%d:%d:%s:%s" % (CODE_OK, '-' if not last else ' ', counter, flags, channelid, datestring, beginstring, endstring, 1, 1, timer.name, timer.description)
-			self.sendLine(line)
+			try:
+				channelid = self.channelList.index(str(timer.service_ref)) + 1
+			except ValueError, e:
+				# XXX: ignore timers on channels that are not in our favourite bouquet
+				return False
+			else:
+				datestring = strftime('%Y-%m-%d', localtime(timer.begin))
+				beginstring = strftime('%H%M', localtime(timer.begin))
+				endstring = strftime('%H%M', localtime(timer.end))
+				line = "%d%s%d %d:%d:%s:%s:%s:%d:%d:%s:%s" % (CODE_OK, '-' if not last else ' ', counter, flags, channelid, datestring, beginstring, endstring, 1, 1, timer.name, timer.description)
+				self.sendLine(line)
+				return True
 		lastItem = list.pop()
 		idx = 1
 		for timer in list:
 			sendTimerLine(timer, idx)
 			idx += 1
-		sendTimerLine(lastItem, idx, last=True)
+		if not sendTimerLine(lastItem, idx, last=True):
+			# send error if last item failed to send, else the other end might get stuck
+			payload = "%d data inconsistency error." % (CODE_ERR_LOCAL,)
+			self.sendLine(payload)
 
 	def MESG(self, data):
 		if not data:
@@ -160,6 +213,61 @@ class SimpleVDRProtocol(LineReceiver):
 			payload = "%d Audio volume is %d." % (CODE_OK, volctrl.getVolume()*2.55)
 		self.sendLine(payload)
 
+	def HELP(self, args):
+		if not len(args) == 2:
+			payload = "%d data inconsistency error." % (CODE_ERR_LOCAL,)
+			return self.sendLine(payload)
+		funcs, args = args
+		if not args:
+			funcnames = funcs.keys()
+			funcnames.sort() # make sure this is sorted
+			payload = "%d-This is Enigma2 VDR-Plugin version %s" % (CODE_HELP, VERSION)
+			self.sendLine(payload)
+			payload = "%d-Topics:" % (CODE_HELP,)
+			x = 5
+			for func in funcnames:
+				if x == 5:
+					self.sendLine(payload)
+					payload = "%d-    %s" % (CODE_HELP, func)
+					x = 1
+				else:
+					payload +=  "      %s" % (func,)
+					x += 1
+			self.sendLine(payload)
+			payload = "%d-To report bugs in the implementation send email to" % (CODE_HELP,)
+			self.sendLine(payload)
+			payload = "%d-    svdrp AT ritzmo DOT de" % (CODE_HELP,)
+			self.sendLine(payload)
+			payload = "%d End of HELP info" % (CODE_HELP,)
+			self.sendLine(payload)
+		else:
+			payload = "%d parameter not implemented" % (CODE_IMP_PARAM,)
+			return self.sendLine(payload)
+
+	def LSTR(self, args):
+		if args:
+			payload = "%d parameter not implemented" % (CODE_IMP_PARAM,)
+			return self.sendLine(payload)
+
+		self.movielist.reload()
+
+		def sendMovieLine(sref, info, begin, counter, last=False):
+			# <number> <date> <begin> <name>
+			ctime = info.getInfo(serviceref, iServiceInformation.sTimeCreate) # XXX: difference to begin? just copied this from webif ;-)
+			datestring = strftime('%d.%m.%y', localtime(ctime))
+			beginstring = strftime('%H:%M', localtime(ctime))
+			servicename = ServiceReference(sref).getServiceName().replace('\xc2\x86', '').replace('\xc2\x87', '')
+			line = "%d%s%d %s %s %s" % (CODE_OK, '-' if not last else ' ', counter, datestring, beginstring, servicename)
+			self.sendLine(line)
+
+		list = self.movielist.list[:]
+		lastItem = list.pop()
+		idx = 1
+		for serviceref, info, begin, unknown in list:
+			sendMovieLine(serviceref, info, begin, idx)
+			idx += 1
+		sendMovieLine(lastItem[0], lastItem[1], lastItem[2], idx, last=True)
+
 	def lineReceived(self, data):
 		if self.client or not self.transport or not data:
 			return
@@ -177,14 +285,19 @@ class SimpleVDRProtocol(LineReceiver):
 		NEXT      PLAY      PLUG      PUTE      REMO      
 		SCAN      STAT      UPDT      VOLU      QUIT
 		"""
-		call = {
+		funcs = {
 			'CHAN': self.CHAN,
 			'LSTC': self.LSTC,
 			'LSTT': self.LSTT,
 			'QUIT': self.stop,
 			'MESG': self.MESG,
 			'VOLU': self.VOLU,
-		}.get(command, self.NOT_IMPLEMENTED)
+			'LSTR': self.LSTR,
+			'HELP': self.HELP,
+		}
+		if command == "HELP":
+			args = (funcs, args)
+		call = funcs.get(command, self.NOT_IMPLEMENTED)
 
 		try:
 			call(args)
