@@ -3,7 +3,7 @@ from twisted.internet.protocol import ClientFactory, ServerFactory
 from twisted.internet import reactor
 from twisted.protocols.basic import LineReceiver
 from Screens.InfoBar import InfoBar
-from enigma import eServiceReference, eDVBVolumecontrol, iServiceInformation
+from enigma import eEPGCache, eDVBVolumecontrol, eServiceReference, iServiceInformation
 from ServiceReference import ServiceReference
 
 from Screens.MessageBox import MessageBox
@@ -99,13 +99,13 @@ class SimpleVDRProtocol(LineReceiver):
 				if v == -2: return info.getInfoString(sref.ref, what)
 				elif v == -1: return "N/A"
 				return v
-			def sendServiceLine(service, last=False):
+			def sendServiceLine(service, counter, last=False):
 				if service[0][:5] == '1:64:':
 					# format for markers:  ":Name"
 					line = "%d%s:%s" % (CODE_OK, '-' if not last else ' ', service[1])
 				else:
-					# <full name>,<short name>;<provider>:<freq>:<parameters>:<source>:<srate>:<vpid>:<apid>:<tpid>:<conditional access>:<:sid>:<nid>:<tid>:<:rid>
-					# e.g. RTL Television,RTL:12188:h:S19.2E:27500:163:104:105:0:12003:1:1089:0
+					# <id> <full name>,<short name>;<provider>:<freq>:<parameters>:<source>:<srate>:<vpid>:<apid>:<tpid>:<conditional access>:<:sid>:<nid>:<tid>:<:rid>
+					# e.g. 5  RTL Television,RTL:12188:h:S19.2E:27500:163:104:105:0:12003:1:1089:0
 					sref = ServiceReference(service[0])
 					info = sref.info()
 					# XXX: how to get this?! o0
@@ -125,13 +125,16 @@ class SimpleVDRProtocol(LineReceiver):
 					tid = -1
 					rid = -1
 					# TODO: support full format, these are only the important fields ;)
-					line = "%d%s%s,%s;%s:%d:%s:%s:%d:%s:%s:%d:%s:%d:%d:%d:%d" % (CODE_OK, '-' if not last else ' ', service[1], service[2], prov, frequency, param, source, srate, vpid, apid, tpid, ca, sid, nid, tid, rid)
+					line = "%d%s%d %s,%s;%s:%d:%s:%s:%d:%s:%s:%d:%s:%d:%d:%d:%d" % (CODE_OK, '-' if not last else ' ', counter, service[1], service[2], prov, frequency, param, source, srate, vpid, apid, tpid, ca, sid, nid, tid, rid)
 				self.sendLine(line)
+
 			self.channelList = [x[0] for x in services] # always refresh cache b/c this is what the user works with from now on
 			lastItem = services.pop()
+			idx = 1
 			for service in services:
-				sendServiceLine(service)
-			sendServiceLine(lastItem, last=True)
+				sendServiceLine(service, idx)
+				idx += 1
+			sendServiceLine(lastItem, idx, last=True)
 		else:
 			payload = "%d no services found" % (CODE_ERR_LOCAL,)
 			self.sendLine(payload)
@@ -268,6 +271,67 @@ class SimpleVDRProtocol(LineReceiver):
 			idx += 1
 		sendMovieLine(lastItem[0], lastItem[1], lastItem[2], idx, last=True)
 
+	def LSTE(self, args):
+		args = args.split()
+		first = args and args.pop(0)
+		#TODO: find out format of "at <time>"
+		if not first or first in ('now', 'next', 'at') or args and args[1] == "at":
+			# XXX: "parameter not implemented" might be weird to say in case of no parameters, but who cares :-)
+			payload = "%d parameter not implemented" % (CODE_IMP_PARAM,)
+			return self.sendLine(payload)
+		try:
+			channelId = int(first)-1
+			service = self.channelList[channelId]
+		except ValueError:
+			# XXX: add support for sref
+			payload = "%d parameter not implemented" % (CODE_IMP_PARAM,)
+			return self.sendLine(payload)
+
+		# handle additional parametes "now" and "next"
+		type = 0
+		time = -1
+		endtime = -1
+		options = "IBDTSERN"
+		if args:
+			options = "IBDTSERNX"
+			if args[0] == "now":
+				type = 0
+				endtime = None
+			elif args[0] == "next":
+				type = 1
+				endtime = None
+
+		# fetch data
+		epgcache = eEPGCache.getInstance()
+		if endtime is None:
+			params = (service, type, time)
+		else:
+			params = (service, type, time, endtime)
+		events = epgcache.lookupEvent([options , params])
+
+		# process data
+		def sendEventLine(eit, begin, duration, title, description, extended, sref, sname):
+			payload = "%d-E %d %d %d 0" % (CODE_EPG, eit, begin, duration)
+			self.sendLine(payload)
+			payload = "%d-T %s" % (CODE_EPG, title)
+			self.sendLine(payload)
+			payload = "%d-S %s" % (CODE_EPG, description)
+			self.sendLine(payload)
+			payload = "%d-D %s" % (CODE_EPG, extended.replace('\xc2\x8a', '|'))
+			self.sendLine(payload)
+			payload = "%d-e" % (CODE_EPG,)
+			self.sendLine(payload)
+		lastItem = events.pop()
+		payload = "%d-C %s %s" % (CODE_EPG, lastItem[-2], lastItem[-1])
+		self.sendLine(payload)
+		for event in events:
+			sendEventLine(*event)
+		sendEventLine(*lastItem)
+		payload = "%d-c" % (CODE_EPG,)
+		self.sendLine(payload)
+		payload = "%d End of EPG data" % (CODE_EPG,)
+		self.sendLine(payload)
+
 	def lineReceived(self, data):
 		if self.client or not self.transport or not data:
 			return
@@ -288,11 +352,12 @@ class SimpleVDRProtocol(LineReceiver):
 		funcs = {
 			'CHAN': self.CHAN,
 			'LSTC': self.LSTC,
+			'LSTE': self.LSTE,
 			'LSTT': self.LSTT,
+			'LSTR': self.LSTR,
 			'QUIT': self.stop,
 			'MESG': self.MESG,
 			'VOLU': self.VOLU,
-			'LSTR': self.LSTR,
 			'HELP': self.HELP,
 		}
 		if command == "HELP":
