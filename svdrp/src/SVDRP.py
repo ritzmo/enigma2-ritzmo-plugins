@@ -5,10 +5,12 @@ from twisted.protocols.basic import LineReceiver
 from Screens.InfoBar import InfoBar
 from enigma import eEPGCache, eDVBVolumecontrol, eServiceReference, iServiceInformation
 from ServiceReference import ServiceReference
+from Components.TimerSanityCheck import TimerSanityCheck
+from RecordTimer import RecordTimerEntry
 
 from Screens.MessageBox import MessageBox
 from Tools import Notifications
-from time import localtime, strftime
+from time import localtime, mktime, strftime, strptime
 from os import uname
 
 VERSION = '0.1'
@@ -139,6 +141,24 @@ class SimpleVDRProtocol(LineReceiver):
 			payload = "%d no services found" % (CODE_ERR_LOCAL,)
 			self.sendLine(payload)
 
+	def sendTimerLine(self, timer, counter, last=False):
+		# <number> <flags>:<channel id>:<YYYY-MM-DD>:<HHMM>:<HHMM>:<priority>:<lifetime>:<name>:<auxiliary>
+		flags = 0
+		if not timer.disabled: flags |= 1
+		if timer.state == timer.StateRunning: flags |= 8
+		try:
+			channelid = self.channelList.index(str(timer.service_ref)) + 1
+		except ValueError, e:
+			# XXX: ignore timers on channels that are not in our favourite bouquet
+			return False
+		else:
+			datestring = strftime('%Y-%m-%d', localtime(timer.begin))
+			beginstring = strftime('%H%M', localtime(timer.begin))
+			endstring = strftime('%H%M', localtime(timer.end))
+			line = "%d%s%d %d:%d:%s:%s:%s:%d:%d:%s:%s" % (CODE_OK, '-' if not last else ' ', counter, flags, channelid, datestring, beginstring, endstring, 1, 1, timer.name, timer.description)
+			self.sendLine(line)
+			return True
+
 	def LSTT(self, args):
 		import NavigationInstance
 		list = []
@@ -147,32 +167,116 @@ class SimpleVDRProtocol(LineReceiver):
 		list.extend(recordTimer.processed_timers)
 		list.sort(cmp = lambda x, y: x.begin < y.begin)
 
-		def sendTimerLine(timer, counter, last=False):
-			# <number> <flags>:<channel id>:<YYYY-MM-DD>:<HHMM>:<HHMM>:<priority>:<lifetime>:<name>:<auxiliary>
-			flags = 0
-			if not timer.disabled: flags |= 1
-			if timer.state == timer.StateRunning: flags |= 8
-			try:
-				channelid = self.channelList.index(str(timer.service_ref)) + 1
-			except ValueError, e:
-				# XXX: ignore timers on channels that are not in our favourite bouquet
-				return False
-			else:
-				datestring = strftime('%Y-%m-%d', localtime(timer.begin))
-				beginstring = strftime('%H%M', localtime(timer.begin))
-				endstring = strftime('%H%M', localtime(timer.end))
-				line = "%d%s%d %d:%d:%s:%s:%s:%d:%d:%s:%s" % (CODE_OK, '-' if not last else ' ', counter, flags, channelid, datestring, beginstring, endstring, 1, 1, timer.name, timer.description)
-				self.sendLine(line)
-				return True
 		lastItem = list.pop()
 		idx = 1
 		for timer in list:
-			sendTimerLine(timer, idx)
+			self.sendTimerLine(timer, idx)
 			idx += 1
-		if not sendTimerLine(lastItem, idx, last=True):
+		if not self.sendTimerLine(lastItem, idx, last=True):
 			# send error if last item failed to send, else the other end might get stuck
 			payload = "%d data inconsistency error." % (CODE_ERR_LOCAL,)
 			self.sendLine(payload)
+
+	def UPDT(self, args):
+		# <id> <settings>
+		args = args.split(None, 1)
+		if len(args) != 2:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		try:
+			timerId = int(args[0])
+		except ValueError:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		import NavigationInstance
+		list = []
+		recordTimer = NavigationInstance.instance.RecordTimer
+		list.extend(recordTimer.timer_list)
+		list.extend(recordTimer.processed_timers)
+		list.sort(cmp = lambda x, y: x.begin < y.begin)
+
+		if timerId < 1 or len(list) < timerId:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		timer = list[timerId - 1]
+		try:
+			flags, channelid, datestring, beginstring, endstring, priority, lifetime, name, description = args[1].split(':')
+			flags = int(flags)
+			service_ref = ServiceReference(self.channelList[int(channelid)-1])
+			datestruct = strptime(datestring, '%Y-%m-%d')
+			timestruct = strptime(beginstring, '%H%M')
+			begin = mktime((datestruct.tm_year, datestruct.tm_mon, datestruct.tm_mday, timestruct.tm_hour, timestruct.tm_min, 0, datestruct.tm_wday, datestruct.tm_yday, -1))
+			timestruct = strptime(endstring, '%H%M')
+			end = mktime((datestruct.tm_year, datestruct.tm_mon, datestruct.tm_mday, timestruct.tm_hour, timestruct.tm_min, 0, datestruct.tm_wday, datestruct.tm_yday, -1))
+			del datestruct, timestruct
+		except ValueError, e:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+		except KeyError, e:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		recordTimer.removeEntry(timer)
+		old = timer
+		if end < begin: end += 86400 # Add 1 day, beware - this is evil and might not work correctly due to dst
+		timer = RecordTimerEntry(service_ref, begin, end, name, description, 0, disabled=flags & 1 == 0, justplay=old.justplay, afterEvent=old.afterEvent, dirname=old.dirname, tags=old.tags)
+		timer.log_entries = old.log_entries
+		conflict = recordTimer.record(timer)
+		if conflict is None:
+			return self.sendTimerLine(timer, timerId, last=True)
+		else:
+			payload = "%d timer conflict detected, original timer lost." % (CODE_ERR_LOCAL,)
+			return self.sendLine(payload)
+
+	def MODT(self, args):
+		# <id> on | off | <settings>
+		args = args.split(None, 1)
+		if len(args) != 2:
+			payload = "%d argument error" % (CODE_SYNTAX,)
+			return self.sendLine(payload)
+
+		if args[1] in ('on', 'off'):
+			try:
+				timerId = int(args[0])
+			except ValueError:
+				payload = "%d argument error" % (CODE_SYNTAX,)
+				return self.sendLine(payload)
+
+			import NavigationInstance
+			list = []
+			recordTimer = NavigationInstance.instance.RecordTimer
+			list.extend(recordTimer.timer_list)
+			list.extend(recordTimer.processed_timers)
+			list.sort(cmp = lambda x, y: x.begin < y.begin)
+
+			if timerId < 1 or len(list) < timerId:
+				payload = "%d argument error" % (CODE_SYNTAX,)
+				return self.sendLine(payload)
+
+			timer = list[timerId - 1]
+			disable = args[1] == 'off'
+			if disable and timer.isRunning():
+				payload = "%d timer is running, not disabling." % (CODE_ERR_LOCAL,)
+				return self.sendLine(payload)
+			else:
+				if timer.disabled and not disable:
+					timer.enable()
+					tsc = TimerSanityCheck(recordTimer.timer_list, timer)
+					if not timersanitycheck.check():
+						timer.disable()
+						payload = "%d timer conflict detected, aborting." % (CODE_ERR_LOCAL,)
+						return self.sendLine(payload)
+					else:
+						if timersanitycheck.doubleCheck(): timer.disable()
+				elif not timer.disabled and disable:
+					timer.disable()
+				recordTimer.timeChanged(timer)
+				sef.sendTimerLine(timer, timerId, last=True)
+		else:
+			self.UPDT(' '.join(args))
 
 	def MESG(self, data):
 		if not data:
@@ -351,14 +455,16 @@ class SimpleVDRProtocol(LineReceiver):
 		"""
 		funcs = {
 			'CHAN': self.CHAN,
+			'HELP': self.HELP,
 			'LSTC': self.LSTC,
 			'LSTE': self.LSTE,
 			'LSTT': self.LSTT,
 			'LSTR': self.LSTR,
-			'QUIT': self.stop,
 			'MESG': self.MESG,
+			'MODT': self.MODT,
+			'UPDT': self.UPDT,
+			'QUIT': self.stop,
 			'VOLU': self.VOLU,
-			'HELP': self.HELP,
 		}
 		if command == "HELP":
 			args = (funcs, args)
