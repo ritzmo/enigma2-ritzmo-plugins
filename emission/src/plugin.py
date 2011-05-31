@@ -159,8 +159,8 @@ def filescan(**kwargs):
 
 def Plugins(**kwargs):
 	return [
-		PluginDescriptor(name = "eMission", description = _("enigma2 frontend to transmission-daemon"), where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main),
-		PluginDescriptor(name = "eMission...", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main),
-		PluginDescriptor(where = PluginDescriptor.WHERE_FILESCAN, fnc = filescan),
+		PluginDescriptor(name = "eMission", description = _("enigma2 frontend to transmission-daemon"), where = PluginDescriptor.WHERE_PLUGINMENU, fnc = main, needsRestart = False),
+		PluginDescriptor(name = "eMission...", where = PluginDescriptor.WHERE_EXTENSIONSMENU, fnc = main, needsRestart = False),
+		PluginDescriptor(where = PluginDescriptor.WHERE_FILESCAN, fnc = filescan, needsRestart = False),
 	]
 
