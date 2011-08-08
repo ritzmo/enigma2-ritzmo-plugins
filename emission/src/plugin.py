@@ -4,7 +4,7 @@ from Plugins.Plugin import PluginDescriptor
 from Components.config import config, ConfigSubsection, ConfigText, \
 	ConfigNumber, ConfigYesNo, ConfigSelection
 
-import EmissionOverview
+from . import EmissionOverview
 from EmissionOverview import LIST_TYPE_ALL, SORT_TYPE_ADDED
 
 config.plugins.emission = ConfigSubsection()

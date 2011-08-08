@@ -14,7 +14,7 @@ from Components.Sources.StaticText import StaticText
 
 from enigma import eTimer
 
-import EmissionBandwidth
+from . import EmissionBandwidth
 
 class EmissionDetailview(Screen, HelpableScreen):
 	skin = """<screen name="EmissionDetailview" title="Torrent View" position="75,75" size="565,450">
@@ -114,7 +114,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 		if ret:
 			try:
 				self.transmission.change([self.torrentid], **ret)
-			except transmission.TransmissionError, te:
+			except transmission.TransmissionError as te:
 				self.session.open(
 					MessageBox,
 					_("Error communicating with transmission-daemon: %s.") % (te),
@@ -130,7 +130,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 		try:
 			torrent = self.transmission.info([id])[id]
 			rpc_version = self.transmission.rpc_version
-		except transmission.TransmissionError, te:
+		except transmission.TransmissionError as te:
 			self.session.open(
 				MessageBox,
 				_("Error communicating with transmission-daemon: %s.") % (te),
@@ -177,7 +177,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 			elif status in ("downloading", "seeding"):
 				self.transmission.stop([id])
 				self["key_yellow"].text = _("start")
-		except transmission.TransmissionError, te:
+		except transmission.TransmissionError as te:
 			self.session.open(
 				MessageBox,
 				_("Error communicating with transmission-daemon: %s.") % (te),
@@ -205,7 +205,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 				elif ret == "data":
 					self.transmission.remove([self.torrentid], delete_data = True)
 					self.close()
-			except transmission.TransmissionError, te:
+			except transmission.TransmissionError as te:
 				self.session.open(
 					MessageBox,
 					_("Error communicating with transmission-daemon: %s.") % (te),
@@ -261,7 +261,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 
 			l = []
 			files = torrent.files()
-			for id, x in files.iteritems():
+			for id, x in files.items():
 				completed = x['completed']
 				size = x['size'] or 1 # to avoid division by zero ;-)
 				l.append((id, x['priority'], str(completed/1048576) + " MB", \
@@ -306,7 +306,7 @@ class EmissionDetailview(Screen, HelpableScreen):
 					files[cur[0]]['selected'] = True
 
 				self.transmission.set_files({self.torrentid: files})
-			except transmission.TransmissionError, te:
+			except transmission.TransmissionError as te:
 				self.session.open(
 					MessageBox,
 					_("Error communicating with transmission-daemon: %s.") % (te),
