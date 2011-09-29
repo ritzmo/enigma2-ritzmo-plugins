@@ -6,9 +6,6 @@ AM_PATH_PYTHON()
 AC_OUTPUT([
 Makefile
 
-emission/Makefile
-emission/src/Makefile
-
 historybrowser/Makefile
 historybrowser/src/Makefile
 
